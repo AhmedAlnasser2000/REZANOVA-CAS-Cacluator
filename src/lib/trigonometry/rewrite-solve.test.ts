@@ -43,6 +43,20 @@ describe('matchTrigEquationRewriteForSolve', () => {
     expect(result.candidate.solvedLatex.replaceAll(' ', '')).toContain('\\cos\\left(2x\\right)=0');
   });
 
+  it('matches normalized cosine double-angle equations regardless of term ordering', () => {
+    const result = matchTrigEquationRewriteForSolve(
+      '\\cos^2\\left(x\\right)-\\sin^2\\left(x\\right)=0',
+      'deg',
+    );
+
+    expect(result.kind).toBe('candidate');
+    if (result.kind !== 'candidate' || result.candidate.kind !== 'single-call') {
+      throw new Error('Expected a single-call rewrite candidate');
+    }
+    expect(result.candidate.rewriteKind).toBe('cos-double-angle');
+    expect(result.candidate.solvedLatex.replaceAll(' ', '')).toContain('\\cos\\left(2x\\right)=0');
+  });
+
   it('matches trig-square split equations', () => {
     const result = matchTrigEquationRewriteForSolve(
       '\\sin^2\\left(x\\right)=\\frac{1}{4}',

@@ -3829,6 +3829,10 @@ export default function App() {
       return false;
     }
 
+    if (!shouldAllowEquationNumericSolve()) {
+      return false;
+    }
+
     if (equationNumericSolvePanel.enabled) {
       return true;
     }
@@ -3844,6 +3848,18 @@ export default function App() {
       'This equation contains an indefinite integral',
       'This equation requires a trig rewrite outside the supported pre-solve set',
     ].some((fragment) => displayOutcome.error.includes(fragment));
+  }
+
+  function shouldAllowEquationNumericSolve() {
+    if (equationScreen !== 'symbolic') {
+      return false;
+    }
+
+    if (currentMode !== 'equation' || !displayOutcome || displayOutcome.kind === 'prompt') {
+      return true;
+    }
+
+    return !(displayOutcome.solveBadges ?? []).includes('Range Guard');
   }
 
   function runAdvancedCalcAction() {
@@ -9718,31 +9734,33 @@ export default function App() {
                     <p className="equation-hint">
                       Enter a symbolic equation in the main display, for example `x^2-5x+6=0`.
                     </p>
-                    <div className="workspace-action-row">
-                      {!shouldShowEquationNumericSolvePanel() ? (
-                        <button
-                          type="button"
-                          className="workspace-action-button"
-                          onClick={() => setEquationNumericSolvePanel((currentPanel) => ({
-                            ...currentPanel,
-                            enabled: true,
-                          }))}
-                        >
-                          Numeric Solve
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="workspace-action-button"
-                          onClick={() => setEquationNumericSolvePanel((currentPanel) => ({
-                            ...currentPanel,
-                            enabled: false,
-                          }))}
-                        >
-                          Hide Numeric Solve
-                        </button>
-                      )}
-                    </div>
+                    {shouldAllowEquationNumericSolve() ? (
+                      <div className="workspace-action-row">
+                        {!shouldShowEquationNumericSolvePanel() ? (
+                          <button
+                            type="button"
+                            className="workspace-action-button"
+                            onClick={() => setEquationNumericSolvePanel((currentPanel) => ({
+                              ...currentPanel,
+                              enabled: true,
+                            }))}
+                          >
+                            Numeric Solve
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="workspace-action-button"
+                            onClick={() => setEquationNumericSolvePanel((currentPanel) => ({
+                              ...currentPanel,
+                              enabled: false,
+                            }))}
+                          >
+                            Hide Numeric Solve
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                     {shouldShowEquationNumericSolvePanel() ? (
                       <div className="equation-numeric-panel">
                         <div className="card-title-row">

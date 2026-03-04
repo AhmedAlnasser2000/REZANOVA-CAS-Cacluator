@@ -183,7 +183,32 @@ export type SolveBadge =
   | 'Symbolic Substitution'
   | 'Inverse Isolation'
   | 'Numeric Interval'
-  | 'Candidate Checked';
+  | 'Candidate Checked'
+  | 'Range Guard';
+export type RealRangeInterval = {
+  min: number;
+  max: number;
+  minInclusive: boolean;
+  maxInclusive: boolean;
+};
+export type RangeProofReason =
+  | 'trig-carrier'
+  | 'trig-square'
+  | 'bounded-product'
+  | 'bounded-sum'
+  | 'positive-exponential'
+  | 'affine-bounded';
+export type RangeImpossibilityResult =
+  | { kind: 'none' }
+  | {
+      kind: 'impossible';
+      error: string;
+      summaryText: string;
+      badge: 'Range Guard';
+      reason: RangeProofReason;
+      derivedRange: RealRangeInterval;
+      comparedTarget?: string;
+    };
 export type PlannerStep =
   | { kind: 'canonicalize-token'; before: string; after: string }
   | { kind: 'reduce-derivative'; before: string; after: string }

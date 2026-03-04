@@ -24,6 +24,23 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Symbolic Substitution');
   });
 
+  it('solves exponential substitution families without hitting recursion depth', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      originalLatex: 'e^{2x}-5e^x+6=0',
+      resolvedLatex: 'e^{2x}-5e^x+6=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected guarded solve success');
+    }
+    expect(result.solveBadges).toContain('Symbolic Substitution');
+    expect(result.solveBadges).toContain('Inverse Isolation');
+    expect(result.exactLatex ?? result.approxText ?? '').toContain('0.693');
+    expect(result.exactLatex ?? result.approxText ?? '').toContain('1.098');
+  });
+
   it('runs numeric interval solving when an interval is provided', () => {
     const result = runGuardedEquationSolve({
       ...request,
@@ -43,5 +60,35 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Numeric Interval');
     expect(result.solveBadges).toContain('Candidate Checked');
     expect(result.approxText).toContain('0.739');
+  });
+
+  it('hard-stops impossible real equations before family matching', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      originalLatex: '\\sin\\left(x^2\\right)=5',
+      resolvedLatex: '\\sin\\left(x^2\\right)=5',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected guarded solve error');
+    }
+    expect(result.solveBadges).toContain('Range Guard');
+    expect(result.error).toContain('between -1 and 1');
+  });
+
+  it('hard-stops bounded trig products that cannot reach the target', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      originalLatex: '\\sin\\left(x^2\\right)\\cos\\left(x\\right)=5',
+      resolvedLatex: '\\sin\\left(x^2\\right)\\cos\\left(x\\right)=5',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected guarded solve error');
+    }
+    expect(result.solveBadges).toContain('Range Guard');
+    expect(result.solveSummaryText).toContain('[-1, 1]');
   });
 });

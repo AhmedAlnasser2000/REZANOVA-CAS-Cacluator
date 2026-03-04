@@ -131,6 +131,7 @@ function runTrigRequest(
 
       const shouldOfferEquationHandoff =
         outcome.kind === 'error'
+        && !(outcome.solveBadges ?? []).includes('Range Guard')
         && !outcome.exactLatex
         && (outcome.error.includes('outside the supported symbolic solve families')
           || outcome.error.includes('No symbolic solution')

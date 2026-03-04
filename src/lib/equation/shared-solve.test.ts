@@ -67,6 +67,22 @@ describe('runSharedEquationSolve', () => {
     if (result.kind !== 'error') {
       throw new Error('Expected an error outcome');
     }
-    expect(result.error).toContain('cannot exceed 1');
+    expect(result.error).toContain('stay between 0 and 1');
+    expect(result.solveBadges).toContain('Range Guard');
+  });
+
+  it('returns range-guard errors for impossible bounded equations', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sin\\left(x^2\\right)=5',
+      resolvedLatex: '\\sin\\left(x^2\\right)=5',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected an error outcome');
+    }
+    expect(result.solveBadges).toContain('Range Guard');
+    expect(result.error).toContain('between -1 and 1');
   });
 });

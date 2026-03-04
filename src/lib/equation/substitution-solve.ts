@@ -670,10 +670,15 @@ export function matchSubstitutionSolve(
     return trig;
   }
 
+  const inverse = matchInverseIsolation(normalizeAst(ce.parse(equationLatex).json));
+  if (inverse.kind !== 'none') {
+    return inverse;
+  }
+
   const exponential = matchExponentialPolynomialSubstitution(zeroForm);
   if (exponential.kind !== 'none') {
     return exponential;
   }
 
-  return matchInverseIsolation(normalizeAst(ce.parse(equationLatex).json));
+  return { kind: 'none' };
 }

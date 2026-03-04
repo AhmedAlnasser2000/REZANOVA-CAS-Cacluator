@@ -5,6 +5,7 @@ import { solveTrigEquation } from '../trigonometry/equations';
 import { matchTrigEquationRewriteForSolve } from '../trigonometry/rewrite-solve';
 import { validateCandidateRoots } from './candidate-validation';
 import { runNumericIntervalSolve } from './numeric-interval-solve';
+import { detectRealRangeImpossibility } from './range-impossibility';
 import { matchSubstitutionSolve } from './substitution-solve';
 import type {
   DisplayOutcome,
@@ -343,6 +344,18 @@ export function runGuardedEquationSolve(request: GuardedSolveRequest, depth = 0)
       symbolic.exactLatex,
       symbolic.approxText,
       symbolic.warnings,
+    );
+  }
+
+  const rangeImpossibility = detectRealRangeImpossibility(request.resolvedLatex);
+  if (rangeImpossibility.kind === 'impossible') {
+    return errorOutcome(
+      'Solve',
+      rangeImpossibility.error,
+      symbolic.warnings,
+      [],
+      ['Range Guard'],
+      rangeImpossibility.summaryText,
     );
   }
 

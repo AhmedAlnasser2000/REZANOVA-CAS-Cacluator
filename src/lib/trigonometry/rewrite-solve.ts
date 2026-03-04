@@ -245,34 +245,56 @@ function matchDirectCosDoubleAngleRewrite(expressionNode: unknown, rhsNode: unkn
   let argumentLatex: string | null = null;
 
   if (
-    firstSquare?.kind === 'cos'
-    && firstSquare.coefficient === 1
-    && secondSquare?.kind === 'sin'
-    && secondSquare.coefficient === -1
+    firstSquare
+    && secondSquare
+    && (
+      (
+        firstSquare.kind === 'cos'
+        && firstSquare.coefficient === 1
+        && secondSquare.kind === 'sin'
+        && secondSquare.coefficient === -1
+      ) || (
+        firstSquare.kind === 'sin'
+        && firstSquare.coefficient === -1
+        && secondSquare.kind === 'cos'
+        && secondSquare.coefficient === 1
+      )
+    )
     && firstSquare.argumentLatex === secondSquare.argumentLatex
   ) {
     argumentLatex = firstSquare.argumentLatex;
   } else if (
-    firstConstant !== null
-    && Math.abs(firstConstant - 1) < EPSILON
-    && secondSquare?.kind === 'sin'
-    && secondSquare.coefficient === -2
+    (
+      firstConstant !== null
+      && Math.abs(firstConstant - 1) < EPSILON
+      && secondSquare?.kind === 'sin'
+      && secondSquare.coefficient === -2
+    ) || (
+      secondConstant !== null
+      && Math.abs(secondConstant - 1) < EPSILON
+      && firstSquare?.kind === 'sin'
+      && firstSquare.coefficient === -2
+    )
   ) {
-    argumentLatex = secondSquare.argumentLatex;
+    argumentLatex = secondSquare?.kind === 'sin' && secondSquare.coefficient === -2
+      ? secondSquare.argumentLatex
+      : firstSquare?.argumentLatex ?? null;
   } else if (
-    firstSquare?.kind === 'cos'
-    && firstSquare.coefficient === 2
-    && secondConstant !== null
-    && Math.abs(secondConstant + 1) < EPSILON
+    (
+      firstSquare?.kind === 'cos'
+      && firstSquare.coefficient === 2
+      && secondConstant !== null
+      && Math.abs(secondConstant + 1) < EPSILON
+    ) || (
+      secondSquare?.kind === 'cos'
+      && secondSquare.coefficient === 2
+      && firstConstant !== null
+      && Math.abs(firstConstant + 1) < EPSILON
+    )
   ) {
-    argumentLatex = firstSquare.argumentLatex;
-  } else if (
-    firstConstant !== null
-    && Math.abs(firstConstant + 1) < EPSILON
-    && secondSquare?.kind === 'cos'
-    && secondSquare.coefficient === 2
-  ) {
-    argumentLatex = secondSquare.argumentLatex;
+    argumentLatex = firstSquare?.kind === 'cos' && firstSquare.coefficient === 2
+      ? firstSquare.argumentLatex
+      : secondSquare?.argumentLatex ?? null;
   }
 
   if (!argumentLatex) {

@@ -54,4 +54,35 @@ describe('trigonometry core draft runner', () => {
       expect(outcome.exactLatex).toContain('\\frac{\\pi}{6}');
     }
   });
+
+  it('does not offer Equation handoff for range-proven impossible trig equations', () => {
+    const { outcome } = runTrigonometryCoreDraft('\\sin\\left(x^2\\right)=5', {
+      screenHint: 'equationSolve',
+      angleUnit: 'deg',
+    });
+
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') {
+      throw new Error('Expected trig equation error');
+    }
+    expect(outcome.solveBadges).toContain('Range Guard');
+    expect(outcome.actions).toBeUndefined();
+  });
+
+  it('still offers Equation handoff for numeric-eligible unresolved trig equations', () => {
+    const { outcome } = runTrigonometryCoreDraft('\\cos\\left(x\\right)=x', {
+      screenHint: 'equationSolve',
+      angleUnit: 'deg',
+    });
+
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') {
+      throw new Error('Expected trig equation error');
+    }
+    expect(outcome.actions?.[0]).toEqual({
+      kind: 'send',
+      target: 'equation',
+      latex: '\\cos(x)=x',
+    });
+  });
 });

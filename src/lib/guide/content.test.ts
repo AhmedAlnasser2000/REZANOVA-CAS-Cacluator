@@ -96,11 +96,14 @@ describe('guide content', () => {
     const trigFunctions = getGuideArticle('trig-functions')
     const trigTriangles = getGuideArticle('trig-triangles')
     const trigEquations = getGuideArticle('trig-equations')
+    const algebraEquations = getGuideArticle('algebra-equations')
 
     expect(trigFunctions?.examples[0]?.launch.targetMode).toBe('trigonometry')
     expect(trigFunctions?.examples[0]?.launch.trigScreen).toBe('functions')
     expect(trigTriangles?.examples[0]?.launch.kind).toBe('open-tool')
     expect(trigEquations?.summary).toContain('selected exact rewrite')
+    expect(trigEquations?.concepts.join(' ')).toContain('range guards')
+    expect(algebraEquations?.concepts.join(' ')).toContain('exact range checks')
     expect(trigEquations?.examples[2]?.launch.trigScreen).toBe('equationSolve')
   })
 
