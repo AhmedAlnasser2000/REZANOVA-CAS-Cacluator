@@ -137,6 +137,38 @@ function parseLineForm(value?: string): LineEquationState['form'] | null {
   return null;
 }
 
+type LineConstraintInput = {
+  slopeLatex?: string;
+  distanceLatex?: string;
+  midpointLatex?: string;
+};
+
+function parseLineConstraint(
+  input: LineConstraintInput,
+  pointUnknownCount: number,
+): GeometryParseResult | null {
+  if (pointUnknownCount > 1) {
+    return { ok: false, error: 'Use exactly one ? unknown in lineEquation(...) coordinate constraints.' };
+  }
+
+  const constraintKinds = [
+    input.slopeLatex ? 'slope' : null,
+    input.distanceLatex ? 'distance' : null,
+    input.midpointLatex ? 'midpoint' : null,
+  ].filter((value): value is 'slope' | 'distance' | 'midpoint' => value !== null);
+
+  if (constraintKinds.length === 0) {
+    return null;
+  }
+  if (constraintKinds.length > 1) {
+    return { ok: false, error: 'lineEquation solve-missing supports exactly one constraint: slope=..., distance=..., or mid=(x,y).' };
+  }
+  if (pointUnknownCount !== 1) {
+    return { ok: false, error: 'lineEquation solve-missing needs exactly one ? coordinate plus one known constraint.' };
+  }
+  return null;
+}
+
 function kindFromFunctionName(name: string): GeometryRequest['kind'] | null {
   switch (name.toLowerCase().replaceAll(' ', '')) {
     case 'square':
@@ -263,6 +295,14 @@ export function geometryRequestToScreen(request: GeometryRequest): GeometryScree
       return 'rectangle';
     case 'cylinderSolveMissing':
       return 'cylinder';
+    case 'coneSolveMissing':
+      return 'cone';
+    case 'cuboidSolveMissing':
+      return 'cuboid';
+    case 'arcSectorSolveMissing':
+      return 'arcSector';
+    case 'triangleHeronSolveMissing':
+      return 'triangleHeron';
     case 'distanceSolveMissing':
       return 'distance';
     case 'midpointSolveMissing':
@@ -308,14 +348,16 @@ function parseStructured(source: string): GeometryParseResult | null {
   const diagonalLatex = assignments.get('diagonal') ?? assignments.get('d');
   const diameterLatex = assignments.get('diameter') ?? assignments.get('d');
   const circumferenceLatex = assignments.get('circumference') ?? assignments.get('c');
+  const arcLatex = assignments.get('arc');
+  const sectorLatex = assignments.get('sector');
   const volumeLatex = assignments.get('volume') ?? assignments.get('v');
   const surfaceAreaLatex = assignments.get('surfacearea') ?? assignments.get('sa') ?? assignments.get('surface');
   const aLatex = assignments.get('a');
   const cLatex = assignments.get('c');
   const baseLatex = explicitBaseLatex ?? (!aLatex && !cLatex ? assignments.get('b') : undefined);
   const distanceLatex = assignments.get('distance') ?? assignments.get('d');
-  const midpointLatex = assignments.get('mid') ?? assignments.get('m');
-  const slopeLatex = assignments.get('slope') ?? assignments.get('m');
+  const midpointLatex = assignments.get('mid');
+  const slopeLatex = assignments.get('slope');
 
   const pointPair = () => {
     const p1 = parsePoint(assignments.get('p1') ?? '');
@@ -461,6 +503,45 @@ function parseStructured(source: string): GeometryParseResult | null {
       if (!radiusLatex || !angleLatex || !['deg', 'rad', 'grad'].includes(angleUnit)) {
         return { ok: false, error: 'arcSector(...) needs radius=..., angle=..., and unit=deg|rad|grad.' };
       }
+      const unknownCount = countUnknownValues([
+        radiusLatex,
+        angleLatex,
+        arcLatex,
+        sectorLatex,
+      ]);
+      if (unknownCount > 1) {
+        return { ok: false, error: 'Use exactly one ? unknown in arcSector(...).' };
+      }
+      if (unknownCount === 1) {
+        const unknown = isUnknownValue(radiusLatex)
+          ? 'radius'
+          : isUnknownValue(angleLatex)
+            ? 'angle'
+            : null;
+        if (!unknown) {
+          return { ok: false, error: 'arcSector(...) solve-missing supports ? on radius or angle only.' };
+        }
+        const knownEntries = [
+          ['arc', arcLatex],
+          ['sector', sectorLatex],
+        ].filter((entry): entry is [string, string] => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+        if (knownEntries.length !== 1) {
+          return { ok: false, error: 'arcSector(..., ? , ...) needs exactly one known relation: arc or sector.' };
+        }
+        return {
+          ok: true,
+          request: {
+            kind: 'arcSectorSolveMissing',
+            radiusLatex,
+            angleLatex,
+            angleUnit,
+            unknown,
+            ...(knownEntries[0][0] === 'arc' ? { arcLatex: knownEntries[0][1] } : {}),
+            ...(knownEntries[0][0] === 'sector' ? { sectorLatex: knownEntries[0][1] } : {}),
+          },
+          style: 'structured',
+        };
+      }
       return { ok: true, request: { kind, radiusLatex, angleLatex, angleUnit }, style: 'structured' };
     }
     case 'cube': {
@@ -505,6 +586,58 @@ function parseStructured(source: string): GeometryParseResult | null {
     case 'cuboid': {
       const widthLatex = assignments.get('width') ?? assignments.get('w');
       const heightLatex = assignments.get('height') ?? assignments.get('h');
+      const unknownCount = countUnknownValues([
+        lengthLatex,
+        widthLatex,
+        heightLatex,
+        volumeLatex,
+        diagonalLatex,
+      ]);
+      if (unknownCount > 1) {
+        return { ok: false, error: 'Use exactly one ? unknown in cuboid(...).' };
+      }
+      if (unknownCount === 1) {
+        const unknown = isUnknownValue(lengthLatex)
+          ? 'length'
+          : isUnknownValue(widthLatex)
+            ? 'width'
+            : isUnknownValue(heightLatex)
+              ? 'height'
+              : null;
+        if (!unknown) {
+          return { ok: false, error: 'cuboid(...) solve-missing supports ? on length, width, or height only.' };
+        }
+        const knownDimensions = [
+          ['length', lengthLatex],
+          ['width', widthLatex],
+          ['height', heightLatex],
+        ]
+          .filter((entry) => entry[0] !== unknown)
+          .every((entry) => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+        if (!knownDimensions) {
+          return { ok: false, error: 'cuboid(...) solve-missing needs the other two dimensions as known values.' };
+        }
+        const knownEntries = [
+          ['volume', volumeLatex],
+          ['diagonal', diagonalLatex],
+        ].filter((entry): entry is [string, string] => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+        if (knownEntries.length !== 1) {
+          return { ok: false, error: 'cuboid(..., ? , ...) needs exactly one known relation: volume or diagonal.' };
+        }
+        return {
+          ok: true,
+          request: {
+            kind: 'cuboidSolveMissing',
+            lengthLatex: lengthLatex ?? '?',
+            widthLatex: widthLatex ?? '?',
+            heightLatex: heightLatex ?? '?',
+            unknown,
+            ...(knownEntries[0][0] === 'volume' ? { volumeLatex: knownEntries[0][1] } : {}),
+            ...(knownEntries[0][0] === 'diagonal' ? { diagonalLatex: knownEntries[0][1] } : {}),
+          },
+          style: 'structured',
+        };
+      }
       return lengthLatex && widthLatex && heightLatex
         ? { ok: true, request: { kind, lengthLatex, widthLatex, heightLatex }, style: 'structured' }
         : { ok: false, error: 'cuboid(...) needs length=..., width=..., and height=...' };
@@ -555,8 +688,59 @@ function parseStructured(source: string): GeometryParseResult | null {
     case 'cone': {
       const radiusLatex = assignments.get('radius') ?? assignments.get('r');
       const heightLatex = assignments.get('height') ?? assignments.get('h');
-      if (!radiusLatex || (!heightLatex && !slantHeightLatex)) {
+      if (!radiusLatex || (!heightLatex && !slantHeightLatex && !volumeLatex)) {
         return { ok: false, error: 'cone(...) needs radius=... plus height=... or slantHeight=...' };
+      }
+      const unknownCount = countUnknownValues([
+        radiusLatex,
+        heightLatex,
+        slantHeightLatex,
+        volumeLatex,
+      ]);
+      if (unknownCount > 1) {
+        return { ok: false, error: 'Use exactly one ? unknown in cone(...).' };
+      }
+      if (unknownCount === 1) {
+        const unknown = isUnknownValue(radiusLatex)
+          ? 'radius'
+          : isUnknownValue(heightLatex)
+            ? 'height'
+            : isUnknownValue(slantHeightLatex)
+              ? 'slantHeight'
+              : null;
+        if (!unknown) {
+          return { ok: false, error: 'cone(...) solve-missing supports ? on radius, height, or slantHeight only.' };
+        }
+        if (unknown === 'radius') {
+          if (!heightLatex || isUnknownValue(heightLatex) || !volumeLatex || isUnknownValue(volumeLatex)) {
+            return { ok: false, error: 'cone(radius=?, ...) needs known height and volume.' };
+          }
+        } else if (unknown === 'height') {
+          const hasVolume = Boolean(volumeLatex) && !isUnknownValue(volumeLatex);
+          const hasSlant = Boolean(slantHeightLatex) && !isUnknownValue(slantHeightLatex);
+          if (!radiusLatex || isUnknownValue(radiusLatex)) {
+            return { ok: false, error: 'cone(height=?, ...) needs a known radius.' };
+          }
+          if (Number(hasVolume) + Number(hasSlant) !== 1) {
+            return { ok: false, error: 'cone(height=?, ...) needs exactly one known relation: volume or slantHeight.' };
+          }
+        } else {
+          if (!radiusLatex || isUnknownValue(radiusLatex) || !heightLatex || isUnknownValue(heightLatex)) {
+            return { ok: false, error: 'cone(slantHeight=?, ...) needs known radius and height.' };
+          }
+        }
+        return {
+          ok: true,
+          request: {
+            kind: 'coneSolveMissing',
+            radiusLatex: radiusLatex ?? '?',
+            heightLatex: heightLatex ?? '?',
+            slantHeightLatex: slantHeightLatex ?? '?',
+            ...(volumeLatex && !isUnknownValue(volumeLatex) ? { volumeLatex } : {}),
+            unknown,
+          },
+          style: 'structured',
+        };
       }
       return {
         ok: true,
@@ -649,6 +833,46 @@ function parseStructured(source: string): GeometryParseResult | null {
     }
     case 'triangleHeron': {
       const bLatex = assignments.get('b');
+      const unknownCount = countUnknownValues([
+        aLatex,
+        bLatex,
+        cLatex,
+        areaLatex,
+      ]);
+      if (unknownCount > 1) {
+        return { ok: false, error: 'Use exactly one ? unknown in triangleHeron(...).' };
+      }
+      if (unknownCount === 1) {
+        const unknown = isUnknownValue(aLatex)
+          ? 'a'
+          : isUnknownValue(bLatex)
+            ? 'b'
+            : isUnknownValue(cLatex)
+              ? 'c'
+              : null;
+        if (!unknown) {
+          return { ok: false, error: 'triangleHeron(...) solve-missing supports ? on side a, b, or c only.' };
+        }
+        if (!areaLatex || isUnknownValue(areaLatex)) {
+          return { ok: false, error: 'triangleHeron(..., ? , ...) needs a known area value.' };
+        }
+        const knownSides = [aLatex, bLatex, cLatex].filter((value) => !isUnknownValue(value ?? ''));
+        if (knownSides.length !== 2 || knownSides.some((value) => !value)) {
+          return { ok: false, error: 'triangleHeron solve-missing needs the other two side values as known numbers.' };
+        }
+        return {
+          ok: true,
+          request: {
+            kind: 'triangleHeronSolveMissing',
+            aLatex: aLatex ?? '?',
+            bLatex: bLatex ?? '?',
+            cLatex: cLatex ?? '?',
+            areaLatex,
+            unknown,
+          },
+          style: 'structured',
+        };
+      }
       return aLatex && bLatex && cLatex
         ? { ok: true, request: { kind, aLatex, bLatex, cLatex }, style: 'structured' }
         : { ok: false, error: 'triangleHeron(...) needs a=..., b=..., and c=...' };
@@ -656,6 +880,8 @@ function parseStructured(source: string): GeometryParseResult | null {
     case 'distance':
     case 'midpoint':
     case 'slope': {
+      const midpointConstraintLatex = midpointLatex ?? assignments.get('m');
+      const slopeConstraintLatex = slopeLatex ?? assignments.get('m');
       const pair = pointPair();
       if (!pair) {
         return { ok: false, error: `${kind}(...) needs p1=(x,y) and p2=(x,y).` };
@@ -682,7 +908,7 @@ function parseStructured(source: string): GeometryParseResult | null {
           };
         }
         if (kind === 'midpoint') {
-          const mid = parsePoint(midpointLatex ?? '');
+          const mid = parsePoint(midpointConstraintLatex ?? '');
           if (!mid) {
             return { ok: false, error: 'midpoint(..., ? , ...) needs mid=(x,y).' };
           }
@@ -696,12 +922,12 @@ function parseStructured(source: string): GeometryParseResult | null {
             style: 'structured',
           };
         }
-        if (!slopeLatex || isUnknownValue(slopeLatex)) {
+        if (!slopeConstraintLatex || isUnknownValue(slopeConstraintLatex)) {
           return { ok: false, error: 'slope(..., ? , ...) needs a known slope value.' };
         }
         return {
           ok: true,
-          request: { kind: 'slopeSolveMissing', p1: pair.p1, p2: pair.p2, slopeLatex },
+          request: { kind: 'slopeSolveMissing', p1: pair.p1, p2: pair.p2, slopeLatex: slopeConstraintLatex },
           style: 'structured',
         };
       }
@@ -711,9 +937,63 @@ function parseStructured(source: string): GeometryParseResult | null {
     case 'lineEquation': {
       const pair = pointPair();
       const form = pair?.form ?? parseLineForm(assignments.get('form')) ?? 'slope-intercept';
-      return pair
-        ? { ok: true, request: { kind, p1: pair.p1, p2: pair.p2, form }, style: 'structured' }
-        : { ok: false, error: 'lineEquation(...) needs p1=(x,y), p2=(x,y), and an optional form=...' };
+      if (!pair) {
+        return { ok: false, error: 'lineEquation(...) needs p1=(x,y), p2=(x,y), and an optional form=...' };
+      }
+      const pointUnknownCount = countUnknownValues([
+        pair.p1.xLatex,
+        pair.p1.yLatex,
+        pair.p2.xLatex,
+        pair.p2.yLatex,
+      ]);
+      const lineConstraint = parseLineConstraint(
+        {
+          slopeLatex: assignments.get('slope'),
+          distanceLatex: assignments.get('distance'),
+          midpointLatex: assignments.get('mid'),
+        },
+        pointUnknownCount,
+      );
+      if (lineConstraint) {
+        return lineConstraint;
+      }
+      if (pointUnknownCount === 1) {
+        if (assignments.has('distance')) {
+          const knownDistance = assignments.get('distance');
+          if (!knownDistance || isUnknownValue(knownDistance)) {
+            return { ok: false, error: 'lineEquation solve-missing with distance constraint needs distance=... as a known value.' };
+          }
+          return {
+            ok: true,
+            request: { kind: 'distanceSolveMissing', p1: pair.p1, p2: pair.p2, distanceLatex: knownDistance },
+            style: 'structured',
+          };
+        }
+        if (assignments.has('mid')) {
+          const mid = parsePoint(assignments.get('mid') ?? '');
+          if (!mid || isUnknownValue(mid.xLatex) || isUnknownValue(mid.yLatex)) {
+            return { ok: false, error: 'lineEquation solve-missing with midpoint constraint needs mid=(x,y) with known values.' };
+          }
+          return {
+            ok: true,
+            request: { kind: 'midpointSolveMissing', p1: pair.p1, p2: pair.p2, mid },
+            style: 'structured',
+          };
+        }
+        if (!assignments.has('slope')) {
+          return { ok: false, error: 'lineEquation solve-missing needs exactly one constraint: slope=..., distance=..., or mid=(x,y).' };
+        }
+        const knownSlope = assignments.get('slope');
+        if (!knownSlope || isUnknownValue(knownSlope)) {
+          return { ok: false, error: 'lineEquation solve-missing with slope constraint needs slope=... as a known value.' };
+        }
+        return {
+          ok: true,
+          request: { kind: 'slopeSolveMissing', p1: pair.p1, p2: pair.p2, slopeLatex: knownSlope },
+          style: 'structured',
+        };
+      }
+      return { ok: true, request: { kind, p1: pair.p1, p2: pair.p2, form }, style: 'structured' };
     }
   }
 
@@ -743,6 +1023,8 @@ function parseShorthand(source: string, options: GeometryParseOptions): Geometry
   const diagonalLatex = assignments.get('diagonal') ?? assignments.get('d');
   const diameterLatex = assignments.get('diameter') ?? assignments.get('d');
   const circumferenceLatex = assignments.get('circumference') ?? assignments.get('c');
+  const arcLatex = assignments.get('arc');
+  const sectorLatex = assignments.get('sector');
   const volumeLatex = assignments.get('volume') ?? assignments.get('v');
   const surfaceAreaLatex = assignments.get('surfacearea') ?? assignments.get('sa') ?? assignments.get('surface');
   const angleValue = assignments.get('theta') ?? assignments.get('angle');
@@ -769,8 +1051,15 @@ function parseShorthand(source: string, options: GeometryParseOptions): Geometry
     sideLatex,
     widthLatex,
     heightLatex,
+    lengthLatex,
+    slantHeightLatex,
     radiusLatex,
+    aLatex,
+    bLatex,
+    cLatex,
     areaLatex,
+    arcLatex,
+    sectorLatex,
     perimeterLatex,
     diagonalLatex,
     diameterLatex,
@@ -980,6 +1269,162 @@ function parseShorthand(source: string, options: GeometryParseOptions): Geometry
     };
   }
 
+  if (options.screenHint === 'cone') {
+    const unknownCount = countUnknownValues([radiusLatex, heightLatex, slantHeightLatex, volumeLatex]);
+    if (unknownCount > 1) {
+      return { ok: false, error: 'Use exactly one ? unknown in cone solve-missing requests.' };
+    }
+    if (unknownCount === 1) {
+      const unknown = isUnknownValue(radiusLatex)
+        ? 'radius'
+        : isUnknownValue(heightLatex)
+          ? 'height'
+          : isUnknownValue(slantHeightLatex)
+            ? 'slantHeight'
+            : null;
+      if (!unknown) {
+        return { ok: false, error: 'cone solve-missing supports ? on radius, height, or slantHeight only.' };
+      }
+      if (unknown === 'radius') {
+        if (!heightLatex || isUnknownValue(heightLatex) || !volumeLatex || isUnknownValue(volumeLatex)) {
+          return { ok: false, error: 'cone(radius=?, ...) needs known height and volume.' };
+        }
+      } else if (unknown === 'height') {
+        const hasVolume = Boolean(volumeLatex) && !isUnknownValue(volumeLatex);
+        const hasSlant = Boolean(slantHeightLatex) && !isUnknownValue(slantHeightLatex);
+        if (!radiusLatex || isUnknownValue(radiusLatex)) {
+          return { ok: false, error: 'cone(height=?, ...) needs a known radius.' };
+        }
+        if (Number(hasVolume) + Number(hasSlant) !== 1) {
+          return { ok: false, error: 'cone(height=?, ...) needs exactly one known relation: volume or slantHeight.' };
+        }
+      } else if (!radiusLatex || isUnknownValue(radiusLatex) || !heightLatex || isUnknownValue(heightLatex)) {
+        return { ok: false, error: 'cone(slantHeight=?, ...) needs known radius and height.' };
+      }
+      return {
+        ok: true,
+        request: {
+          kind: 'coneSolveMissing',
+          radiusLatex: radiusLatex ?? '?',
+          heightLatex: heightLatex ?? '?',
+          slantHeightLatex: slantHeightLatex ?? '?',
+          ...(volumeLatex && !isUnknownValue(volumeLatex) ? { volumeLatex } : {}),
+          unknown,
+        },
+        style,
+      };
+    }
+  }
+
+  if (options.screenHint === 'cuboid') {
+    const unknownCount = countUnknownValues([lengthLatex, widthLatex, heightLatex, volumeLatex, diagonalLatex]);
+    if (unknownCount > 1) {
+      return { ok: false, error: 'Use exactly one ? unknown in cuboid solve-missing requests.' };
+    }
+    if (unknownCount === 1) {
+      const unknown = isUnknownValue(lengthLatex)
+        ? 'length'
+        : isUnknownValue(widthLatex)
+          ? 'width'
+          : isUnknownValue(heightLatex)
+            ? 'height'
+            : null;
+      if (!unknown) {
+        return { ok: false, error: 'cuboid solve-missing supports ? on length, width, or height only.' };
+      }
+      const knownDimensions = [
+        ['length', lengthLatex],
+        ['width', widthLatex],
+        ['height', heightLatex],
+      ]
+        .filter((entry) => entry[0] !== unknown)
+        .every((entry) => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+      if (!knownDimensions) {
+        return { ok: false, error: 'cuboid solve-missing needs the other two dimensions as known values.' };
+      }
+      const knownEntries = [
+        ['volume', volumeLatex],
+        ['diagonal', diagonalLatex],
+      ].filter((entry): entry is [string, string] => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+      if (knownEntries.length !== 1) {
+        return { ok: false, error: 'cuboid solve-missing needs exactly one known relation: volume or diagonal.' };
+      }
+      return {
+        ok: true,
+        request: {
+          kind: 'cuboidSolveMissing',
+          lengthLatex: lengthLatex ?? '?',
+          widthLatex: widthLatex ?? '?',
+          heightLatex: heightLatex ?? '?',
+          unknown,
+          ...(knownEntries[0][0] === 'volume' ? { volumeLatex: knownEntries[0][1] } : {}),
+          ...(knownEntries[0][0] === 'diagonal' ? { diagonalLatex: knownEntries[0][1] } : {}),
+        },
+        style,
+      };
+    }
+  }
+
+  if (options.screenHint === 'arcSector' && (isUnknownValue(radiusLatex) || isUnknownValue(angleValue))) {
+    const unknown = isUnknownValue(radiusLatex) ? 'radius' : 'angle';
+    const knownEntries = [
+      ['arc', arcLatex],
+      ['sector', sectorLatex],
+    ].filter((entry): entry is [string, string] => Boolean(entry[1]) && !isUnknownValue(entry[1]));
+    if (knownEntries.length !== 1) {
+      return { ok: false, error: 'arcSector solve-missing needs exactly one known relation: arc or sector.' };
+    }
+    const angleUnit = (assignments.get('unit') ?? assignments.get('angleunit') ?? 'deg').toLowerCase() as AngleUnit;
+    if (!['deg', 'rad', 'grad'].includes(angleUnit)) {
+      return { ok: false, error: 'Use unit=deg, unit=rad, or unit=grad with arcSector solve-missing requests.' };
+    }
+    return {
+      ok: true,
+      request: {
+        kind: 'arcSectorSolveMissing',
+        radiusLatex: radiusLatex ?? '?',
+        angleLatex: angleValue ?? '?',
+        angleUnit,
+        unknown,
+        ...(knownEntries[0][0] === 'arc' ? { arcLatex: knownEntries[0][1] } : {}),
+        ...(knownEntries[0][0] === 'sector' ? { sectorLatex: knownEntries[0][1] } : {}),
+      },
+      style,
+    };
+  }
+
+  if (options.screenHint === 'triangleHeron' && (isUnknownValue(aLatex) || isUnknownValue(bLatex) || isUnknownValue(cLatex))) {
+    if (!areaLatex || isUnknownValue(areaLatex)) {
+      return { ok: false, error: 'triangleHeron solve-missing needs a known area value.' };
+    }
+    const unknown = isUnknownValue(aLatex)
+      ? 'a'
+      : isUnknownValue(bLatex)
+        ? 'b'
+        : isUnknownValue(cLatex)
+          ? 'c'
+          : null;
+    if (!unknown) {
+      return { ok: false, error: 'triangleHeron solve-missing supports ? on side a, b, or c only.' };
+    }
+    const knownSides = [aLatex, bLatex, cLatex].filter((value) => !isUnknownValue(value ?? ''));
+    if (knownSides.length !== 2 || knownSides.some((value) => !value)) {
+      return { ok: false, error: 'triangleHeron solve-missing needs the other two side values as known numbers.' };
+    }
+    return {
+      ok: true,
+      request: {
+        kind: 'triangleHeronSolveMissing',
+        aLatex: aLatex ?? '?',
+        bLatex: bLatex ?? '?',
+        cLatex: cLatex ?? '?',
+        areaLatex,
+        unknown,
+      },
+      style,
+    };
+  }
+
   if (p1 && p2) {
     const pointUnknownCount = countUnknownValues([
       p1.xLatex,
@@ -1027,6 +1472,61 @@ function parseShorthand(source: string, options: GeometryParseOptions): Geometry
         return {
           ok: false,
           error: 'slope solve-missing needs a known slope value.',
+        };
+      }
+      return {
+        ok: true,
+        request: { kind: 'slopeSolveMissing', p1, p2, slopeLatex },
+        style,
+      };
+    }
+
+    const hasExplicitDistanceConstraint = assignments.has('distance');
+    const hasExplicitSlopeConstraint = assignments.has('slope');
+    const hasExplicitMidConstraint = assignments.has('mid');
+    const explicitConstraintCount =
+      Number(hasExplicitDistanceConstraint) + Number(hasExplicitSlopeConstraint) + Number(hasExplicitMidConstraint);
+
+    if (
+      pointUnknownCount === 1
+      && (options.screenHint === 'lineEquation' || explicitConstraintCount > 0)
+    ) {
+      if (explicitConstraintCount !== 1) {
+        return {
+          ok: false,
+          error: 'lineEquation solve-missing needs exactly one constraint: slope=..., distance=..., or mid=(x,y).',
+        };
+      }
+      if (hasExplicitDistanceConstraint) {
+        if (!distanceLatex || isUnknownValue(distanceLatex)) {
+          return {
+            ok: false,
+            error: 'lineEquation solve-missing with distance constraint needs distance=... as a known value.',
+          };
+        }
+        return {
+          ok: true,
+          request: { kind: 'distanceSolveMissing', p1, p2, distanceLatex },
+          style,
+        };
+      }
+      if (hasExplicitMidConstraint) {
+        if (!mid || isUnknownValue(mid.xLatex) || isUnknownValue(mid.yLatex)) {
+          return {
+            ok: false,
+            error: 'lineEquation solve-missing with midpoint constraint needs mid=(x,y) with known values.',
+          };
+        }
+        return {
+          ok: true,
+          request: { kind: 'midpointSolveMissing', p1, p2, mid },
+          style,
+        };
+      }
+      if (!slopeLatex || isUnknownValue(slopeLatex)) {
+        return {
+          ok: false,
+          error: 'lineEquation solve-missing with slope constraint needs slope=... as a known value.',
         };
       }
       return {

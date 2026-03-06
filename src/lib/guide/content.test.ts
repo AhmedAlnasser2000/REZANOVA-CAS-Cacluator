@@ -121,7 +121,9 @@ describe('guide content', () => {
     expect(geometryCoordinate?.examples[0]?.launch.geometryScreen).toBe('distance')
     expect(geometryTriangles?.examples[1]?.launch.geometryScreen).toBe('triangleHeron')
     expect(geometryTriangles?.concepts.join(' ')).toContain('top editor')
+    expect(geometryTriangles?.concepts.join(' ')).toContain('solve-missing')
     expect(geometrySolids?.concepts.join(' ')).toContain('top editor')
+    expect(geometryCoordinate?.concepts.join(' ')).toContain('one unknown coordinate')
   })
 
   it('keeps statistics guidance aligned with the shared statistics core', () => {

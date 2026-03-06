@@ -7,6 +7,7 @@ import type {
   GeometryScreen,
 } from '../../types/calculator';
 import { formatNumber, latexToApproxText } from '../format';
+import { convertAngle } from '../trigonometry/angles';
 import { solveCircle, solveArcSector } from './circles';
 import {
   solveDistance,
@@ -73,16 +74,19 @@ function requestTitle(request: GeometryRequest): string {
     case 'circleSolveMissing':
       return 'Circle';
     case 'arcSector':
+    case 'arcSectorSolveMissing':
       return 'Arc and Sector';
     case 'cube':
     case 'cubeSolveMissing':
       return 'Cube';
     case 'cuboid':
+    case 'cuboidSolveMissing':
       return 'Cuboid';
     case 'cylinder':
     case 'cylinderSolveMissing':
       return 'Cylinder';
     case 'cone':
+    case 'coneSolveMissing':
       return 'Cone';
     case 'sphere':
     case 'sphereSolveMissing':
@@ -91,6 +95,7 @@ function requestTitle(request: GeometryRequest): string {
     case 'triangleAreaSolveMissing':
       return 'Triangle Area';
     case 'triangleHeron':
+    case 'triangleHeronSolveMissing':
       return 'Heron';
     case 'distance':
     case 'distanceSolveMissing':
@@ -245,6 +250,7 @@ function resolvePoint(
 type SolveMissingResult = {
   evaluation: GeometryEvaluation;
   handoffEquationLatex?: string;
+  handoffWarning?: string;
 };
 
 function isUnknownLatex(value: string) {
@@ -499,6 +505,330 @@ function solveCylinderMissing(request: Extract<GeometryRequest, { kind: 'cylinde
   return { evaluation: solveCylinder({ radius: radius.normalizedLatex, height: formatNumber(volume.value / (Math.PI * radius.value ** 2)) }) };
 }
 
+function solveConeMissing(request: Extract<GeometryRequest, { kind: 'coneSolveMissing' }>): SolveMissingResult {
+  if (request.unknown === 'radius') {
+    if (!isUnknownLatex(request.radiusLatex)) {
+      return { evaluation: geometryError('cone solve-missing radius workflow requires radius=?') };
+    }
+    const height = resolvePositiveScalar(request.heightLatex, 'Cone height');
+    if (!height.ok) {
+      return { evaluation: geometryError(height.error) };
+    }
+    if (!request.volumeLatex) {
+      return { evaluation: geometryError('cone(radius=?, ...) needs a known volume value.') };
+    }
+    const volume = resolvePositiveScalar(request.volumeLatex, 'Cone volume');
+    if (!volume.ok) {
+      return { evaluation: geometryError(volume.error) };
+    }
+    const solvedRadius = Math.sqrt((3 * volume.value) / (Math.PI * height.value));
+    if (!(solvedRadius > 0)) {
+      return { evaluation: geometryError('No real cone radius satisfies this height and volume pair.') };
+    }
+    return {
+      evaluation: solveCone({
+        radius: formatNumber(solvedRadius),
+        height: height.normalizedLatex,
+        slantHeight: '',
+      }),
+    };
+  }
+
+  const radius = resolvePositiveScalar(request.radiusLatex, 'Cone radius');
+  if (!radius.ok) {
+    return { evaluation: geometryError(radius.error) };
+  }
+  if (request.unknown === 'height') {
+    if (!isUnknownLatex(request.heightLatex)) {
+      return { evaluation: geometryError('cone solve-missing height workflow requires height=?') };
+    }
+    if (request.volumeLatex) {
+      const volume = resolvePositiveScalar(request.volumeLatex, 'Cone volume');
+      if (!volume.ok) {
+        return { evaluation: geometryError(volume.error) };
+      }
+      const solvedHeight = (3 * volume.value) / (Math.PI * radius.value ** 2);
+      if (!(solvedHeight > 0)) {
+        return { evaluation: geometryError('No real cone height satisfies this radius and volume pair.') };
+      }
+      return {
+        evaluation: solveCone({
+          radius: radius.normalizedLatex,
+          height: formatNumber(solvedHeight),
+          slantHeight: '',
+        }),
+      };
+    }
+    const slantHeight = resolvePositiveScalar(request.slantHeightLatex, 'Cone slant height');
+    if (!slantHeight.ok) {
+      return { evaluation: geometryError(slantHeight.error) };
+    }
+    if (!(slantHeight.value > radius.value)) {
+      return { evaluation: geometryError('No real cone height exists because slant height must be longer than radius.') };
+    }
+    const solvedHeight = Math.sqrt(slantHeight.value ** 2 - radius.value ** 2);
+    return {
+      evaluation: solveCone({
+        radius: radius.normalizedLatex,
+        height: formatNumber(solvedHeight),
+        slantHeight: slantHeight.normalizedLatex,
+      }),
+    };
+  }
+
+  if (!isUnknownLatex(request.slantHeightLatex)) {
+    return { evaluation: geometryError('cone solve-missing slant-height workflow requires slantHeight=?') };
+  }
+  const height = resolvePositiveScalar(request.heightLatex, 'Cone height');
+  if (!height.ok) {
+    return { evaluation: geometryError(height.error) };
+  }
+  const solvedSlantHeight = Math.sqrt(radius.value ** 2 + height.value ** 2);
+  return {
+    evaluation: solveCone({
+      radius: radius.normalizedLatex,
+      height: height.normalizedLatex,
+      slantHeight: formatNumber(solvedSlantHeight),
+    }),
+  };
+}
+
+function solveCuboidMissing(request: Extract<GeometryRequest, { kind: 'cuboidSolveMissing' }>): SolveMissingResult {
+  const unknown = request.unknown;
+  const unknownLatex = unknown === 'length'
+    ? request.lengthLatex
+    : unknown === 'width'
+      ? request.widthLatex
+      : request.heightLatex;
+  if (!isUnknownLatex(unknownLatex)) {
+    return { evaluation: geometryError('cuboid solve-missing unknown marker must match length=?, width=?, or height=?') };
+  }
+
+  const length = unknown === 'length' ? null : resolvePositiveScalar(request.lengthLatex, 'Cuboid length');
+  if (length && !length.ok) {
+    return { evaluation: geometryError(length.error) };
+  }
+  const width = unknown === 'width' ? null : resolvePositiveScalar(request.widthLatex, 'Cuboid width');
+  if (width && !width.ok) {
+    return { evaluation: geometryError(width.error) };
+  }
+  const height = unknown === 'height' ? null : resolvePositiveScalar(request.heightLatex, 'Cuboid height');
+  if (height && !height.ok) {
+    return { evaluation: geometryError(height.error) };
+  }
+
+  const knownDimensions = [length?.value, width?.value, height?.value].filter(
+    (value): value is number => Number.isFinite(value),
+  );
+  if (knownDimensions.length !== 2) {
+    return { evaluation: geometryError('cuboid solve-missing needs two known dimensions before solving.') };
+  }
+  const [firstKnown, secondKnown] = knownDimensions;
+
+  let solved = Number.NaN;
+  if (request.volumeLatex) {
+    const volume = resolvePositiveScalar(request.volumeLatex, 'Cuboid volume');
+    if (!volume.ok) {
+      return { evaluation: geometryError(volume.error) };
+    }
+    solved = volume.value / (firstKnown * secondKnown);
+  } else if (request.diagonalLatex) {
+    const diagonal = resolvePositiveScalar(request.diagonalLatex, 'Cuboid diagonal');
+    if (!diagonal.ok) {
+      return { evaluation: geometryError(diagonal.error) };
+    }
+    const underRadical = diagonal.value ** 2 - firstKnown ** 2 - secondKnown ** 2;
+    if (underRadical < 0) {
+      return { evaluation: geometryError('No real cuboid dimension fits this diagonal with the other two dimensions.') };
+    }
+    solved = Math.sqrt(Math.max(underRadical, 0));
+  } else {
+    return { evaluation: geometryError('cuboid solve-missing needs one known relation: volume or diagonal.') };
+  }
+
+  if (!(solved > 0)) {
+    return { evaluation: geometryError('Solved cuboid dimension must be positive.') };
+  }
+
+  const resolvedLength = unknown === 'length' ? solved : length?.value ?? Number.NaN;
+  const resolvedWidth = unknown === 'width' ? solved : width?.value ?? Number.NaN;
+  const resolvedHeight = unknown === 'height' ? solved : height?.value ?? Number.NaN;
+  return {
+    evaluation: solveCuboid({
+      length: formatNumber(resolvedLength),
+      width: formatNumber(resolvedWidth),
+      height: formatNumber(resolvedHeight),
+    }),
+  };
+}
+
+function solveArcSectorMissing(request: Extract<GeometryRequest, { kind: 'arcSectorSolveMissing' }>): SolveMissingResult {
+  const unit = request.angleUnit;
+  if (!['deg', 'rad', 'grad'].includes(unit)) {
+    return { evaluation: geometryError('Arc/sector solve-missing requires unit=deg, unit=rad, or unit=grad.') };
+  }
+
+  if (request.unknown === 'radius') {
+    if (!isUnknownLatex(request.radiusLatex)) {
+      return { evaluation: geometryError('arcSector solve-missing radius workflow requires radius=?') };
+    }
+    const angle = resolvePositiveScalar(request.angleLatex, 'Central angle');
+    if (!angle.ok) {
+      return { evaluation: geometryError(angle.error) };
+    }
+    const angleRadians = convertAngle(angle.value, unit, 'rad');
+    let solvedRadius = Number.NaN;
+    if (request.arcLatex) {
+      const arc = resolvePositiveScalar(request.arcLatex, 'Arc length');
+      if (!arc.ok) {
+        return { evaluation: geometryError(arc.error) };
+      }
+      solvedRadius = arc.value / angleRadians;
+    } else if (request.sectorLatex) {
+      const sector = resolvePositiveScalar(request.sectorLatex, 'Sector area');
+      if (!sector.ok) {
+        return { evaluation: geometryError(sector.error) };
+      }
+      solvedRadius = Math.sqrt((2 * sector.value) / angleRadians);
+    } else {
+      return { evaluation: geometryError('arcSector solve-missing needs one known relation: arc or sector.') };
+    }
+    if (!(solvedRadius > 0)) {
+      return { evaluation: geometryError('No real positive radius satisfies this arc/sector relation.') };
+    }
+    return {
+      evaluation: solveArcSector({
+        radius: formatNumber(solvedRadius),
+        angle: angle.normalizedLatex,
+        angleUnit: unit,
+      }),
+    };
+  }
+
+  if (!isUnknownLatex(request.angleLatex)) {
+    return { evaluation: geometryError('arcSector solve-missing angle workflow requires angle=?') };
+  }
+  const radius = resolvePositiveScalar(request.radiusLatex, 'Sector radius');
+  if (!radius.ok) {
+    return { evaluation: geometryError(radius.error) };
+  }
+  let solvedAngleRadians = Number.NaN;
+  if (request.arcLatex) {
+    const arc = resolvePositiveScalar(request.arcLatex, 'Arc length');
+    if (!arc.ok) {
+      return { evaluation: geometryError(arc.error) };
+    }
+    solvedAngleRadians = arc.value / radius.value;
+  } else if (request.sectorLatex) {
+    const sector = resolvePositiveScalar(request.sectorLatex, 'Sector area');
+    if (!sector.ok) {
+      return { evaluation: geometryError(sector.error) };
+    }
+    solvedAngleRadians = (2 * sector.value) / (radius.value ** 2);
+  } else {
+    return { evaluation: geometryError('arcSector solve-missing needs one known relation: arc or sector.') };
+  }
+  const solvedAngle = convertAngle(solvedAngleRadians, 'rad', unit);
+  if (!(solvedAngle > 0)) {
+    return { evaluation: geometryError('No real positive angle satisfies this arc/sector relation.') };
+  }
+  return {
+    evaluation: solveArcSector({
+      radius: radius.normalizedLatex,
+      angle: formatNumber(solvedAngle),
+      angleUnit: unit,
+    }),
+  };
+}
+
+function solveTriangleHeronMissing(
+  request: Extract<GeometryRequest, { kind: 'triangleHeronSolveMissing' }>,
+): SolveMissingResult {
+  const area = resolvePositiveScalar(request.areaLatex, 'Triangle area');
+  if (!area.ok) {
+    return { evaluation: geometryError(area.error) };
+  }
+  const unknown = request.unknown;
+  const unknownLatex = unknown === 'a' ? request.aLatex : unknown === 'b' ? request.bLatex : request.cLatex;
+  if (!isUnknownLatex(unknownLatex)) {
+    return { evaluation: geometryError('triangleHeron solve-missing unknown marker must match side a=?, b=?, or c=?') };
+  }
+
+  const sideA = unknown === 'a' ? null : resolvePositiveScalar(request.aLatex, 'Triangle side a');
+  if (sideA && !sideA.ok) {
+    return { evaluation: geometryError(sideA.error) };
+  }
+  const sideB = unknown === 'b' ? null : resolvePositiveScalar(request.bLatex, 'Triangle side b');
+  if (sideB && !sideB.ok) {
+    return { evaluation: geometryError(sideB.error) };
+  }
+  const sideC = unknown === 'c' ? null : resolvePositiveScalar(request.cLatex, 'Triangle side c');
+  if (sideC && !sideC.ok) {
+    return { evaluation: geometryError(sideC.error) };
+  }
+
+  const knownOne = sideA?.value ?? sideB?.value ?? sideC?.value ?? Number.NaN;
+  const knownTwo = sideA === null
+    ? (sideB?.value ?? sideC?.value ?? Number.NaN)
+    : sideB === null
+      ? (sideA?.value ?? sideC?.value ?? Number.NaN)
+      : (sideA?.value ?? sideB?.value ?? Number.NaN);
+
+  // Heron inverse with unknown side x:
+  // x^4 - 2(u^2+v^2)x^2 + (u^2-v^2)^2 + 16A^2 = 0
+  const u2 = knownOne ** 2;
+  const v2 = knownTwo ** 2;
+  const coefficientB = -2 * (u2 + v2);
+  const coefficientC = (u2 - v2) ** 2 + 16 * area.value ** 2;
+  const discriminant = coefficientB ** 2 - 4 * coefficientC;
+  if (discriminant < 0) {
+    return { evaluation: geometryError('No real side length satisfies this Heron area constraint with the known sides.') };
+  }
+  const sqrtDiscriminant = Math.sqrt(Math.max(discriminant, 0));
+  const tRoots = [
+    (-coefficientB + sqrtDiscriminant) / 2,
+    (-coefficientB - sqrtDiscriminant) / 2,
+  ];
+  const candidates = tRoots
+    .filter((value) => value > 0)
+    .map((value) => Math.sqrt(value))
+    .filter((value, index, all) => all.findIndex((candidate) => Math.abs(candidate - value) < 1e-9) === index)
+    .filter((candidate) => (
+      candidate + knownOne > knownTwo + 1e-9
+      && candidate + knownTwo > knownOne + 1e-9
+      && knownOne + knownTwo > candidate + 1e-9
+    ));
+
+  if (candidates.length === 0) {
+    return { evaluation: geometryError('No real side length satisfies this Heron area constraint with the known sides.') };
+  }
+  if (candidates.length === 1) {
+    const resolvedA = unknown === 'a' ? candidates[0] : sideA?.value ?? Number.NaN;
+    const resolvedB = unknown === 'b' ? candidates[0] : sideB?.value ?? Number.NaN;
+    const resolvedC = unknown === 'c' ? candidates[0] : sideC?.value ?? Number.NaN;
+    return {
+      evaluation: solveTriangleHeron({
+        a: formatNumber(resolvedA),
+        b: formatNumber(resolvedB),
+        c: formatNumber(resolvedC),
+      }),
+    };
+  }
+
+  const unknownLabel = unknown;
+  return {
+    evaluation: geometryResult(
+      [
+        { label: unknownLabel === 'a' ? 'a^{(1)}' : unknownLabel === 'b' ? 'b^{(1)}' : 'c^{(1)}', latex: formatNumber(candidates[0]) },
+        { label: unknownLabel === 'a' ? 'a^{(2)}' : unknownLabel === 'b' ? 'b^{(2)}' : 'c^{(2)}', latex: formatNumber(candidates[1]) },
+        { label: 'A', latex: area.normalizedLatex },
+      ],
+      ['Two real side-length branches satisfy this Heron area constraint.'],
+      'geometry-formula',
+    ),
+  };
+}
+
 function solveDistanceMissing(request: Extract<GeometryRequest, { kind: 'distanceSolveMissing' }>): SolveMissingResult {
   const d = resolvePositiveScalar(request.distanceLatex, 'Distance');
   if (!d.ok) {
@@ -702,13 +1032,18 @@ function solveSlopeMissing(request: Extract<GeometryRequest, { kind: 'slopeSolve
 
   if ((unknownKey === 'p1x' || unknownKey === 'p2x') && Math.abs(m) < 1e-12) {
     if (Math.abs(yDiff) < 1e-9) {
+      const variableLabel = unknownKey === 'p1x' ? 'x_1' : 'x_2';
       const equation =
         unknownKey === 'p1x'
           ? `(${formatNumber(p2y.value)}-${formatNumber(p1y.value)})/(${formatNumber(p2x.value)}-x)=0`
           : `(${formatNumber(p2y.value)}-${formatNumber(p1y.value)})/(x-${formatNumber(p1x.value)})=0`;
       return {
-        evaluation: geometryError('This slope constraint leaves infinitely many x-values; add another condition to isolate one coordinate.'),
+        evaluation: {
+          error: 'This slope constraint leaves infinitely many x-values; add another condition to isolate one coordinate.',
+          warnings: [`Equation handoff uses x to represent missing ${variableLabel}.`],
+        },
         handoffEquationLatex: equation,
+        handoffWarning: `x represents missing ${variableLabel}`,
       };
     }
     return { evaluation: geometryError('No real solution for this slope/point combination.') };
@@ -781,7 +1116,16 @@ function solveMissingToOutcome(
     solved.handoffEquationLatex && solved.evaluation.error
       ? [{ kind: 'send', target: 'equation', latex: solved.handoffEquationLatex } satisfies DisplayOutcomeAction]
       : undefined;
-  return evaluationToOutcome(title, solved.evaluation, actions);
+  const evaluation =
+    solved.handoffWarning
+      ? {
+          ...solved.evaluation,
+          warnings: (solved.evaluation.warnings ?? []).includes(solved.handoffWarning)
+            ? (solved.evaluation.warnings ?? [])
+            : [...(solved.evaluation.warnings ?? []), solved.handoffWarning],
+        }
+      : solved.evaluation;
+  return evaluationToOutcome(title, evaluation, actions);
 }
 
 function runGeometryRequest(request: GeometryRequest): DisplayOutcome {
@@ -991,12 +1335,20 @@ function runGeometryRequest(request: GeometryRequest): DisplayOutcome {
       return solveMissingToOutcome(title, solveSquareMissing(request));
     case 'circleSolveMissing':
       return solveMissingToOutcome(title, solveCircleMissing(request));
+    case 'arcSectorSolveMissing':
+      return solveMissingToOutcome(title, solveArcSectorMissing(request));
     case 'cubeSolveMissing':
       return solveMissingToOutcome(title, solveCubeMissing(request));
+    case 'cuboidSolveMissing':
+      return solveMissingToOutcome(title, solveCuboidMissing(request));
     case 'sphereSolveMissing':
       return solveMissingToOutcome(title, solveSphereMissing(request));
+    case 'coneSolveMissing':
+      return solveMissingToOutcome(title, solveConeMissing(request));
     case 'triangleAreaSolveMissing':
       return solveMissingToOutcome(title, solveTriangleAreaMissing(request));
+    case 'triangleHeronSolveMissing':
+      return solveMissingToOutcome(title, solveTriangleHeronMissing(request));
     case 'rectangleSolveMissing':
       return solveMissingToOutcome(title, solveRectangleMissing(request));
     case 'cylinderSolveMissing':

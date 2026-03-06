@@ -61,5 +61,9 @@ describe('geometry navigation', () => {
     expect(geometryRequestToScreen({ kind: 'cube', sideLatex: '3' })).toBe('cube');
     expect(geometryRequestToScreen({ kind: 'triangleHeron', aLatex: '5', bLatex: '6', cLatex: '7' })).toBe('triangleHeron');
     expect(geometryRequestToScreen({ kind: 'distanceSolveMissing', p1: { xLatex: '0', yLatex: '0' }, p2: { xLatex: '3', yLatex: '?' }, distanceLatex: '5' })).toBe('distance');
+    expect(geometryRequestToScreen({ kind: 'coneSolveMissing', radiusLatex: '?', heightLatex: '4', slantHeightLatex: '?', volumeLatex: '12*pi', unknown: 'radius' })).toBe('cone');
+    expect(geometryRequestToScreen({ kind: 'cuboidSolveMissing', lengthLatex: '?', widthLatex: '3', heightLatex: '4', diagonalLatex: '13', unknown: 'length' })).toBe('cuboid');
+    expect(geometryRequestToScreen({ kind: 'arcSectorSolveMissing', radiusLatex: '?', angleLatex: '60', angleUnit: 'deg', arcLatex: '2*pi', unknown: 'radius' })).toBe('arcSector');
+    expect(geometryRequestToScreen({ kind: 'triangleHeronSolveMissing', aLatex: '?', bLatex: '13', cLatex: '14', areaLatex: '84', unknown: 'a' })).toBe('triangleHeron');
   });
 });

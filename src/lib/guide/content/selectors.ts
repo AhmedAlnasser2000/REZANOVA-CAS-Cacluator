@@ -1697,6 +1697,7 @@ const GUIDE_ARTICLE_DRAFTS: GuideArticleDraft[] = [
       'Each solid tool is numeric and formula-driven.',
       'You can stay in the guided form or edit the structured Geometry request in the top editor.',
       'Cone accepts a radius plus either a height or a slant-height pairing that satisfies the cone relation.',
+      'Solve-missing templates cover bounded inverse workflows for cone and cuboid with explicit one-unknown rules.',
     ],
     whereToFindIt: [
       'Menu > Shape Math > Geometry',
@@ -1756,6 +1757,7 @@ const GUIDE_ARTICLE_DRAFTS: GuideArticleDraft[] = [
       'Triangle Area expects base and perpendicular height.',
       'Heron expects three sides that satisfy the triangle inequality.',
       'You can keep the guided form or edit the structured Geometry request in the top editor.',
+      'Heron solve-missing supports one unknown side plus area and can return one or two real branches.',
       'For trig-linked triangle solving, use the dedicated Trigonometry app instead of these area-only tools.',
     ],
     whereToFindIt: [
@@ -1815,6 +1817,7 @@ const GUIDE_ARTICLE_DRAFTS: GuideArticleDraft[] = [
     concepts: [
       'Circle returns diameter, circumference, and area from radius.',
       'Arc and Sector uses radius plus a central angle with degree, radian, or grad input.',
+      'Arc/Sector solve-missing supports one unknown (radius or angle) from exactly one known relation (arc or sector).',
     ],
     whereToFindIt: [
       'Menu > Shape Math > Geometry',
@@ -1873,6 +1876,7 @@ const GUIDE_ARTICLE_DRAFTS: GuideArticleDraft[] = [
       'Distance and midpoint use two points directly.',
       'Slope reports undefined for vertical lines.',
       'Line Equation builds slope-intercept, point-slope, or standard form from two distinct points.',
+      'Line Equation solve-missing accepts one unknown coordinate plus exactly one constraint (slope, distance, or midpoint).',
     ],
     whereToFindIt: [
       'Menu > Shape Math > Geometry',
@@ -1918,6 +1922,7 @@ const GUIDE_ARTICLE_DRAFTS: GuideArticleDraft[] = [
     pitfalls: [
       'Two identical points do not define a line.',
       'Vertical lines are reported as x = constant instead of forcing an invalid finite-slope form.',
+      'For lineEquation solve-missing handoff, Equation mode uses x as a placeholder and reports which coordinate it represents.',
     ],
     exactVsNumeric: [
       'Coordinate tools are numeric and notation-driven rather than symbolic-proof workflows.',

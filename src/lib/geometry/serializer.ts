@@ -48,20 +48,45 @@ export function serializeGeometryRequest(
       return `circle(radius=${filledValue(request.radiusLatex)})`;
     case 'arcSector':
       return `arcSector(radius=${filledValue(request.radiusLatex)}, angle=${filledValue(request.angleLatex)}, unit=${request.angleUnit})`;
+    case 'arcSectorSolveMissing':
+      return `arcSector(${[
+        `radius=${filledValue(request.radiusLatex)}`,
+        `angle=${filledValue(request.angleLatex)}`,
+        `unit=${request.angleUnit}`,
+        ...(request.arcLatex ? [`arc=${filledValue(request.arcLatex)}`] : []),
+        ...(request.sectorLatex ? [`sector=${filledValue(request.sectorLatex)}`] : []),
+      ].join(', ')})`;
     case 'cube':
       return `cube(side=${filledValue(request.sideLatex)})`;
     case 'cuboid':
       return `cuboid(length=${filledValue(request.lengthLatex)}, width=${filledValue(request.widthLatex)}, height=${filledValue(request.heightLatex)})`;
+    case 'cuboidSolveMissing':
+      return `cuboid(${[
+        `length=${filledValue(request.lengthLatex)}`,
+        `width=${filledValue(request.widthLatex)}`,
+        `height=${filledValue(request.heightLatex)}`,
+        ...(request.volumeLatex ? [`volume=${filledValue(request.volumeLatex)}`] : []),
+        ...(request.diagonalLatex ? [`diagonal=${filledValue(request.diagonalLatex)}`] : []),
+      ].join(', ')})`;
     case 'cylinder':
       return `cylinder(radius=${filledValue(request.radiusLatex)}, height=${filledValue(request.heightLatex)})`;
     case 'cone':
       return `cone(radius=${filledValue(request.radiusLatex)}, height=${filledValue(request.heightLatex ?? '')}, slantHeight=${filledValue(request.slantHeightLatex ?? '')})`;
+    case 'coneSolveMissing':
+      return `cone(${[
+        `radius=${filledValue(request.radiusLatex)}`,
+        `height=${filledValue(request.heightLatex)}`,
+        `slantHeight=${filledValue(request.slantHeightLatex)}`,
+        ...(request.volumeLatex ? [`volume=${filledValue(request.volumeLatex)}`] : []),
+      ].join(', ')})`;
     case 'sphere':
       return `sphere(radius=${filledValue(request.radiusLatex)})`;
     case 'triangleArea':
       return `triangleArea(base=${filledValue(request.baseLatex)}, height=${filledValue(request.heightLatex)})`;
     case 'triangleHeron':
       return `triangleHeron(a=${filledValue(request.aLatex)}, b=${filledValue(request.bLatex)}, c=${filledValue(request.cLatex)})`;
+    case 'triangleHeronSolveMissing':
+      return `triangleHeron(a=${filledValue(request.aLatex)}, b=${filledValue(request.bLatex)}, c=${filledValue(request.cLatex)}, area=${filledValue(request.areaLatex)})`;
     case 'distance':
       return `distance(p1=${pointValue({ x: request.p1.xLatex, y: request.p1.yLatex })}, p2=${pointValue({ x: request.p2.xLatex, y: request.p2.yLatex })})`;
     case 'midpoint':

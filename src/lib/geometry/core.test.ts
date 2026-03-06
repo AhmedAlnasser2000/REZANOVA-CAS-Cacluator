@@ -147,6 +147,7 @@ describe('geometry core draft runner', () => {
     expect(outcome.kind).toBe('error');
     if (outcome.kind === 'error') {
       expect(outcome.error).toContain('infinitely many');
+      expect(outcome.warnings.join(' ')).toContain('x represents missing x_1');
       expect(outcome.actions).toEqual([
         {
           kind: 'send',
@@ -154,6 +155,51 @@ describe('geometry core draft runner', () => {
           latex: '(2-2)/(4-x)=0',
         },
       ]);
+    }
+  });
+
+  it('solves deferred P2 inverse formula families', () => {
+    const cone = runGeometryCoreDraft('cone(radius=?, height=4, volume=12*pi)', 'cone').outcome;
+    expect(cone.kind).toBe('success');
+    if (cone.kind === 'success') {
+      expect(cone.exactLatex).toContain('r=');
+      expect(cone.exactLatex).toContain('V=');
+    }
+
+    const cuboid = runGeometryCoreDraft('cuboid(length=?, width=3, height=4, diagonal=13)', 'cuboid').outcome;
+    expect(cuboid.kind).toBe('success');
+    if (cuboid.kind === 'success') {
+      expect(cuboid.exactLatex).toContain('l=12');
+      expect(cuboid.exactLatex).toContain('d=13');
+    }
+
+    const arcSector = runGeometryCoreDraft('arcSector(radius=?, angle=60, unit=deg, arc=2*pi)', 'arcSector').outcome;
+    expect(arcSector.kind).toBe('success');
+    if (arcSector.kind === 'success') {
+      expect(arcSector.exactLatex).toContain('r=6');
+      expect(arcSector.exactLatex).toContain('arc=');
+    }
+
+    const heron = runGeometryCoreDraft('triangleHeron(a=?, b=13, c=14, area=84)', 'triangleHeron').outcome;
+    expect(heron.kind).toBe('success');
+    if (heron.kind === 'success') {
+      expect(heron.warnings.join(' ')).toContain('Two real side-length branches');
+      expect(heron.exactLatex).toContain('a^{(1)}');
+      expect(heron.exactLatex).toContain('a^{(2)}');
+    }
+  });
+
+  it('routes lineEquation solve-missing constraints through coordinate engines', () => {
+    const slope = runGeometryCoreDraft('lineEquation(p1=(0,0), p2=(?,8), slope=2)', 'lineEquation').outcome;
+    expect(slope.kind).toBe('success');
+    if (slope.kind === 'success') {
+      expect(slope.exactLatex).toContain('x_2=4');
+    }
+
+    const distance = runGeometryCoreDraft('lineEquation(p1=(0,0), p2=(3,?), distance=5)', 'lineEquation').outcome;
+    expect(distance.kind).toBe('success');
+    if (distance.kind === 'success') {
+      expect(distance.warnings.join(' ')).toContain('Two real coordinate branches');
     }
   });
 });

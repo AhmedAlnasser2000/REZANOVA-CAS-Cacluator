@@ -964,6 +964,10 @@ export type GeometryRequest =
   | { kind: 'triangleAreaSolveMissing'; baseLatex: string; heightLatex: string; areaLatex: string; unknown: 'base' | 'height' }
   | { kind: 'rectangleSolveMissing'; widthLatex: string; heightLatex: string; areaLatex?: string; perimeterLatex?: string; diagonalLatex?: string; unknown: 'width' | 'height' }
   | { kind: 'cylinderSolveMissing'; radiusLatex: string; heightLatex: string; volumeLatex: string; unknown: 'radius' | 'height' }
+  | { kind: 'coneSolveMissing'; radiusLatex: string; heightLatex: string; slantHeightLatex: string; volumeLatex?: string; unknown: 'radius' | 'height' | 'slantHeight' }
+  | { kind: 'cuboidSolveMissing'; lengthLatex: string; widthLatex: string; heightLatex: string; volumeLatex?: string; diagonalLatex?: string; unknown: 'length' | 'width' | 'height' }
+  | { kind: 'arcSectorSolveMissing'; radiusLatex: string; angleLatex: string; angleUnit: AngleUnit; arcLatex?: string; sectorLatex?: string; unknown: 'radius' | 'angle' }
+  | { kind: 'triangleHeronSolveMissing'; aLatex: string; bLatex: string; cLatex: string; areaLatex: string; unknown: 'a' | 'b' | 'c' }
   | { kind: 'distanceSolveMissing'; p1: { xLatex: string; yLatex: string }; p2: { xLatex: string; yLatex: string }; distanceLatex: string }
   | { kind: 'midpointSolveMissing'; p1: { xLatex: string; yLatex: string }; p2: { xLatex: string; yLatex: string }; mid: { xLatex: string; yLatex: string } }
   | { kind: 'slopeSolveMissing'; p1: { xLatex: string; yLatex: string }; p2: { xLatex: string; yLatex: string }; slopeLatex: string };

@@ -2637,6 +2637,26 @@ export default function App() {
           { label: 'r from volume', latex: 'cylinder(radius=?, height=8, volume=72*pi)' },
           { label: 'h from volume', latex: 'cylinder(radius=3, height=?, volume=72*pi)' },
         ];
+      case 'cone':
+        return [
+          { label: 'r from volume', latex: 'cone(radius=?, height=4, volume=12*pi)' },
+          { label: 'h from slant', latex: 'cone(radius=3, height=?, slantHeight=5)' },
+          { label: 'l from r,h', latex: 'cone(radius=3, height=4, slantHeight=?)' },
+        ];
+      case 'cuboid':
+        return [
+          { label: 'l from volume', latex: 'cuboid(length=?, width=3, height=4, volume=144)' },
+          { label: 'h from diagonal', latex: 'cuboid(length=3, width=4, height=?, diagonal=13)' },
+        ];
+      case 'arcSector':
+        return [
+          { label: 'r from arc', latex: 'arcSector(radius=?, angle=60, unit=deg, arc=2*pi)' },
+          { label: 'angle from sector', latex: 'arcSector(radius=6, angle=?, unit=deg, sector=6*pi)' },
+        ];
+      case 'triangleHeron':
+        return [
+          { label: 'a from area', latex: 'triangleHeron(a=?, b=13, c=14, area=84)' },
+        ];
       case 'distance':
         return [
           { label: 'solve point', latex: 'distance(p1=(0,0), p2=(3,?), distance=5)' },
@@ -2648,6 +2668,12 @@ export default function App() {
       case 'slope':
         return [
           { label: 'solve point', latex: 'slope(p1=(1,2), p2=(?,8), slope=2)' },
+        ];
+      case 'lineEquation':
+        return [
+          { label: 'point from slope', latex: 'lineEquation(p1=(0,0), p2=(?,8), slope=2)' },
+          { label: 'point from distance', latex: 'lineEquation(p1=(0,0), p2=(3,?), distance=5)' },
+          { label: 'point from midpoint', latex: 'lineEquation(p1=(1,2), p2=(?,8), mid=(3,5))' },
         ];
       default:
         return [];

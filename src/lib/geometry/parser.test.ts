@@ -178,11 +178,111 @@ describe('geometry parser', () => {
     });
   });
 
+  it('parses deferred P2 solve-missing families', () => {
+    expect(parseGeometryDraft('cone(radius=?, height=4, volume=12*pi)', { screenHint: 'cone' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'coneSolveMissing',
+        radiusLatex: '?',
+        heightLatex: '4',
+        slantHeightLatex: '?',
+        volumeLatex: '12*pi',
+        unknown: 'radius',
+      },
+      style: 'structured',
+    });
+
+    expect(parseGeometryDraft('cuboid(length=?, width=3, height=4, diagonal=13)', { screenHint: 'cuboid' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'cuboidSolveMissing',
+        lengthLatex: '?',
+        widthLatex: '3',
+        heightLatex: '4',
+        diagonalLatex: '13',
+        unknown: 'length',
+      },
+      style: 'structured',
+    });
+
+    expect(parseGeometryDraft('arcSector(radius=?, angle=60, unit=deg, arc=2*pi)', { screenHint: 'arcSector' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'arcSectorSolveMissing',
+        radiusLatex: '?',
+        angleLatex: '60',
+        angleUnit: 'deg',
+        arcLatex: '2*pi',
+        unknown: 'radius',
+      },
+      style: 'structured',
+    });
+
+    expect(parseGeometryDraft('triangleHeron(a=?, b=13, c=14, area=84)', { screenHint: 'triangleHeron' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'triangleHeronSolveMissing',
+        aLatex: '?',
+        bLatex: '13',
+        cLatex: '14',
+        areaLatex: '84',
+        unknown: 'a',
+      },
+      style: 'structured',
+    });
+  });
+
+  it('routes lineEquation one-unknown constraints into existing coordinate solve-missing requests', () => {
+    expect(parseGeometryDraft('lineEquation(p1=(0,0), p2=(?,8), slope=2)', { screenHint: 'lineEquation' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'slopeSolveMissing',
+        p1: { xLatex: '0', yLatex: '0' },
+        p2: { xLatex: '?', yLatex: '8' },
+        slopeLatex: '2',
+      },
+      style: 'structured',
+    });
+
+    expect(parseGeometryDraft('lineEquation(p1=(0,0), p2=(3,?), distance=5)', { screenHint: 'lineEquation' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'distanceSolveMissing',
+        p1: { xLatex: '0', yLatex: '0' },
+        p2: { xLatex: '3', yLatex: '?' },
+        distanceLatex: '5',
+      },
+      style: 'structured',
+    });
+
+    expect(parseGeometryDraft('lineEquation(p1=(1,2), p2=(?,8), mid=(3,5))', { screenHint: 'lineEquation' })).toEqual({
+      ok: true,
+      request: {
+        kind: 'midpointSolveMissing',
+        p1: { xLatex: '1', yLatex: '2' },
+        p2: { xLatex: '?', yLatex: '8' },
+        mid: { xLatex: '3', yLatex: '5' },
+      },
+      style: 'structured',
+    });
+  });
+
   it('rejects solve-missing requests with multiple unknown markers', () => {
     const result = parseGeometryDraft('rectangle(width=?, height=?, area=40)', { screenHint: 'rectangle' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain('exactly one ?');
+    }
+  });
+
+  it('rejects lineEquation solve-missing requests with ambiguous constraints', () => {
+    const result = parseGeometryDraft(
+      'lineEquation(p1=(0,0), p2=(?,8), slope=2, distance=5)',
+      { screenHint: 'lineEquation' },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('exactly one constraint');
     }
   });
 });

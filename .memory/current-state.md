@@ -33,10 +33,11 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
-- Completed Track `C` bundle `P0 + P1`:
-  - P0 stabilization gate passed with full regression verification.
-  - P1 Geometry milestone delivered bounded solve-missing (`?`) support across scoped formula and coordinate families.
-  - Added strict one-unknown parser policy and unresolved-but-eligible coordinate equation handoff.
+- Completed Track `C` milestone `P2`:
+  - Added deferred Geometry inverse solve-missing families for cone, cuboid, arc-sector, and Heron one-side workflows.
+  - Added bounded `lineEquation(...)` one-unknown + one-constraint parsing/routing to existing coordinate solve-missing engines.
+  - Added explicit handoff mapping warning for unresolved-but-eligible coordinate sends (`x` placeholder mapping).
+  - Added P2 template seeds in Geometry workspace and updated Geometry route/help + guide copy.
 - Regression checks:
   - `npm test -- --run`
   - `npm run build`
@@ -62,8 +63,9 @@
 - Optional desktop smoke pass on the current shell wiring for visual parity confidence beyond automated coverage.
 - Keep the Track E manual checklist in parallel:
   - `.memory/research/TRACK-E-MANUAL-VERIFICATION-CHECKLIST.md`
-- Track C checklist artifact:
+- Track C checklist artifacts:
   - `.memory/research/TRACK-C-P0-P1-MANUAL-VERIFICATION-CHECKLIST.md`
+  - `.memory/research/TRACK-C-P2-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- Continue with the next Geometry product-track milestone after user review of Track C P0/P1 behavior.
+- Continue with Track C `P3` planning/implementation after user review of P2 behavior and checklist confirmation.
