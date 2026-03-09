@@ -60,6 +60,9 @@
   - bounded regression/correlation diagnostics inside the existing Statistics screens
   - `Quality Summary` detail sections with residual-size metrics and strength notes
   - balanced low-sample and weak/moderate fit warnings without expanding into prediction or inferential regression
+- Repo line endings are now governed by `.gitattributes`:
+  - LF for source, docs, and config text
+  - CRLF only for Windows-native scripts
 
 ## Current Known Risks
 - `src/AppMain.tsx` remains large; further decomposition should continue behind strict parity gates.

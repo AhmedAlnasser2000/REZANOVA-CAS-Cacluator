@@ -1,0 +1,38 @@
+# Default text normalization for the repo.
+* text=auto
+
+# Keep source and docs on LF so git stops guessing on Windows.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.rs text eol=lf
+*.svg text eol=lf
+*.txt text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Windows-native scripts should stay CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unix shell scripts stay LF.
+*.sh text eol=lf
+
+# Binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pdf binary
+*.mp4 binary
