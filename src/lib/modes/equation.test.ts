@@ -309,6 +309,38 @@ describe('runEquationMode', () => {
     expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+\\sqrt{2}\\ne0']);
   });
 
+  it('solves bounded rational equations by clearing the LCD before guarded recursion', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\frac{1}{x}+\\frac{1}{x+1}=1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.solveBadges).toContain('LCD Clear');
+    expect(result.exactLatex).toContain('\\sqrt{5}');
+    expect(result.exactSupplementLatex?.[0]).toContain('x\\ne0');
+    expect(result.exactSupplementLatex?.[0]).toContain('x+1\\ne0');
+  });
+
+  it('solves affine-radicand equations through bounded radical isolation', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\sqrt{x+1}=x-1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=3');
+    expect(result.rejectedCandidateCount).toBeUndefined();
+  });
+
   it('solves bounded trig squares through exact branch splitting', () => {
     const result = runEquationMode({
       ...makeRequest(),

@@ -185,6 +185,9 @@ export type SolveBadge =
   | 'Trig Sum-Product'
   | 'Log Combine'
   | 'Log Base Normalize'
+  | 'LCD Clear'
+  | 'Radical Isolation'
+  | 'Conjugate Transform'
   | 'Symbolic Substitution'
   | 'Inverse Isolation'
   | 'Numeric Interval'
@@ -1064,6 +1067,8 @@ export type SolveDomainConstraint =
   | { kind: 'exp-positive' };
 export type CandidateOrigin =
   | 'symbolic-direct'
+  | 'symbolic-lcd'
+  | 'symbolic-radical'
   | 'symbolic-substitution'
   | 'symbolic-inverse'
   | 'numeric-interval';
@@ -1072,6 +1077,8 @@ export type CandidateValidationResult =
   | { kind: 'rejected'; value: number; reason: string };
 export type GuardedSolveStage =
   | 'symbolic-direct'
+  | 'algebra-rational'
+  | 'algebra-radical'
   | 'trig-rewrite'
   | 'symbolic-substitution'
   | 'inverse-isolation'

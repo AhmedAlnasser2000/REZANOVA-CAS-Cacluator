@@ -16,6 +16,7 @@ import {
   successOutcome,
 } from './outcome';
 import { equationStateKey } from './state-key';
+import { algebraTransformSolve } from './algebra-stage';
 import { directTrigSolve } from './direct-trig-stage';
 import { rewriteTrigSolve } from './rewrite-trig-stage';
 import { substitutionSolve } from './substitution-stage';
@@ -197,7 +198,7 @@ function validateDirectSymbolicOutcome(
       'No valid symbolic solution remains after applying denominator exclusions.',
       symbolic.warnings,
       [],
-      [],
+      ['Candidate Checked'],
       undefined,
       validation.rejected.length,
     );
@@ -222,7 +223,7 @@ function validateDirectSymbolicOutcome(
     formatAcceptedApproximations(acceptedValues),
     symbolic.warnings,
     [],
-    [],
+    ['Candidate Checked'],
     undefined,
     validation.rejected.length,
   );
@@ -274,6 +275,20 @@ function runGuardedEquationSolve(
       ['Range Guard'],
       rangeImpossibility.summaryText,
     ), request.resolvedLatex, preparedRequest);
+  }
+
+  const algebraTransformed = algebraTransformSolve(
+    preparedRequest,
+    depth,
+    trail,
+    MAX_RECURSION_DEPTH,
+    runGuardedEquationSolve,
+  );
+  if (algebraTransformed?.kind === 'success') {
+    return attachAlgebraMetadata(algebraTransformed, request.resolvedLatex, preparedRequest);
+  }
+  if (algebraTransformed?.kind === 'error') {
+    return attachAlgebraMetadata(algebraTransformed, request.resolvedLatex, preparedRequest);
   }
 
   const directTrig = directTrigSolve(preparedRequest);

@@ -176,4 +176,96 @@ describe('runSharedEquationSolve', () => {
     expect(result.exactLatex).toBe('x=-1');
     expect(result.exactSupplementLatex).toEqual(['\\text{Exclusions: } x-1\\ne0']);
   });
+
+  it('clears supported LCDs for bounded rational equations', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\frac{1}{x}+\\frac{1}{x+1}=1',
+      resolvedLatex: '\\frac{1}{x}+\\frac{1}{x+1}=1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.solveBadges).toContain('LCD Clear');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.exactLatex).toContain('\\sqrt{5}');
+    expect(result.exactSupplementLatex?.[0]).toContain('x\\ne0');
+    expect(result.exactSupplementLatex?.[0]).toContain('x+1\\ne0');
+  });
+
+  it('solves isolated square-root equations through the guarded algebra stage', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x}=3',
+      resolvedLatex: '\\sqrt{x}=3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=9');
+    expect(result.solveBadges).toContain('Candidate Checked');
+  });
+
+  it('rejects extraneous roots after bounded radical isolation', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+1}=x-1',
+      resolvedLatex: '\\sqrt{x+1}=x-1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=3');
+    expect(result.rejectedCandidateCount).toBeUndefined();
+  });
+
+  it('solves reciprocal square-root equations through bounded radical inversion', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\frac{1}{\\sqrt{x}}=2',
+      resolvedLatex: '\\frac{1}{\\sqrt{x}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('\\frac{1}{4}');
+    expect(result.solveBadges).toContain('Candidate Checked');
+  });
+
+  it('solves supported nth-root equations with affine radicands', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt[3]{2x-1}=3',
+      resolvedLatex: '\\sqrt[3]{2x-1}=3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=14');
+    expect(result.solveBadges).toContain('Radical Isolation');
+  });
+
+  it('recognizes bounded conjugate families without claiming false symbolic success', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\frac{1}{x+\\sqrt{2}}=0',
+      resolvedLatex: '\\frac{1}{x+\\sqrt{2}}=0',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected an error outcome');
+    }
+    expect(result.solveBadges).toContain('Conjugate Transform');
+  });
 });

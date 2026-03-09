@@ -35,6 +35,19 @@ describe('AppMain UI automation flows', () => {
     expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ne0/);
   });
 
+  it('renders Equation LCD-cleared rational solves with exclusions and provenance', async () => {
+    const { user } = await renderAppMain();
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\frac{1}{x}+\\frac{1}{x+1}=1');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), /\\sqrt\{5\}/);
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ne0/);
+    expect(screen.getByText('LCD Clear')).toBeInTheDocument();
+  });
+
   it('shows Trigonometry handoff only for numeric-eligible unresolved cases', async () => {
     const { user } = await renderAppMain();
 

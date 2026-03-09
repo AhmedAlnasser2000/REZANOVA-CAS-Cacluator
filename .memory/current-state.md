@@ -33,15 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
-- Completed Track `QA1` as the browser-first automation sidecar for future product gates:
-  - added repo-owned UI integration coverage with jsdom + React Testing Library
-  - added browser-first Playwright smoke coverage against the built Vite app
-  - added `test:unit`, `test:ui`, `test:e2e`, and `test:gate` scripts so milestone close-out is automation-first
-  - added stable internal test selectors on shared editor/result/action surfaces without changing user-facing behavior
+- Completed Exact Algebra Core `R3` as bounded rational and radical equation solving in `Equation > Symbolic`:
+  - added a guarded algebra-transform stage for exact LCD clearing, radical isolation, and bounded conjugate transforms
+  - solved supported rational equations by clearing LCDs while preserving original exclusions
+  - solved supported radical equations through exact isolation + power transforms with candidate validation against the original equation
+  - added `LCD Clear`, `Radical Isolation`, and `Conjugate Transform` provenance badges
+  - extended browser-first automation with Equation R3 coverage, closed the gate through `npm run test:gate`, and executed the R3 browser-driven checklist pass
 - Regression checks:
-  - `npm run test:unit`
-  - `npm run test:ui`
-  - `npm run test:e2e`
   - `npm run test:gate`
 
 ## Recent Verified Context
@@ -70,6 +68,11 @@
   - `src/test/*` provides jsdom setup and `AppMain` render helpers
   - `e2e/*` provides browser smoke helpers and one critical path per core mode
   - milestone verification is now expected to run through `npm run test:gate`
+- Exact Algebra Core `R3` is shipped:
+  - `Equation > Symbolic` now performs bounded rational LCD-clearing solves and bounded radical isolation / nth-power solving through the guarded backend
+  - candidate validation now marks transformed symbolic outcomes as `Candidate Checked`
+  - bounded square-root-binomial conjugate families are recognized inside the algebra stage and either solve through the shared backend or fail with controlled messaging
+  - UI integration and browser smoke now include an Equation rational solve path that exercises `LCD Clear`
 - Repo line endings are now governed by `.gitattributes`:
   - LF for source, docs, and config text
   - CRLF only for Windows-native scripts
@@ -83,22 +86,22 @@
 - Bounded trig sum-to-product currently covers two-term `sin/cos` forms only; broader harmonic families remain deferred.
 - Statistics inference is intentionally bounded to one-sample mean workflows only; no proportion/categorical inference is in scope yet.
 - Statistics still has no prediction UI, residual table, outlier/leverage tooling, or inferential regression; D3 stayed bounded to quality summaries only.
-- Calcwiz now has bounded app-owned rational and radical normalization, but it still lacks the broader CAS-grade algebra stack:
-  - deeper denominator-domain tracking
-  - radical-equation preprocessing / solve families
-  - LCD-clearing workflows
-  - broader conjugate / rationalization coverage
-  - wider rational/radical equation solving
+- Calcwiz now has bounded app-owned rational/radical normalization plus first-pass rational/radical equation solving, but it still lacks the broader CAS-grade algebra stack:
+  - explicit transform UX and provenance controls beyond current badges/summaries
+  - broader denominator-domain tracking
+  - wider conjugate / rationalization coverage
+  - repeated or nested radical-clearing families
+  - broader rational/radical solve breadth beyond the current bounded families
 - Exact Algebra Core `R1` is intentionally bounded:
   - single-variable exact rational normalization only
   - simple denominator factors only (`v^n`, `av+b`, products/powers)
   - no automatic LCD clearing or broader rational-equation family solving yet
-- Exact Algebra Core `R2` is intentionally bounded:
-  - radical normalization and solve prep only
-  - supported numeric + monomial radicands only
-  - no nested denesting
-  - no polynomial-under-root factorization
-  - no new radical-equation solve family yet
+- Exact Algebra Core `R3` is intentionally bounded:
+  - single-variable rational/radical equation solving only inside the current guarded-solve surface
+  - rational denominator families stay limited to the shipped `R1` support set
+  - radical solving stays bounded to one isolated supported radical plus simple square-root conjugate families
+  - no repeated unrestricted squaring or theorem-prover-style search
+  - no nested denesting or broad polynomial-under-root factorization
 - QA1 automation is intentionally bounded:
   - browser-first only
   - smoke-level E2E per core mode, not exhaustive UI coverage
@@ -121,4 +124,4 @@
   - `.memory/research/TRACK-ALG-R3-QA-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- Plan Exact Algebra Core `R3` as bounded rational/radical equation solving, and use `npm run test:gate` as the required automated close-out path before any optional manual smoke.
+- Plan Exact Algebra Core `R4` as explicit algebra transform UX/provenance on top of the shipped `R1`/`R2`/`R3` stack.
