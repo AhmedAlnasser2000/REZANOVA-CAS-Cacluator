@@ -1285,6 +1285,12 @@ export type Settings = {
   outputStyle: OutputStyle;
   historyEnabled: boolean;
   autoSwitchToEquation: boolean;
+  uiScale: 100 | 115 | 130 | 145;
+  mathScale: 100 | 115 | 130 | 145;
+  resultScale: 100 | 115 | 130 | 145;
+  highContrast: boolean;
+  symbolicDisplayMode: 'roots' | 'powers' | 'auto';
+  flattenNestedRootsWhenSafe: boolean;
 };
 
 export type SettingsPatch = Partial<Settings>;
@@ -1376,6 +1382,12 @@ export const DEFAULT_SETTINGS: Settings = {
   outputStyle: 'both',
   historyEnabled: true,
   autoSwitchToEquation: false,
+  uiScale: 100,
+  mathScale: 100,
+  resultScale: 100,
+  highContrast: false,
+  symbolicDisplayMode: 'auto',
+  flattenNestedRootsWhenSafe: true,
 };
 
 export const DEFAULT_MODE_TREE: MenuNode[] = [

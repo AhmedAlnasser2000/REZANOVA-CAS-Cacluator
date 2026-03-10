@@ -1,5 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   expectMathStaticLatex,
   openEquationSymbolic,
@@ -10,7 +10,104 @@ import {
   setMathFieldLatex,
 } from './test/renderAppMain';
 
+function setViewportWidth(width: number) {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    writable: true,
+    value: width,
+  });
+  fireEvent(window, new Event('resize'));
+}
+
 describe('AppMain UI automation flows', () => {
+  beforeEach(() => {
+    setViewportWidth(1366);
+  });
+
+  it('opens the settings panel from the top bar and toggles it with Ctrl+,', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+
+    const settingsPanel = await screen.findByTestId('settings-panel');
+    expect(settingsPanel).toHaveAttribute('data-settings-presentation', 'docked');
+
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true });
+    await waitFor(() => expect(screen.getByTestId('settings-panel')).toBeInTheDocument());
+  });
+
+  it('renders the settings surface as an overlay on narrow layouts', async () => {
+    setViewportWidth(1024);
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+
+    expect(await screen.findByTestId('settings-panel')).toHaveAttribute(
+      'data-settings-presentation',
+      'overlay',
+    );
+    expect(screen.getByTestId('settings-overlay-backdrop')).toBeInTheDocument();
+  });
+
+  it('keeps settings and history mutually exclusive', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+
+    await user.click(screen.getByTestId('history-toggle'));
+    await screen.findByTestId('history-panel');
+    expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    expect(screen.queryByTestId('history-panel')).not.toBeInTheDocument();
+  });
+
+  it('applies display settings live and keeps quick toggles in sync', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+
+    await user.click(screen.getByTestId('settings-ui-scale-130'));
+    await user.click(screen.getByTestId('settings-math-scale-115'));
+    await user.click(screen.getByTestId('settings-result-scale-145'));
+    await user.click(screen.getByTestId('settings-high-contrast'));
+    await user.click(screen.getByTestId('settings-angle-unit-rad'));
+    await user.click(screen.getByTestId('settings-output-style-exact'));
+    await user.click(screen.getByTestId('settings-auto-switch-equation'));
+
+    const shell = screen.getByTestId('calculator-shell') as HTMLElement;
+    expect(shell.style.getPropertyValue('--ui-scale')).toBe('1.3');
+    expect(shell.style.getPropertyValue('--math-scale')).toBe('1.15');
+    expect(shell.style.getPropertyValue('--result-scale')).toBe('1.45');
+    expect(shell.className).toContain('is-high-contrast');
+    expect(screen.getByTestId('quick-setting-angle-unit')).toHaveTextContent('RAD');
+    expect(screen.getByTestId('quick-setting-output-style')).toHaveTextContent('EXACT');
+    expect(screen.getByTestId('quick-setting-auto-equation')).toHaveTextContent('Auto Eq On');
+  });
+
+  it('updates the symbolic-display preview live from settings controls', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+
+    expectMathStaticLatex(screen.getByTestId('settings-symbolic-preview-result'), '\\sqrt[6]{x}');
+    await user.click(screen.getByTestId('settings-symbolic-mode-powers'));
+    expectMathStaticLatex(screen.getByTestId('settings-symbolic-preview-result'), 'x^{\\frac{1}{6}}');
+    await user.click(screen.getByTestId('settings-symbolic-mode-roots'));
+    await user.click(screen.getByTestId('settings-flatten-nested-roots'));
+    expectMathStaticLatex(
+      screen.getByTestId('settings-symbolic-preview-result'),
+      '\\sqrt[3]{\\sqrt{x}}',
+    );
+  });
+
   it('renders Calculate exact results and exclusion supplements', async () => {
     const { user } = await renderAppMain();
 

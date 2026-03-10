@@ -33,14 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
-- Completed Exact Algebra Core `R5` as broader monomial/binomial rational and radical solving on top of the shipped `R1`/`R2`/`R3`/`R4` stack:
-  - widened bounded rational solving from affine-only factors to one-variable monomial/binomial denominator and numerator families
-  - widened bounded radical solving to monomial/binomial radicands with safe depth-2 square-root transform chains
-  - promoted supported square-root-binomial conjugate equations from recognized-only into actual solve paths when the transformed equation stays inside the bounded surface
-  - preserved original exclusions / conditions through chained transforms and rejected excluded or extraneous roots against the original equation
-- Post-`R5` display polish is also verified:
-  - exact rational result cards now compact repeated same-variable denominator factors into exponent form (`x^2`) instead of showing repeated variable text (`xx`)
-  - transform summaries and exact symbolic output paths no longer leak raw symbolic plain-text/LaTeX noise for these rational cases
+- Completed `SX1` as the canonical settings surface for the app shell:
+  - added a dedicated top-bar `Settings` entry point next to `Guide`
+  - settings now render as a docked right inspector on wide layouts and as a right slide-over overlay on narrower layouts
+  - settings and history are mutually exclusive side surfaces
+  - settings now include live-applied, persisted controls for display scale, math scale, result scale, high contrast, symbolic display preferences, angle unit, output style, auto-switch to Equation, and history recording
+  - top-row quick toggles remain as shortcuts over the same persisted settings state
+  - symbolic display preferences are present, previewed, and persisted in SX1 only; broad output behavior changes remain deferred to `PRL1`
 - Regression checks:
   - `npm run test:gate`
 
@@ -87,6 +86,12 @@
   - square-root equations with supported monomial/binomial radicands may now use one additional safe isolation/power step before candidate validation
   - supported square-root-binomial conjugate families now solve when the transformed equation stays inside the bounded shared solve surface
   - browser-first automation covers widened rational/radical Equation flows and the existing transform tray remains the user-facing control surface
+- `SX1` settings foundation is verified:
+  - `src/components/SettingsPanel.tsx` provides the canonical settings surface with `Display`, `Symbolic Display`, `General`, and `History` sections
+  - `src/AppMain.tsx` now owns the global `settingsOpen` shell state, the docked/overlay presentation switch at `1180px`, and Settings/History mutual exclusion
+  - shell-level CSS variables in `src/styles/app/shell.css` now drive UI scale, math scale, result scale, and high-contrast behavior live
+  - persisted settings now include display and symbolic-display preferences through the shared frontend schema and Tauri persistence model
+  - browser-first automation now covers docked settings, overlay settings, quick-toggle synchronization, and Settings/History exclusivity
 - Repo line endings are now governed by `.gitattributes`:
   - LF for source, docs, and config text
   - CRLF only for Windows-native scripts
@@ -141,4 +146,9 @@
   - `.memory/research/TRACK-ALG-R5-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- Plan Exact Algebra Core `R6` as the next bounded algebra expansion beyond monomial/binomial families, or pause for targeted UX polish and coverage expansion on the shipped `R5` surface.
+- Preferred next roadmap is now:
+  1. `PRL1` power/root/log display normalization
+  2. `PRL2` broad numeric exponent/root/log support
+  3. `PRL3` bounded symbolic exponent/root/log support
+  4. `PRL4` bounded solve expansion for these families
+- This remains preferred over jumping directly into an `R6` algebra expansion.

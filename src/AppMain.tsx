@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   useDeferredValue,
   useEffect,
   useEffectEvent,
@@ -8,6 +9,7 @@ import {
 } from 'react';
 import type { MathfieldElement } from 'mathlive';
 import { MathEditor } from './components/MathEditor';
+import { SettingsPanel } from './components/SettingsPanel';
 import { SignedNumberDraftInput } from './components/SignedNumberDraftInput';
 import { SignedNumberInput } from './components/SignedNumberInput';
 import { MathStatic } from './components/MathStatic';
@@ -328,6 +330,7 @@ import {
   type SineRuleState,
   type SeriesState,
   type Settings,
+  type SettingsPatch,
   type SecondOrderOdeState,
   type RectangleState,
   type SlopeState,
@@ -349,12 +352,18 @@ import {
   type VectorOperation,
 } from './types/calculator';
 
+const SETTINGS_DOCK_BREAKPOINT = 1180;
+
 export default function App() {
   const showModeTabs = import.meta.env.DEV && import.meta.env.VITE_SHOW_MODE_TABS === '1';
   const [currentMode, setCurrentMode] = useState<ModeId>('calculate');
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? SETTINGS_DOCK_BREAKPOINT : window.innerWidth,
+  );
   const [runtimeLabel, setRuntimeLabel] = useState('Browser preview');
   const [clipboardNotice, setClipboardNotice] = useState<string | null>(null);
   const [displayOutcome, setDisplayOutcome] = useState<DisplayOutcome | null>(null);
@@ -651,6 +660,15 @@ export default function App() {
     linear2: null,
     linear3: null,
   });
+
+  const settingsPresentation = viewportWidth >= SETTINGS_DOCK_BREAKPOINT ? 'docked' : 'overlay';
+  const settingsOverlayOpen = settingsOpen && settingsPresentation === 'overlay';
+  const settingsDockedOpen = settingsOpen && settingsPresentation === 'docked';
+  const calculatorShellStyle = {
+    '--ui-scale': `${settings.uiScale / 100}`,
+    '--math-scale': `${settings.mathScale / 100}`,
+    '--result-scale': `${settings.resultScale / 100}`,
+  } as CSSProperties;
 
   const isLauncherOpen = launcherState.surface === 'launcher';
   const activeLauncherLeafId: LauncherLeafId =
@@ -1066,6 +1084,16 @@ export default function App() {
   }, [hydrated, settings]);
 
   useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
     if (!clipboardNotice) {
       return;
     }
@@ -1077,8 +1105,33 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [clipboardNotice]);
 
+  function patchSettings(patch: SettingsPatch) {
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      ...patch,
+    }));
+  }
+
+  function closeSettingsPanel() {
+    setSettingsOpen(false);
+  }
+
+  function toggleSettingsPanel() {
+    setHistoryOpen(false);
+    setSettingsOpen((open) => !open);
+  }
+
+  function toggleHistoryPanel() {
+    if (isLauncherOpen || currentMode === 'guide') {
+      return;
+    }
+
+    setSettingsOpen(false);
+    setHistoryOpen((open) => !open);
+  }
+
   useEffect(() => {
-    if (isLauncherOpen || historyOpen) {
+    if (isLauncherOpen || historyOpen || settingsOverlayOpen) {
       return;
     }
 
@@ -1424,6 +1477,7 @@ export default function App() {
     guideRouteMeta,
     historyOpen,
     isLauncherOpen,
+    settingsOverlayOpen,
     geometryRouteMeta,
     geometryScreen,
     statisticsRouteMeta,
@@ -4319,7 +4373,7 @@ export default function App() {
     }
 
     if (actionId === 'history') {
-      setHistoryOpen((open) => !open);
+      toggleHistoryPanel();
       return;
     }
 
@@ -4745,7 +4799,7 @@ export default function App() {
       }
 
       if (button.command === 'history') {
-        setHistoryOpen((open) => !open);
+        toggleHistoryPanel();
         return;
       }
 
@@ -4780,7 +4834,7 @@ export default function App() {
       }
 
       if (button.command === 'history') {
-        setHistoryOpen((open) => !open);
+        toggleHistoryPanel();
         return;
       }
 
@@ -4815,7 +4869,7 @@ export default function App() {
       }
 
       if (button.command === 'history') {
-        setHistoryOpen((open) => !open);
+        toggleHistoryPanel();
         return;
       }
 
@@ -4880,7 +4934,7 @@ export default function App() {
       }
 
       if (button.command === 'history') {
-        setHistoryOpen((open) => !open);
+        toggleHistoryPanel();
         return;
       }
 
@@ -4915,7 +4969,7 @@ export default function App() {
       }
 
       if (button.command === 'history') {
-        setHistoryOpen((open) => !open);
+        toggleHistoryPanel();
         return;
       }
 
@@ -4945,16 +4999,15 @@ export default function App() {
       return;
     }
 
-    if (button.command === 'history') setHistoryOpen((open) => !open);
+    if (button.command === 'history') toggleHistoryPanel();
     if (button.command === 'clear') clearCurrentMode();
     if (button.command === 'delete') activeFieldRef.current?.executeCommand('deleteBackward');
     if (button.command === 'cursor-left') activeFieldRef.current?.executeCommand('moveToPreviousChar');
     if (button.command === 'cursor-right') activeFieldRef.current?.executeCommand('moveToNextChar');
     if (button.command === 'cycle-angle') {
-      setSettings((currentSettings) => ({
-        ...currentSettings,
-        angleUnit: cycleAngleUnit(currentSettings.angleUnit),
-      }));
+      patchSettings({
+        angleUnit: cycleAngleUnit(settings.angleUnit),
+      });
     }
     if (button.command === 'open-menu') openLauncher();
     if (button.command === 'evaluate') executePrimaryAction();
@@ -5302,6 +5355,12 @@ export default function App() {
       return;
     }
 
+    if (event.ctrlKey && !event.shiftKey && event.key === ',') {
+      toggleSettingsPanel();
+      event.preventDefault();
+      return;
+    }
+
     if (isLauncherOpen) {
       if (!plainFormTarget && event.key.startsWith('F')) {
         const action = activeSoftMenu.find((item) => item.hotkey === event.key);
@@ -5369,6 +5428,11 @@ export default function App() {
     }
 
     if (event.key === 'Escape') {
+      if (settingsOpen) {
+        closeSettingsPanel();
+        return;
+      }
+
       if (historyOpen) {
         setHistoryOpen(false);
         return;
@@ -7819,7 +7883,11 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="calculator-shell">
+      <div
+        className={`calculator-shell${settings.highContrast ? ' is-high-contrast' : ''}${settingsDockedOpen ? ' has-settings-docked' : ''}`}
+        data-testid="calculator-shell"
+        style={calculatorShellStyle}
+      >
         <header className="mode-strip">
           {showModeTabs ? (
             <div className="mode-tabs">
@@ -7857,27 +7925,40 @@ export default function App() {
             <button
               className={currentMode === 'guide' ? 'is-active' : ''}
               aria-pressed={currentMode === 'guide'}
+              data-testid="guide-toggle"
               title="Guide (Ctrl+G)"
               onClick={openGuideHome}
             >
               Guide
             </button>
+            <button
+              className={settingsOpen ? 'is-active' : ''}
+              aria-pressed={settingsOpen}
+              data-testid="settings-toggle"
+              title="Settings (Ctrl+,)"
+              onClick={toggleSettingsPanel}
+            >
+              Settings
+            </button>
           </div>
           <div className="status-pills">
-            <button onClick={() => setSettings((currentSettings) => ({ ...currentSettings, angleUnit: cycleAngleUnit(currentSettings.angleUnit) }))}>
+            <button
+              data-testid="quick-setting-angle-unit"
+              onClick={() => patchSettings({ angleUnit: cycleAngleUnit(settings.angleUnit) })}
+            >
               {settings.angleUnit.toUpperCase()}
             </button>
             <button
+              data-testid="quick-setting-output-style"
               onClick={() =>
-                setSettings((currentSettings) => ({
-                  ...currentSettings,
+                patchSettings({
                   outputStyle:
-                    currentSettings.outputStyle === 'both'
+                    settings.outputStyle === 'both'
                       ? 'exact'
-                      : currentSettings.outputStyle === 'exact'
+                      : settings.outputStyle === 'exact'
                         ? 'decimal'
                         : 'both',
-                }))
+                })
               }
             >
               {settings.outputStyle.toUpperCase()}
@@ -7885,16 +7966,20 @@ export default function App() {
             <button
               className={settings.autoSwitchToEquation ? 'is-active' : ''}
               aria-pressed={settings.autoSwitchToEquation}
+              data-testid="quick-setting-auto-equation"
               onClick={() =>
-                setSettings((currentSettings) => ({
-                  ...currentSettings,
-                  autoSwitchToEquation: !currentSettings.autoSwitchToEquation,
-                }))
+                patchSettings({
+                  autoSwitchToEquation: !settings.autoSwitchToEquation,
+                })
               }
             >
               {settings.autoSwitchToEquation ? 'Auto Eq On' : 'Auto Eq Off'}
             </button>
-            <button onClick={() => setHistoryOpen((open) => !open)} disabled={isLauncherOpen || currentMode === 'guide'}>
+            <button
+              data-testid="history-toggle"
+              onClick={toggleHistoryPanel}
+              disabled={isLauncherOpen || currentMode === 'guide'}
+            >
               {historyOpen ? 'Hide Hist' : 'Show Hist'}
             </button>
             <span>{runtimeLabel}</span>
@@ -10391,8 +10476,17 @@ export default function App() {
             ) : null}
           </div>
 
+          {settingsDockedOpen ? (
+            <SettingsPanel
+              presentation="docked"
+              settings={settings}
+              onClose={closeSettingsPanel}
+              onPatch={patchSettings}
+            />
+          ) : null}
+
           {!isLauncherOpen && currentMode !== 'guide' && historyOpen ? (
-            <aside className="history-panel">
+            <aside className="history-panel" data-testid="history-panel">
               <div className="history-header">
                 <strong>History</strong>
                 <div className="history-actions">
@@ -10425,6 +10519,24 @@ export default function App() {
           ))}
         </section>
       </div>
+
+      {settingsOverlayOpen ? (
+        <>
+          <button
+            type="button"
+            className="settings-overlay-backdrop"
+            data-testid="settings-overlay-backdrop"
+            aria-label="Close settings"
+            onClick={closeSettingsPanel}
+          />
+          <SettingsPanel
+            presentation="overlay"
+            settings={settings}
+            onClose={closeSettingsPanel}
+            onPatch={patchSettings}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

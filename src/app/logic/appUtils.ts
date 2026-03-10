@@ -18,12 +18,12 @@ export function cycleAngleUnit(angleUnit: AngleUnit): AngleUnit {
 }
 
 export function isAnyFormTarget(target: EventTarget | null) {
-  const element = target as HTMLElement | null;
+  const element = target instanceof Element ? target : null;
   return !!element?.closest('input, select, button, textarea, math-field');
 }
 
 export function isPlainFormTarget(target: EventTarget | null) {
-  const element = target as HTMLElement | null;
+  const element = target instanceof Element ? target : null;
   return !!element?.closest('input, select, button, textarea');
 }
 

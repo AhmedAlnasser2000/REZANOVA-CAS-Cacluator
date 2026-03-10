@@ -854,3 +854,88 @@ If this algebra-core roadmap is completed well, Calcwiz gains the next major CAS
 - a more credible path toward a real general-purpose CAS identity
 
 Without this roadmap, Calcwiz can still be a strong bounded symbolic calculator, but it will remain materially short of full CAS expectations for everyday algebra.
+
+## Next Roadmap After Exact Algebra Core `R1`-`R5`
+
+With bounded rational/radical normalization, transform UX, and monomial/binomial solve expansion now shipped, the next preferred roadmap is a combined settings + power/root/log track rather than another immediate rational/radical expansion.
+
+### Stage 1 - `SX1` Settings Foundation
+Status: shipped on 2026-03-10.
+
+Build the canonical app settings surface first.
+
+Delivered:
+- add a dedicated settings surface that is not buried inside `Menu`
+- give visibility/readability controls a permanent home
+- give symbolic display preferences a permanent home before hard-coding one style
+- use a hybrid presentation:
+  - docked right inspector on wide layouts
+  - right overlay sheet on narrower layouts
+- keep top-row quick toggles as shortcuts over the same persisted state
+- persist symbolic display preferences now, with broad formatting changes deferred to `PRL1`
+
+First settings groups:
+- `Display`
+- `Symbolic Display`
+
+First controls:
+- UI scale
+- math size
+- result size
+- high contrast
+- symbolic preference mode:
+  - prefer roots
+  - prefer powers
+  - auto
+- flatten nested roots when safe
+
+### Stage 2 - `PRL1` Power / Root / Log Display Normalization
+Fix how exponents, roots, and logs are shown before broadening their capabilities.
+
+Goals:
+- prefer flatter and more human-readable exact forms
+- reduce ugly nested radical output
+- avoid turning readable input into visually worse exact output
+- make symbolic display respond to the new settings surface where appropriate
+
+Example direction:
+- prefer `⁶√x` over root-of-root output when safe
+- prefer `x√x` over `√(x^3)` when safe
+- keep exact real-domain conditions explicit when display rewrites depend on them
+
+### Stage 3 - `PRL2` Broad Numeric Exponent / Root / Log Support
+Expand numeric capability broadly while staying in the real domain by default.
+
+Goals:
+- broad real numeric exponentiation
+- broad real numeric nth roots
+- broad numeric logarithms with explicit base support
+- clear real-domain errors when expressions are undefined
+
+Policy:
+- numeric support can be broad
+- symbolic support remains bounded and branch-safe
+
+### Stage 4 - `PRL3` Bounded Symbolic Exponent / Root / Log Support
+Broaden symbolic transformations carefully after display policy and numeric foundations are stable.
+
+Goals:
+- safe power/root simplification
+- safe inverse exp/log transforms
+- same-base log rules only where branch/domain safety is explicit
+- no broad symbolic identities that hide domain changes
+
+### Stage 5 - `PRL4` Bounded Solve Expansion
+Only after the earlier stages, broaden solve behavior for power/root/log equations.
+
+Goals:
+- more isolated exponential/logarithmic/root equations in `Equation > Symbolic`
+- bounded recursive transforms through the existing guarded solver
+- explicit numeric fallback when symbolic stages stop short
+
+### Guiding Principle
+For this whole roadmap:
+- numeric behavior should be broad
+- symbolic behavior should stay conservative
+- real domain remains the default
+- transformed candidates must still validate against the original expression/equation and preserved constraints

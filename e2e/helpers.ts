@@ -44,3 +44,8 @@ export async function openStatisticsRegression(page: Page) {
   await page.getByTestId('keypad-6').click();
   await expect(page.getByTestId('main-editor')).toBeVisible();
 }
+
+export async function openSettingsPanel(page: Page) {
+  await page.getByTestId('settings-toggle').click();
+  await expect(page.getByTestId('settings-panel')).toBeVisible();
+}

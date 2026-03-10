@@ -58,13 +58,18 @@ impl Default for OutputStyle {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 struct Settings {
   angle_unit: AngleUnit,
   output_style: OutputStyle,
   history_enabled: bool,
-  #[serde(default)]
   auto_switch_to_equation: bool,
+  ui_scale: i32,
+  math_scale: i32,
+  result_scale: i32,
+  high_contrast: bool,
+  symbolic_display_mode: String,
+  flatten_nested_roots_when_safe: bool,
 }
 
 impl Default for Settings {
@@ -74,6 +79,12 @@ impl Default for Settings {
       output_style: OutputStyle::Both,
       history_enabled: true,
       auto_switch_to_equation: false,
+      ui_scale: 100,
+      math_scale: 100,
+      result_scale: 100,
+      high_contrast: false,
+      symbolic_display_mode: "auto".into(),
+      flatten_nested_roots_when_safe: true,
     }
   }
 }
@@ -85,6 +96,12 @@ struct SettingsPatch {
   output_style: Option<OutputStyle>,
   history_enabled: Option<bool>,
   auto_switch_to_equation: Option<bool>,
+  ui_scale: Option<i32>,
+  math_scale: Option<i32>,
+  result_scale: Option<i32>,
+  high_contrast: Option<bool>,
+  symbolic_display_mode: Option<String>,
+  flatten_nested_roots_when_safe: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -905,6 +922,24 @@ fn save_settings(
   }
   if let Some(auto_switch_to_equation) = patch.auto_switch_to_equation {
     snapshot.settings.auto_switch_to_equation = auto_switch_to_equation;
+  }
+  if let Some(ui_scale) = patch.ui_scale {
+    snapshot.settings.ui_scale = ui_scale;
+  }
+  if let Some(math_scale) = patch.math_scale {
+    snapshot.settings.math_scale = math_scale;
+  }
+  if let Some(result_scale) = patch.result_scale {
+    snapshot.settings.result_scale = result_scale;
+  }
+  if let Some(high_contrast) = patch.high_contrast {
+    snapshot.settings.high_contrast = high_contrast;
+  }
+  if let Some(symbolic_display_mode) = patch.symbolic_display_mode {
+    snapshot.settings.symbolic_display_mode = symbolic_display_mode;
+  }
+  if let Some(flatten_nested_roots_when_safe) = patch.flatten_nested_roots_when_safe {
+    snapshot.settings.flatten_nested_roots_when_safe = flatten_nested_roots_when_safe;
   }
 
   let settings = snapshot.settings.clone();

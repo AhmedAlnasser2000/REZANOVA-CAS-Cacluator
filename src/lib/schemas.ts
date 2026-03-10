@@ -22,6 +22,12 @@ export const settingsSchema = z.object({
   outputStyle: outputStyleSchema,
   historyEnabled: z.boolean(),
   autoSwitchToEquation: z.boolean().default(false),
+  uiScale: z.union([z.literal(100), z.literal(115), z.literal(130), z.literal(145)]).default(100),
+  mathScale: z.union([z.literal(100), z.literal(115), z.literal(130), z.literal(145)]).default(100),
+  resultScale: z.union([z.literal(100), z.literal(115), z.literal(130), z.literal(145)]).default(100),
+  highContrast: z.boolean().default(false),
+  symbolicDisplayMode: z.enum(['roots', 'powers', 'auto']).default('auto'),
+  flattenNestedRootsWhenSafe: z.boolean().default(true),
 });
 
 export const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>

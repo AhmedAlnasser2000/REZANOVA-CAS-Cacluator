@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   openEquationSymbolic,
   openGeometrySlope,
+  openSettingsPanel,
   openStatisticsRegression,
   openTrigEquationSolve,
   setMathFieldLatex,
@@ -102,4 +103,44 @@ test('Statistics smoke renders quality summary metadata', async ({ page }) => {
   await expect(detailSections).toBeVisible();
   await expect(detailSections).toContainText('Quality Summary');
   await expect(detailSections).toContainText('SSE');
+});
+
+test('Settings smoke uses the docked inspector on wide layouts and applies live display settings', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 960 });
+  await page.reload();
+  await expect(page.getByTestId('main-editor')).toBeVisible();
+
+  await openSettingsPanel(page);
+  await expect(page.getByTestId('settings-panel')).toHaveAttribute('data-settings-presentation', 'docked');
+
+  await page.getByTestId('settings-ui-scale-130').click();
+  await page.getByTestId('settings-high-contrast').check();
+
+  const shellClass = await page.getByTestId('calculator-shell').getAttribute('class');
+  expect(shellClass).toContain('is-high-contrast');
+  await expect(page.getByTestId('calculator-shell')).toHaveAttribute('style', /--ui-scale: 1.3/);
+});
+
+test('Settings smoke uses an overlay sheet on narrow layouts', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.reload();
+  await expect(page.getByTestId('main-editor')).toBeVisible();
+
+  await openSettingsPanel(page);
+  await expect(page.getByTestId('settings-panel')).toHaveAttribute('data-settings-presentation', 'overlay');
+  await expect(page.getByTestId('settings-overlay-backdrop')).toBeVisible();
+});
+
+test('Settings smoke keeps quick toggles in sync and stays mutually exclusive with history', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 960 });
+  await page.reload();
+  await expect(page.getByTestId('main-editor')).toBeVisible();
+
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-rad').click();
+  await expect(page.getByTestId('quick-setting-angle-unit')).toHaveText('RAD');
+
+  await page.getByTestId('history-toggle').click();
+  await expect(page.getByTestId('history-panel')).toBeVisible();
+  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
 });
