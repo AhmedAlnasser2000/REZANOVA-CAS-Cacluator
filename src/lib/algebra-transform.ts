@@ -24,6 +24,7 @@ export type AlgebraTransformResult = {
   exactSupplementLatex?: string[];
   transformBadges: TransformBadge[];
   transformSummaryText: string;
+  transformSummaryLatex?: string;
 };
 
 const ACTION_LABELS: Record<AlgebraTransformAction, string> = {
@@ -85,8 +86,9 @@ function combineFractionsExpression(node: unknown): AlgebraTransformResult | nul
     exactSupplementLatex: rational.exactSupplementLatex,
     transformBadges: ['Combine Fractions'],
     transformSummaryText: rational.denominatorLatex
-      ? `Combined fractions over LCD ${rational.denominatorLatex}`
+      ? 'Combined fractions over LCD'
       : 'Combined fractions into one exact rational form',
+    transformSummaryLatex: rational.denominatorLatex,
   };
 }
 
@@ -124,8 +126,9 @@ function rewriteWithLcdExpression(node: unknown): AlgebraTransformResult | null 
     exactSupplementLatex: rational.exactSupplementLatex,
     transformBadges: ['Use LCD'],
     transformSummaryText: rational.denominatorLatex
-      ? `Rewrote the expression over LCD ${rational.denominatorLatex}`
+      ? 'Rewrote the expression over LCD'
       : 'Rewrote the expression over an exact common denominator',
+    transformSummaryLatex: rational.denominatorLatex,
   };
 }
 
@@ -282,8 +285,9 @@ function rewriteWithLcdEquation(left: unknown, right: unknown): AlgebraTransform
     exactSupplementLatex: rational.exactSupplementLatex,
     transformBadges: ['Use LCD'],
     transformSummaryText: rational.denominatorLatex
-      ? `Cleared the equation by multiplying through by LCD ${rational.denominatorLatex}`
+      ? 'Cleared the equation by multiplying through by LCD'
       : 'Cleared the equation with an exact LCD transform',
+    transformSummaryLatex: rational.denominatorLatex,
   };
 }
 

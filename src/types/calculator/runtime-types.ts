@@ -666,6 +666,7 @@ export type DisplayOutcome =
       solveSummaryText?: string;
       transformBadges?: TransformBadge[];
       transformSummaryText?: string;
+      transformSummaryLatex?: string;
       rejectedCandidateCount?: number;
       substitutionDiagnostics?: SubstitutionSolveDiagnostics;
       numericMethod?: string;
@@ -694,6 +695,7 @@ export type DisplayOutcome =
       solveSummaryText?: string;
       transformBadges?: TransformBadge[];
       transformSummaryText?: string;
+      transformSummaryLatex?: string;
       rejectedCandidateCount?: number;
       substitutionDiagnostics?: SubstitutionSolveDiagnostics;
       numericMethod?: string;

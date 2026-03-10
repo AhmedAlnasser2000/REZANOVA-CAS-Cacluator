@@ -484,6 +484,7 @@ export function runEquationAlgebraTransform({
       resultOrigin: 'symbolic-engine',
       transformBadges: result.transformBadges,
       transformSummaryText: result.transformSummaryText,
+      transformSummaryLatex: result.transformSummaryLatex,
     },
     equationLatex,
     planner.resolvedLatex,

@@ -324,7 +324,9 @@ export function runExpressionAction(
         : null;
     if (rational) {
       const exactExpr = ce.box(rational.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike;
-      const approx = numericExpression(exactExpr);
+      const approx = isNumericOnlyNode(exactExpr.json)
+        ? numericExpression(exactExpr)
+        : undefined;
       const guardError = getResultGuardError(approx?.latex, exactExpr?.latex);
       const exactSupplementLatex = mergeSupplementLatex(
         radicalSupplementLatex,
@@ -349,7 +351,9 @@ export function runExpressionAction(
     }
 
     if (radical && action === 'simplify') {
-      const approx = numericExpression(radicalExpr);
+      const approx = isNumericOnlyNode(radicalExpr.json)
+        ? numericExpression(radicalExpr)
+        : undefined;
       const guardError = getResultGuardError(approx?.latex, radicalExpr?.latex);
       if (guardError) {
         return {
@@ -451,7 +455,9 @@ export function runExpressionAction(
     const exactExpr = fallbackExact
       ? (ce.box(fallbackExact as Parameters<typeof ce.box>[0]) as BoxedLike)
       : exact;
-    const approx = numericExpression(exactExpr);
+    const approx = isNumericOnlyNode(exactExpr?.json ?? radicalExpr.json)
+      ? numericExpression(exactExpr)
+      : undefined;
     const guardError = getResultGuardError(approx?.latex, exactExpr?.latex);
     if (guardError) {
       return {

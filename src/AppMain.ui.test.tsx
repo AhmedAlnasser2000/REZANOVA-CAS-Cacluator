@@ -20,6 +20,18 @@ describe('AppMain UI automation flows', () => {
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), '\\frac{2x+1}{6x}');
     expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ne0/);
+    expect(screen.queryByTestId('display-outcome-approx')).not.toBeInTheDocument();
+  });
+
+  it('renders square-power denominators as x^2 instead of repeated x factors', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\frac{1}{6x^2}+4');
+    await user.click(screen.getByTestId('soft-action-simplify'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), '\\frac{24x^2+1}{6x^{2}}');
+    expect(screen.queryByTestId('display-outcome-approx')).not.toBeInTheDocument();
   });
 
   it('shows the Calculate algebra tray and runs explicit transforms', async () => {
@@ -35,6 +47,20 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByText(/Canceled supported common factors/i)).toBeInTheDocument();
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), '\\frac{x+1}{x}');
     expect(screen.getByTestId('algebra-transform-cancelFactors')).toBeInTheDocument();
+  });
+
+  it('renders transform summary math separately from plain text', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\frac{1}{3}+\\frac{1}{6x^2}');
+    await user.click(screen.getByTestId('soft-action-algebra'));
+
+    await waitFor(() => expect(screen.getByTestId('algebra-transform-tray')).toBeInTheDocument());
+    await user.click(screen.getByTestId('algebra-transform-combineFractions'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByText('Combined fractions over LCD')).toBeInTheDocument();
+    expect(screen.getByLabelText('6x^{2}')).toBeInTheDocument();
   });
 
   it('renders Equation conditions and suppresses send action on solved cases', async () => {

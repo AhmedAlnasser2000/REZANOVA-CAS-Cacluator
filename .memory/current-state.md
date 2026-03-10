@@ -38,6 +38,9 @@
   - widened bounded radical solving to monomial/binomial radicands with safe depth-2 square-root transform chains
   - promoted supported square-root-binomial conjugate equations from recognized-only into actual solve paths when the transformed equation stays inside the bounded surface
   - preserved original exclusions / conditions through chained transforms and rejected excluded or extraneous roots against the original equation
+- Post-`R5` display polish is also verified:
+  - exact rational result cards now compact repeated same-variable denominator factors into exponent form (`x^2`) instead of showing repeated variable text (`xx`)
+  - transform summaries and exact symbolic output paths no longer leak raw symbolic plain-text/LaTeX noise for these rational cases
 - Regression checks:
   - `npm run test:gate`
 

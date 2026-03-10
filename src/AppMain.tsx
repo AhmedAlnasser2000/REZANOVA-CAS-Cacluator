@@ -8374,6 +8374,13 @@ export default function App() {
               <div className="result-summary-block">
                 <div className="result-summary-label">Transform</div>
                 <div className="result-approx result-summary-text">{formatSolveSummaryText(displayOutcome.transformSummaryText)}</div>
+                {displayOutcome.transformSummaryLatex ? (
+                  <MathStatic
+                    className="preview-math result-summary-math"
+                    latex={displayOutcome.transformSummaryLatex}
+                    block={false}
+                  />
+                ) : null}
               </div>
             ) : null}
             {!isLauncherOpen

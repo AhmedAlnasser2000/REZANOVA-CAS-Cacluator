@@ -401,7 +401,9 @@ describe('runEquationMode', () => {
     }
     expect(result.exactLatex).toBe('x^2+x=0');
     expect(result.transformBadges).toEqual(['Use LCD']);
-    expect(result.transformSummaryText).toContain('(x-1)(x^2+1)');
+    expect(result.transformSummaryText).toContain('Cleared the equation');
+    expect(result.transformSummaryLatex).toContain('x-1');
+    expect(result.transformSummaryLatex).toContain('x^2+1');
     expect(result.exactSupplementLatex?.[0]).toContain('x^2+1\\ne0');
   });
 

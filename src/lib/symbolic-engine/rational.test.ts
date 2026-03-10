@@ -38,6 +38,22 @@ describe('normalizeExactRationalLatex', () => {
     expect(result?.exactSupplementLatex[0]).toContain('x-1\\ne0');
   });
 
+  it('keeps monomial power denominators compact in rendered latex', () => {
+    const result = normalizeExactRationalLatex('\\frac{1}{6x^2}+4', 'simplify');
+
+    expect(result).not.toBeNull();
+    expect(result?.normalizedLatex).toBe('\\frac{24x^2+1}{6x^{2}}');
+    expect(result?.denominatorLatex).toBe('6x^{2}');
+  });
+
+  it('keeps higher-power LCD summaries compact instead of repeating the variable', () => {
+    const result = normalizeExactRationalLatex('\\frac{1}{3x^5}+\\frac{1}{6x^4}', 'simplify');
+
+    expect(result).not.toBeNull();
+    expect(result?.normalizedLatex).toBe('\\frac{x+2}{6x^5}');
+    expect(result?.denominatorLatex).toBe('6x^5');
+  });
+
   it('rejects multivariable rational expressions for this bounded milestone', () => {
     const result = normalizeExactRationalLatex('\\frac{1}{x}+\\frac{1}{y}', 'simplify');
 

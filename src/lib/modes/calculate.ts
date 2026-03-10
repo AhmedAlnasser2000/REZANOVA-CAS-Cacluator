@@ -303,6 +303,7 @@ export function runCalculateAlgebraTransform({
       resultOrigin: 'symbolic-engine',
       transformBadges: result.transformBadges,
       transformSummaryText: result.transformSummaryText,
+      transformSummaryLatex: result.transformSummaryLatex,
     },
     latex,
     planner.resolvedLatex,

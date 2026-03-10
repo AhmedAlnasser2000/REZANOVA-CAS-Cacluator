@@ -21,6 +21,7 @@ describe('algebra-transform', () => {
     expect(result?.exactLatex).toBe('\\frac{2x+1}{6x}');
     expect(result?.exactSupplementLatex?.[0]).toContain('x\\ne0');
     expect(result?.transformBadges).toEqual(['Combine Fractions']);
+    expect(result?.transformSummaryLatex).toBe('6x');
   });
 
   it('cancels rational factors explicitly without losing exclusions', () => {
@@ -52,6 +53,7 @@ describe('algebra-transform', () => {
     expect(result?.exactSupplementLatex?.[0]).toContain('x\\ne0');
     expect(result?.exactSupplementLatex?.[0]).toContain('x+1\\ne0');
     expect(result?.transformBadges).toEqual(['Use LCD']);
+    expect(result?.transformSummaryLatex).toBe('x(x+1)');
   });
 
   it('widens calculate transform eligibility to binomial denominator families', () => {

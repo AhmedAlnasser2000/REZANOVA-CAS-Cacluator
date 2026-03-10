@@ -43,6 +43,29 @@ export type RationalNormalizationResult = {
   variable?: string;
 };
 
+function escapeRegex(literal: string) {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function compactRepeatedVariableLatex(latex: string, variable?: string) {
+  if (!latex || !variable) {
+    return latex;
+  }
+
+  const variableLatex = boxLatex(variable);
+  if (!variableLatex) {
+    return latex;
+  }
+
+  const escapedVariable = escapeRegex(variableLatex);
+  const repeatedVariable = new RegExp(`(?:${escapedVariable}){2,}`, 'g');
+
+  return latex.replace(repeatedVariable, (match) => {
+    const occurrences = match.match(new RegExp(escapedVariable, 'g'))?.length ?? 1;
+    return `${variableLatex}^{${occurrences}}`;
+  });
+}
+
 function gcd(left: number, right: number): number {
   let a = Math.abs(left);
   let b = Math.abs(right);
@@ -734,16 +757,18 @@ export function normalizeExactRationalNode(
     ? normalizeAst(['Divide', numeratorNode, denominatorNode])
     : normalizeAst(numeratorNode);
   const exclusionMetadata = buildExclusionMetadata(validTerms);
-  const normalizedLatex = boxLatex(normalizedNode);
+  const normalizedLatex = compactRepeatedVariableLatex(boxLatex(normalizedNode), variable ?? undefined);
 
   return {
     changed: termKey(normalizedNode) !== termKey(normalizedInput),
     normalizedNode,
     normalizedLatex,
     numeratorNode,
-    numeratorLatex: boxLatex(numeratorNode),
+    numeratorLatex: compactRepeatedVariableLatex(boxLatex(numeratorNode), variable ?? undefined),
     denominatorNode,
-    denominatorLatex: denominatorNode ? boxLatex(denominatorNode) : undefined,
+    denominatorLatex: denominatorNode
+      ? compactRepeatedVariableLatex(boxLatex(denominatorNode), variable ?? undefined)
+      : undefined,
     exclusionConstraints: exclusionMetadata.exclusionConstraints,
     exactSupplementLatex: exclusionMetadata.exactSupplementLatex,
     variable: variable ?? undefined,

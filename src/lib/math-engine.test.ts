@@ -25,7 +25,7 @@ describe('runExpressionAction', () => {
 
     expect(evaluated.error).toBeUndefined()
     expect(evaluated.exactLatex).not.toBe(solved.exactLatex)
-    expect(evaluated.approxText).not.toContain('x ~=')
+    expect(evaluated.approxText ?? '').not.toContain('x ~=')
   })
 
   it('falls back to symbolic common-factor extraction', () => {
