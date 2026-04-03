@@ -34,6 +34,11 @@ export async function openEquationSymbolic(page: Page) {
   await expect(page.getByTestId('main-editor')).toBeVisible();
 }
 
+export async function openTable(page: Page) {
+  await openLauncherApp(page, 'Core', 'Table');
+  await expect(page.getByTestId('table-primary-editor')).toBeVisible();
+}
+
 export async function openTrigEquationSolve(page: Page) {
   await openLauncherApp(page, 'Shape Math', 'Trigonometry');
   await page.getByRole('button', { name: /equations/i }).click();

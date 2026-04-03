@@ -33,12 +33,12 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
-- Completed `PRL1` as the first power/root/log display-normalization pass:
-  - added a bounded display-only symbolic normalization layer for rendered exact math
-  - made `Symbolic Display` settings from `SX1` live on exact results, supplement lines, exact-error math, transform preview math, and the settings preview
-  - kept copy-to-clipboard, `To Editor`, replay, and persisted history on raw engine exact LaTeX for safety
-  - normalized selected awkward/nested root-power forms while keeping familiar plain roots readable across modes
-  - added light log notation cleanup (`\ln`, base-10 `\log`) without introducing broader symbolic log algebra
+- Completed `PRL2` as the broad real-domain numeric powers/roots/logs pass:
+  - added an app-owned shared real numeric evaluator for bounded power, root, and log families
+  - routed `Calculate > evaluate` through that evaluator for numeric PRL2 expressions instead of surfacing raw CE complex/`NaN` behavior
+  - routed `Table` sampling through the same evaluator so out-of-domain rows become `undefined` cells with a table-level warning instead of failing the whole table
+  - added guided inserts for explicit-base `log_a(...)` and exposed the `Algebra` keyboard page in `Table`
+  - kept symbolic behavior, copy/editor/history payloads, and solve scope unchanged for this milestone
 - Regression checks:
   - `npm run test:gate`
 
@@ -101,6 +101,12 @@
   - `src/components/MathStatic.tsx` can opt into display preferences without changing raw exact LaTeX used by copy/editor/history flows
   - `SX1` symbolic display preferences are now live in app output instead of preview-only
   - browser-first automation covers settings-driven display changes while preserving raw exact LaTeX for `Copy Result` and `To Editor`
+- `PRL2` broad real-domain numeric powers/roots/logs is verified:
+  - `src/lib/real-numeric-eval.ts` now provides a shared app-owned numeric evaluator for bounded power/root/log families over the real numbers only
+  - `Calculate > evaluate` uses that evaluator for numeric PRL2 expressions, including guarded negative-base rational exponents and explicit-base logs
+  - `Calculate` non-evaluate numeric-only power/root/log paths now use the same guard when CE would otherwise leak raw `NaN`/complex output through `Simplify`/`Factor`/`Expand`
+  - `Table` uses the same evaluator per sampled row and now marks out-of-domain rows as `undefined` while surfacing a table-level warning
+  - the keyboard now exposes `log_a(...)` on `Functions` and shows the `Algebra` page in `Table`
 - Repo line endings are now governed by `.gitattributes`:
   - LF for source, docs, and config text
   - CRLF only for Windows-native scripts
@@ -115,6 +121,10 @@
   - no broader power/root/log capability has shipped yet
   - no engine canonicalization or symbolic-solve breadth changed in this pass
   - prettier radical-product rewrites such as `x\sqrt{x}` remain deferred
+- `PRL2` is intentionally numeric-only:
+  - no broader symbolic power/root/log transforms have shipped yet
+  - no equation-solving expansion has shipped yet
+  - the product still stays strictly in the real domain with no complex numeric fallback
 - Bounded trig sum-to-product currently covers two-term `sin/cos` forms only; broader harmonic families remain deferred.
 - Statistics inference is intentionally bounded to one-sample mean workflows only; no proportion/categorical inference is in scope yet.
 - Statistics still has no prediction UI, residual table, outlier/leverage tooling, or inferential regression; D3 stayed bounded to quality summaries only.
@@ -159,10 +169,11 @@
   - `.memory/research/TRACK-ALG-R5-MANUAL-VERIFICATION-CHECKLIST.md`
 - Settings shell checklist artifact:
   - `.memory/research/TRACK-SX1.1-MANUAL-VERIFICATION-CHECKLIST.md`
+- PRL checklist artifact:
+  - `.memory/research/TRACK-PRL2-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
 - Preferred next roadmap is now:
-  1. `PRL2` broad numeric exponent/root/log support
-  2. `PRL3` bounded symbolic exponent/root/log support
-  3. `PRL4` bounded solve expansion for these families
-- `PRL2` remains the best next move after `PRL1`: broaden real-domain numeric coverage before taking on broader symbolic or solve-family risk.
+  1. `PRL3` bounded symbolic exponent/root/log support
+  2. `PRL4` bounded solve expansion for these families
+- `PRL3` is now the best next move after `PRL2`: broaden symbolic capability conservatively on top of the new real-domain numeric foundation.

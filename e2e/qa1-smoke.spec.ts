@@ -5,6 +5,7 @@ import {
   openGeometrySlope,
   openSettingsPanel,
   openStatisticsRegression,
+  openTable,
   openTrigEquationSolve,
   setMathFieldLatex,
 } from './helpers';
@@ -31,6 +32,31 @@ test('Calculate smoke exposes the algebra tray for explicit transforms', async (
 
   await expect(page.getByTestId('algebra-transform-cancelFactors')).toBeVisible();
   await expect(page.getByText(/Canceled supported common factors/i)).toBeVisible();
+});
+
+test('PRL2 Calculate smoke evaluates broadened real-domain powers, roots, and logs', async ({ page }) => {
+  await setMathFieldLatex(page, '\\left(-8\\right)^{\\frac{2}{3}}+\\log_{4}\\left(16\\right)');
+  await page.getByTestId('keypad-execute').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="6"]')).toBeVisible();
+});
+
+test('PRL2 Calculate smoke rejects out-of-real-domain numeric cases cleanly', async ({ page }) => {
+  await setMathFieldLatex(page, '\\sqrt{-4}');
+  await page.getByTestId('keypad-execute').click();
+
+  await expect(page.getByTestId('display-outcome-error')).toBeVisible();
+  await expect(page.getByText(/non-negative radicands/i)).toBeVisible();
+});
+
+test('PRL2 Calculate smoke keeps simplify from leaking raw NaN on invalid logs', async ({ page }) => {
+  await setMathFieldLatex(page, '\\log\\left(-8\\right)');
+  await page.getByTestId('soft-action-simplify').click();
+
+  await expect(page.getByTestId('display-outcome-error')).toBeVisible();
+  await expect(page.getByText(/positive arguments/i)).toBeVisible();
+  await expect(page.getByText(/^NaN$/)).toHaveCount(0);
 });
 
 test('Equation smoke renders solved condition line', async ({ page }) => {
@@ -104,6 +130,16 @@ test('Statistics smoke renders quality summary metadata', async ({ page }) => {
   await expect(detailSections).toBeVisible();
   await expect(detailSections).toContainText('Quality Summary');
   await expect(detailSections).toContainText('SSE');
+});
+
+test('PRL2 Table smoke shows undefined rows and a warning for real-domain exits', async ({ page }) => {
+  await openTable(page);
+  await setMathFieldLatex(page, '\\sqrt{x}', 'table-primary-editor');
+  await page.getByTestId('soft-action-build').click();
+
+  await expect(page.getByTestId('table-preview')).toBeVisible();
+  await expect(page.getByTestId('table-row-1')).toContainText('undefined');
+  await expect(page.getByText(/outside the real domain/i)).toBeVisible();
 });
 
 test('Settings smoke uses the outboard inspector on wide layouts and keeps shell width stable', async ({ page }) => {

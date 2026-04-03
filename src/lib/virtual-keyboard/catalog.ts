@@ -216,7 +216,7 @@ export const KEYBOARD_PAGE_SPECS: KeyboardPageSpec[] = [
     id: 'algebra',
     label: 'Algebra',
     capability: ALGEBRA,
-    modeVisibility: ['calculate', 'equation', 'advancedCalculus'],
+    modeVisibility: ['calculate', 'equation', 'table', 'advancedCalculus'],
     rows: [
       [
         insertTemplateKey('alg-nth-root', 'ⁿ√', '\\sqrt[#0]{#?}', ALGEBRA, 'algebra', 'symbolic', {
@@ -598,6 +598,10 @@ export const KEYBOARD_PAGE_SPECS: KeyboardPageSpec[] = [
         insertTemplateKey('fn-log', 'log', '\\log\\left(#@\\right)', CALCULUS, 'functions', 'symbolic', {
           duplicateGroup: 'fn-log',
           lessonRef: 'milestone-03-calculus-core',
+        }),
+        insertTemplateKey('fn-log-base', 'logₐ', '\\log_{#0}\\left(#?\\right)', CALCULUS, 'functions', 'symbolic', {
+          duplicateGroup: 'fn-log-base',
+          lessonRef: 'power-root-log-numeric',
         }),
         insertTemplateKey('fn-ln', 'ln', '\\ln\\left(#@\\right)', CALCULUS, 'functions', 'symbolic', {
           duplicateGroup: 'fn-ln',

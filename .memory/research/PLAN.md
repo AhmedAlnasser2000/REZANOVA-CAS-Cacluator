@@ -912,16 +912,16 @@ Example direction:
 - keep exact real-domain conditions explicit when display rewrites depend on them
 
 ### Stage 3 - `PRL2` Broad Numeric Exponent / Root / Log Support
-Expand numeric capability broadly while staying in the real domain by default.
+Status: shipped on 2026-04-03.
 
-Goals:
-- broad real numeric exponentiation
-- broad real numeric nth roots
-- broad numeric logarithms with explicit base support
-- clear real-domain errors when expressions are undefined
+Delivered:
+- added a shared app-owned real numeric evaluator for bounded power/root/log families
+- broadened `Calculate` numeric evaluation across real-domain powers, nth roots, and explicit-base logs
+- broadened `Table` sampling with per-row `undefined` handling plus one table-level warning for real-domain exits
+- added guided inserts for explicit-base `log_a(...)` and exposed the `Algebra` page in `Table`
 
-Policy:
-- numeric support can be broad
+Policy retained:
+- numeric support is broad
 - symbolic support remains bounded and branch-safe
 
 ### Stage 4 - `PRL3` Bounded Symbolic Exponent / Root / Log Support

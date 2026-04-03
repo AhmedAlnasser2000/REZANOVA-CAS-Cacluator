@@ -10561,6 +10561,7 @@ export default function App() {
                     <strong>f(x)</strong>
                     <MathEditor
                       className="secondary-mathfield"
+                      dataTestId="table-primary-editor"
                       value={tablePrimaryLatex}
                       onChange={setTablePrimaryLatex}
                       modeId="table"
@@ -10577,6 +10578,7 @@ export default function App() {
                     {tableSecondaryEnabled ? (
                       <MathEditor
                         className="secondary-mathfield"
+                        dataTestId="table-secondary-editor"
                         value={tableSecondaryLatex}
                         onChange={setTableSecondaryLatex}
                         modeId="table"
@@ -10598,14 +10600,18 @@ export default function App() {
                   <label><span>Step</span><SignedNumberInput value={tableStep} onValueChange={setTableStep} /></label>
                 </div>
                 {tableResponse && !tableResponse.error ? (
-                  <div className="table-preview">
+                  <div className="table-preview" data-testid="table-preview">
                     <div className="table-header-row">
                       {tableResponse.headers.map((header) => (
                         <MathStatic key={header} className="table-header-math" latex={header} />
                       ))}
                     </div>
                     {tableResponse.rows.map((row, index) => (
-                      <div key={`${row.x}-${index}`} className="table-data-row">
+                      <div
+                        key={`${row.x}-${index}`}
+                        className="table-data-row"
+                        data-testid={`table-row-${index}`}
+                      >
                         <span>{row.x}</span>
                         <span>{row.primary}</span>
                         {tableResponse.headers.length === 3 ? <span>{row.secondary}</span> : null}

@@ -48,9 +48,18 @@ describe('resolveKeyboardPages', () => {
   it('limits Table mode to its curated subset', () => {
     expect(resolveKeyboardPages(createKeyboardContext('table')).map((page) => page.id)).toEqual([
       'core',
+      'algebra',
       'letters',
       'functions',
     ]);
+  });
+
+  it('keeps the explicit-base log insert on the Functions page', () => {
+    const functionsPage = resolveKeyboardPages(createKeyboardContext('calculate'))
+      .find((page) => page.id === 'functions');
+
+    expect(functionsPage).toBeDefined();
+    expect(functionsPage?.rows.flat().some((key) => key.id === 'fn-log-base')).toBe(true);
   });
 });
 

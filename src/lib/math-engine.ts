@@ -17,6 +17,10 @@ import {
 } from './format';
 import { resolveCalculusEvaluation } from './calculus-eval';
 import { canonicalizeMathInput } from './input-canonicalization';
+import {
+  containsRealNumericFamily,
+  evaluateRealNumericExpression,
+} from './real-numeric-eval';
 import { rewriteDiscreteOperators } from './discrete-eval';
 import { getResultGuardError } from './result-guard';
 import { factorMathJson } from './symbolic-factor';
@@ -66,6 +70,11 @@ function containsPiSymbol(node: unknown): boolean {
 function isNumericOnlyNode(node: unknown): boolean {
   if (typeof node === 'number') {
     return Number.isFinite(node);
+  }
+
+  if (typeof node === 'object' && node !== null && 'num' in node) {
+    const value = Number((node as { num: string }).num);
+    return Number.isFinite(value);
   }
 
   if (typeof node === 'string') {
@@ -240,6 +249,26 @@ function guardSolvedSolutions(solutions: unknown[]) {
   return undefined;
 }
 
+function isCollapsedPowerSingularity(node: unknown, rawLatex: string) {
+  return (
+    typeof node === 'string'
+    && (node === 'NaN' || node === 'ComplexInfinity')
+    && rawLatex.includes('^')
+  );
+}
+
+function shouldUseRealNumericEvaluator(expr: BoxedLike, rawLatex: string) {
+  return (
+    containsRealNumericFamily(expr.json)
+    && isNumericOnlyNode(expr.json)
+  ) || isCollapsedPowerSingularity(expr.json, rawLatex);
+}
+
+function isInvalidRealNumericApprox(approxLatex?: string) {
+  const approxText = latexToApproxText(approxLatex);
+  return !approxText || approxText.includes('i') || approxText.includes('NaN');
+}
+
 export function runExpressionAction(
   request: EvaluateRequest,
   action: SymbolicAction,
@@ -327,11 +356,45 @@ export function runExpressionAction(
       const approx = isNumericOnlyNode(exactExpr.json)
         ? numericExpression(exactExpr)
         : undefined;
-      const guardError = getResultGuardError(approx?.latex, exactExpr?.latex);
       const exactSupplementLatex = mergeSupplementLatex(
         radicalSupplementLatex,
         rational.exactSupplementLatex,
       );
+      if (
+        action !== 'evaluate'
+        && shouldUseRealNumericEvaluator(expr, sourceLatex)
+        && isInvalidRealNumericApprox(approx?.latex)
+      ) {
+        const numeric = evaluateRealNumericExpression(expr.json, sourceLatex);
+        if (numeric.kind === 'success') {
+          const guardError = getResultGuardError(numeric.exactLatex, numeric.approxText);
+          if (guardError) {
+            return {
+              warnings: prepared.warnings,
+              error: guardError,
+              exactSupplementLatex,
+            };
+          }
+
+          return {
+            exactLatex: numeric.exactLatex,
+            exactSupplementLatex,
+            approxText: numeric.approxText,
+            normalizedMathJson: rational.normalizedNode,
+            warnings: prepared.warnings,
+            resultOrigin: 'numeric-fallback',
+          };
+        }
+
+        if (numeric.kind === 'domain-error') {
+          return {
+            warnings: prepared.warnings,
+            error: numeric.error,
+            exactSupplementLatex,
+          };
+        }
+      }
+      const guardError = getResultGuardError(approx?.latex, exactExpr?.latex);
       if (guardError) {
         return {
           warnings: prepared.warnings,
@@ -354,6 +417,39 @@ export function runExpressionAction(
       const approx = isNumericOnlyNode(radicalExpr.json)
         ? numericExpression(radicalExpr)
         : undefined;
+      if (
+        shouldUseRealNumericEvaluator(expr, sourceLatex)
+        && isInvalidRealNumericApprox(approx?.latex)
+      ) {
+        const numeric = evaluateRealNumericExpression(expr.json, sourceLatex);
+        if (numeric.kind === 'success') {
+          const guardError = getResultGuardError(numeric.exactLatex, numeric.approxText);
+          if (guardError) {
+            return {
+              warnings: prepared.warnings,
+              error: guardError,
+              exactSupplementLatex: radicalSupplementLatex,
+            };
+          }
+
+          return {
+            exactLatex: numeric.exactLatex,
+            exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+            approxText: numeric.approxText,
+            normalizedMathJson: radical.normalizedNode,
+            warnings: prepared.warnings,
+            resultOrigin: 'numeric-fallback',
+          };
+        }
+
+        if (numeric.kind === 'domain-error') {
+          return {
+            warnings: prepared.warnings,
+            error: numeric.error,
+            exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+          };
+        }
+      }
       const guardError = getResultGuardError(approx?.latex, radicalExpr?.latex);
       if (guardError) {
         return {
@@ -438,6 +534,34 @@ export function runExpressionAction(
           resultOrigin: calculus.resultOrigin,
         };
       }
+
+      if (shouldUseRealNumericEvaluator(expr, sourceLatex)) {
+        const numeric = evaluateRealNumericExpression(expr.json, sourceLatex);
+        if (numeric.kind === 'success') {
+          const guardError = getResultGuardError(numeric.exactLatex, numeric.approxText);
+          if (guardError) {
+            return {
+              warnings: prepared.warnings,
+              error: guardError,
+            };
+          }
+
+          return {
+            exactLatex: numeric.exactLatex,
+            approxText: numeric.approxText,
+            normalizedMathJson: expr.json,
+            warnings: prepared.warnings,
+            resultOrigin: 'numeric-fallback',
+          };
+        }
+
+        if (numeric.kind === 'domain-error') {
+          return {
+            warnings: prepared.warnings,
+            error: numeric.error,
+          };
+        }
+      }
     }
 
     const factorOutcome =
@@ -458,6 +582,40 @@ export function runExpressionAction(
     const approx = isNumericOnlyNode(exactExpr?.json ?? radicalExpr.json)
       ? numericExpression(exactExpr)
       : undefined;
+    if (
+      action !== 'evaluate'
+      && shouldUseRealNumericEvaluator(expr, sourceLatex)
+      && isInvalidRealNumericApprox(approx?.latex)
+    ) {
+      const numeric = evaluateRealNumericExpression(expr.json, sourceLatex);
+      if (numeric.kind === 'success') {
+        const guardError = getResultGuardError(numeric.exactLatex, numeric.approxText);
+        if (guardError) {
+          return {
+            warnings: prepared.warnings,
+            error: guardError,
+            exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+          };
+        }
+
+        return {
+          exactLatex: numeric.exactLatex,
+          exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+          approxText: numeric.approxText,
+          normalizedMathJson: radical?.normalizedNode ?? expr.json,
+          warnings: prepared.warnings,
+          resultOrigin: 'numeric-fallback',
+        };
+      }
+
+      if (numeric.kind === 'domain-error') {
+        return {
+          warnings: prepared.warnings,
+          error: numeric.error,
+          exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+        };
+      }
+    }
     const guardError = getResultGuardError(approx?.latex, exactExpr?.latex);
     if (guardError) {
       return {
@@ -498,9 +656,35 @@ export function runExpressionAction(
 function evaluateAtPoint(latex: string, variable: string, value: number) {
   const expr = ce.parse(latex) as BoxedLike;
   const substituted = expr.subs({ [variable]: value });
+  const numeric = evaluateRealNumericExpression(substituted.json, substituted.latex);
+  if (numeric.kind === 'success') {
+    return {
+      text: numeric.approxText,
+      warning: null,
+    };
+  }
+
+  if (numeric.kind === 'domain-error') {
+    return {
+      text: 'undefined',
+      warning: 'Some sampled rows were outside the real domain and are shown as undefined.',
+    };
+  }
+
   const evaluated = substituted.evaluate();
-  const numeric = evaluated.N?.() ?? evaluated;
-  return latexToApproxText(numeric.latex) ?? 'undefined';
+  const numericFallback = evaluated.N?.() ?? evaluated;
+  const approxText = latexToApproxText(numericFallback.latex);
+  if (!approxText || approxText.includes('i') || approxText.includes('NaN')) {
+    return {
+      text: 'undefined',
+      warning: 'Some sampled rows were outside the real domain and are shown as undefined.',
+    };
+  }
+
+  return {
+    text: approxText,
+    warning: null,
+  };
 }
 
 export function buildTable(request: TableRequest): TableResponse {
@@ -550,13 +734,24 @@ export function buildTable(request: TableRequest): TableResponse {
   }
 
   try {
+    const warningSet = new Set<string>();
     const rows = Array.from({ length: estimatedRows }, (_, index) => {
       const x = request.start + request.step * index;
+      const primary = evaluateAtPoint(primaryLatex, request.variable, x);
+      const secondary = secondaryLatex
+        ? evaluateAtPoint(secondaryLatex, request.variable, x)
+        : null;
+      if (primary.warning) {
+        warningSet.add(primary.warning);
+      }
+      if (secondary?.warning) {
+        warningSet.add(secondary.warning);
+      }
       return {
         x: `${x}`,
-        primary: evaluateAtPoint(primaryLatex, request.variable, x),
+        primary: primary.text,
         secondary: secondaryLatex
-          ? evaluateAtPoint(secondaryLatex, request.variable, x)
+          ? secondary?.text
           : undefined,
       };
     });
@@ -570,7 +765,7 @@ export function buildTable(request: TableRequest): TableResponse {
     return {
       headers,
       rows,
-      warnings: [],
+      warnings: [...warningSet],
     };
   } catch {
     return {

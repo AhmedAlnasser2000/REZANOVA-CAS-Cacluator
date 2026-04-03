@@ -4,6 +4,7 @@ import {
   expectMathStaticLatex,
   openEquationSymbolic,
   openGeometrySlope,
+  openTable,
   openStatisticsRegression,
   openTrigEquationSolve,
   renderAppMain,
@@ -178,6 +179,37 @@ describe('AppMain UI automation flows', () => {
     expect(screen.queryByTestId('display-outcome-approx')).not.toBeInTheDocument();
   });
 
+  it('evaluates broadened numeric power/root/log cases in Calculate', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\left(-8\\right)^{\\frac{2}{3}}+\\log_{4}\\left(16\\right)');
+    await user.click(screen.getByTestId('keypad-execute'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), '6');
+  });
+
+  it('shows controlled real-domain errors for invalid numeric power/root/log cases', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\sqrt{-4}');
+    await user.click(screen.getByTestId('keypad-execute'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
+    expect(screen.getByText(/non-negative radicands/i)).toBeInTheDocument();
+  });
+
+  it('does not show raw NaN when simplify hits an invalid numeric logarithm', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\log\\left(-8\\right)');
+    await user.click(screen.getByTestId('soft-action-simplify'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
+    expect(screen.getByText(/positive arguments/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^NaN$/)).not.toBeInTheDocument();
+  });
+
   it('shows the Calculate algebra tray and runs explicit transforms', async () => {
     const { user } = await renderAppMain();
 
@@ -294,5 +326,17 @@ describe('AppMain UI automation flows', () => {
     await waitFor(() => expect(screen.getByTestId('display-outcome-detail-sections')).toBeInTheDocument());
     expect(screen.getByText('Quality Summary')).toBeInTheDocument();
     expect(screen.getByText(/SSE/i)).toBeInTheDocument();
+  });
+
+  it('shows undefined table rows plus a warning when sampled rows leave the real domain', async () => {
+    const { user } = await renderAppMain();
+
+    await openTable(user);
+    setMathFieldLatex('table-primary-editor', '\\sqrt{x}');
+    await user.click(screen.getByTestId('soft-action-build'));
+
+    await waitFor(() => expect(screen.getByTestId('table-preview')).toBeInTheDocument());
+    expect(screen.getByTestId('table-row-1')).toHaveTextContent('undefined');
+    expect(screen.getByText(/outside the real domain/i)).toBeInTheDocument();
   });
 });

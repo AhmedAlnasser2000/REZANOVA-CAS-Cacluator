@@ -35,6 +35,11 @@ export async function openEquationSymbolic(user: AppUser) {
   await screen.findByTestId('main-editor');
 }
 
+export async function openTable(user: AppUser) {
+  await openLauncherApp(user, 'Core', 'Table');
+  await screen.findByTestId('table-primary-editor');
+}
+
 export async function openTrigEquationSolve(user: AppUser) {
   await openLauncherApp(user, 'Shape Math', 'Trigonometry');
   await user.click(await screen.findByRole('button', { name: /equations/i }));

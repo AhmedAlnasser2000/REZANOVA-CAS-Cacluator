@@ -220,6 +220,94 @@ describe('runExpressionAction', () => {
     expect(result.exactLatex).toContain('x')
   })
 
+  it('uses the real-domain numeric evaluator for broadened power, root, and log cases', () => {
+    const power = runExpressionAction(
+      { ...request, document: { latex: '2^{\\pi}' } },
+      'evaluate',
+    )
+    const oddRoot = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt[3]{-8}' } },
+      'evaluate',
+    )
+    const explicitBaseLog = runExpressionAction(
+      { ...request, document: { latex: '\\log_{4}\\left(16\\right)' } },
+      'evaluate',
+    )
+
+    expect(power.error).toBeUndefined()
+    expect(power.resultOrigin).toBe('numeric-fallback')
+    expect(Number(power.approxText)).toBeCloseTo(8.8249778, 5)
+
+    expect(oddRoot.error).toBeUndefined()
+    expect(oddRoot.resultOrigin).toBe('numeric-fallback')
+    expect(oddRoot.exactLatex).toBe('-2')
+
+    expect(explicitBaseLog.error).toBeUndefined()
+    expect(explicitBaseLog.resultOrigin).toBe('numeric-fallback')
+    expect(explicitBaseLog.exactLatex).toBe('2')
+  })
+
+  it('accepts exact odd-denominator rational exponents on negative bases', () => {
+    const cubeRootPower = runExpressionAction(
+      { ...request, document: { latex: '\\left(-8\\right)^{\\frac{1}{3}}' } },
+      'evaluate',
+    )
+    const twoThirdsPower = runExpressionAction(
+      { ...request, document: { latex: '\\left(-8\\right)^{\\frac{2}{3}}' } },
+      'evaluate',
+    )
+
+    expect(cubeRootPower.error).toBeUndefined()
+    expect(cubeRootPower.exactLatex).toBe('-2')
+    expect(twoThirdsPower.error).toBeUndefined()
+    expect(twoThirdsPower.exactLatex).toBe('4')
+  })
+
+  it('rejects real-domain-invalid numeric power, root, and log cases with controlled errors', () => {
+    const decimalPower = runExpressionAction(
+      { ...request, document: { latex: '\\left(-8\\right)^{0.3333333333333333}' } },
+      'evaluate',
+    )
+    const sqrtNegative = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{-4}' } },
+      'evaluate',
+    )
+    const zeroToZero = runExpressionAction(
+      { ...request, document: { latex: '0^0' } },
+      'evaluate',
+    )
+    const zeroToNegative = runExpressionAction(
+      { ...request, document: { latex: '0^{-1}' } },
+      'evaluate',
+    )
+    const invalidLogBase = runExpressionAction(
+      { ...request, document: { latex: '\\log_{1}\\left(16\\right)' } },
+      'evaluate',
+    )
+
+    expect(decimalPower.error).toContain('odd denominators')
+    expect(sqrtNegative.error).toContain('Square roots require non-negative radicands')
+    expect(zeroToZero.error).toContain('0^0')
+    expect(zeroToNegative.error).toContain('negative exponent')
+    expect(invalidLogBase.error).toContain('positive base that is not 1')
+  })
+
+  it('does not leak raw NaN through simplify for invalid numeric log/root expressions', () => {
+    const logNegative = runExpressionAction(
+      { ...request, document: { latex: '\\log\\left(-8\\right)' } },
+      'simplify',
+    )
+    const sqrtNegative = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{-4}' } },
+      'simplify',
+    )
+
+    expect(logNegative.error).toContain('Logarithms require positive arguments')
+    expect(logNegative.approxText).toBeUndefined()
+    expect(sqrtNegative.error).toContain('Square roots require non-negative radicands')
+    expect(sqrtNegative.approxText).toBeUndefined()
+  })
+
   it('evaluates derivative-at-point expressions', () => {
     const result = runExpressionAction(
       { ...request, document: { latex: '\\left.\\frac{d}{dx}x^2\\right|_{x=3}' } },

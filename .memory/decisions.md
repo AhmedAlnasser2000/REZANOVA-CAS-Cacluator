@@ -101,3 +101,6 @@
 - 2026-04-03: `SX1.1` corrects the settings/history shell model: on wide windows both surfaces use a shared outboard right rail only when real spare gutter space exists, the calculator shell never shrinks to make room, and overlay remains the fallback when that space is unavailable.
 - 2026-04-03: `PRL1` is display-only. Rendered exact math may be normalized through a bounded power/root/log display layer, but engine output, copy/editor flows, replay, and persisted history keep the raw exact LaTeX unchanged.
 - 2026-04-03: `PRL1` makes `Symbolic Display` settings live across result rendering, with `Auto` power-leaning for awkward/nontrivial forms while still preserving familiar plain roots like `\sqrt{x}` and `\sqrt[3]{x}`.
+- 2026-04-03: `PRL2` is numeric-only and real-domain-only: broad power/root/log evaluation ships first for `Calculate` and `Table`, while symbolic transforms and solve-family expansion stay deferred to `PRL3` and `PRL4`.
+- 2026-04-03: Negative-base non-integer powers are accepted in `PRL2` only when the exponent is a true exact rational with odd denominator; decimal approximations that merely resemble those rationals are rejected.
+- 2026-04-03: `Table` now keeps mixed-domain samples by marking invalid rows `undefined` and surfacing one table-level warning instead of failing the whole table.

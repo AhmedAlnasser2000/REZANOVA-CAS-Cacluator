@@ -33,4 +33,25 @@ describe('runTableMode', () => {
     }
     expect(result.outcome.error).toBe('Step size must be greater than zero.')
   })
+
+  it('keeps the table when some sampled rows leave the real domain', () => {
+    const result = runTableMode({
+      primaryLatex: '\\sqrt{x}',
+      secondaryLatex: '',
+      secondaryEnabled: false,
+      start: -1,
+      end: 1,
+      step: 1,
+    })
+
+    expect(result.outcome.kind).toBe('success')
+    expect(result.response.rows).toEqual([
+      { x: '-1', primary: 'undefined', secondary: undefined },
+      { x: '0', primary: '0', secondary: undefined },
+      { x: '1', primary: '1', secondary: undefined },
+    ])
+    expect(result.response.warnings).toContain(
+      'Some sampled rows were outside the real domain and are shown as undefined.',
+    )
+  })
 })
