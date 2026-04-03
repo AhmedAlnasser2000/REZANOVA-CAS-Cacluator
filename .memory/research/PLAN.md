@@ -925,6 +925,8 @@ Policy retained:
 - symbolic support remains bounded and branch-safe
 
 ### Stage 4 - `PRL3` Bounded Symbolic Exponent / Root / Log Support
+Status: shipped on 2026-04-03.
+
 Broaden symbolic transformations carefully after display policy and numeric foundations are stable.
 
 Goals:
@@ -932,6 +934,13 @@ Goals:
 - safe inverse exp/log transforms
 - same-base log rules only where branch/domain safety is explicit
 - no broad symbolic identities that hide domain changes
+
+Delivered:
+- added an app-owned bounded symbolic normalization layer for power/root/log exact output and condition tracking
+- standardized raw exact output toward canonical power-leaning forms while preserving simple familiar roots
+- added `Rewrite as Root`, `Rewrite as Power`, and `Change Base` to the shared algebra tray
+- added bounded same-base log combine under `Calculate > Simplify`
+- added Equation preprocessing for notational variants that map into already-supported solver carriers without broadening solve scope
 
 ### Stage 5 - `PRL4` Bounded Solve Expansion
 Only after the earlier stages, broaden solve behavior for power/root/log equations.

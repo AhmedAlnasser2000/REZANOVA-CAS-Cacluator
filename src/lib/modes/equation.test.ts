@@ -341,6 +341,35 @@ describe('runEquationMode', () => {
     expect(result.rejectedCandidateCount).toBe(1);
   });
 
+  it('preprocesses fractional-power and explicit-base-log notation into existing solver families', () => {
+    const rootCarrier = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: 'x^{1/2}=3',
+    });
+    const logCarrier = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\log_{e}(2x+1)=3',
+    });
+
+    expect(rootCarrier.kind).toBe('success');
+    if (rootCarrier.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(rootCarrier.exactLatex).toBe('x=9');
+    expect(rootCarrier.resolvedInputLatex).toBe('\\sqrt{x}=3');
+
+    expect(logCarrier.kind).toBe('success');
+    if (logCarrier.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(logCarrier.exactLatex).toContain('x=');
+    expect(logCarrier.exactLatex).toContain('\\exponentialE^{3}');
+    expect(logCarrier.resultOrigin).toBe('symbolic');
+    expect(logCarrier.resolvedInputLatex).toBe('\\ln(2x+1)=3');
+  });
+
   it('solves bounded trig squares through exact branch splitting', () => {
     const result = runEquationMode({
       ...makeRequest(),
@@ -386,6 +415,46 @@ describe('runEquationMode', () => {
     expect(result.transformBadges).toEqual(['Use LCD']);
     expect(result.transformSummaryText).toContain('Cleared the equation');
     expect(result.exactSupplementLatex?.[0]).toContain('x\\ne0');
+  });
+
+  it('runs PRL3 explicit equation transforms without auto-solving', () => {
+    const asRoot = runEquationAlgebraTransform({
+      action: 'rewriteAsRoot',
+      equationLatex: 'x^{1/2}=3',
+      angleUnit: 'deg',
+    });
+    const asPower = runEquationAlgebraTransform({
+      action: 'rewriteAsPower',
+      equationLatex: '\\sqrt{x}=3',
+      angleUnit: 'deg',
+    });
+    const changedBase = runEquationAlgebraTransform({
+      action: 'changeBase',
+      equationLatex: '\\log_{4}(x)=2',
+      angleUnit: 'deg',
+    });
+
+    expect(asRoot.kind).toBe('success');
+    if (asRoot.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(asRoot.exactLatex).toBe('\\sqrt{x}=3');
+    expect(asRoot.transformBadges).toEqual(['Rewrite as Root']);
+
+    expect(asPower.kind).toBe('success');
+    if (asPower.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(asPower.exactLatex).toBe('x^{\\frac{1}{2}}=3');
+    expect(asPower.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0']);
+    expect(asPower.transformBadges).toEqual(['Rewrite as Power']);
+
+    expect(changedBase.kind).toBe('success');
+    if (changedBase.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(changedBase.exactLatex).toBe('\\frac{\\ln\\left(x\\right)}{\\ln\\left(4\\right)}=2');
+    expect(changedBase.transformBadges).toEqual(['Change Base']);
   });
 
   it('widens explicit equation transforms to binomial denominator families', () => {

@@ -198,7 +198,7 @@ test('Settings smoke keeps quick toggles in sync and stays mutually exclusive wi
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);
 });
 
-test('PRL1 smoke applies symbolic display preferences to rendered results while leaving editor load on raw exact latex', async ({ page }) => {
+test('PRL1 smoke applies symbolic display preferences to rendered results while leaving editor load on canonical raw exact latex', async ({ page }) => {
   await page.setViewportSize({ width: 2400, height: 960 });
   await page.reload();
   await expect(page.getByTestId('main-editor')).toBeVisible();
@@ -213,7 +213,7 @@ test('PRL1 smoke applies symbolic display preferences to rendered results while 
   await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="x^{\\\\frac{1}{6}}"]')).toBeVisible();
 
   await page.getByTestId('display-outcome-action-to-editor').click();
-  await expect.poll(() => getMathFieldLatex(page)).toBe('\\sqrt[3]{\\sqrt{x}}');
+  await expect.poll(() => getMathFieldLatex(page)).toBe('x^{\\frac{1}{6}}');
 });
 
 test('PRL1 smoke keeps plain sqrt as a root in auto mode', async ({ page }) => {
@@ -229,4 +229,68 @@ test('PRL1 smoke keeps plain sqrt as a root in auto mode', async ({ page }) => {
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
   await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="\\\\sqrt{x}"]')).toBeVisible();
+});
+
+test('PRL3 smoke canonicalizes bounded same-base log sums with condition lines', async ({ page }) => {
+  await setMathFieldLatex(page, '\\ln(x)+\\ln(x+1)');
+  await page.getByTestId('soft-action-simplify').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(
+    page.getByTestId('display-outcome-exact').locator('[aria-label="\\\\ln\\\\left(x\\\\left(x+1\\\\right)\\\\right)"]'),
+  ).toBeVisible();
+  await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('x');
+});
+
+test('PRL3 smoke compacts repeated factors when same-base logs combine', async ({ page }) => {
+  await setMathFieldLatex(page, '\\ln(4x)+\\ln(x^3)');
+  await page.getByTestId('soft-action-simplify').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(
+    page.getByTestId('display-outcome-exact').locator('[aria-label="\\\\ln\\\\left(4x^{4}\\\\right)"]'),
+  ).toBeVisible();
+});
+
+test('PRL3 smoke exposes Calculate rewrite transforms', async ({ page }) => {
+  await setMathFieldLatex(page, '\\sqrt[3]{\\sqrt{x}}');
+  await page.getByTestId('soft-action-algebra').click();
+  await expect(page.getByTestId('algebra-transform-tray')).toBeVisible();
+  await page.getByTestId('algebra-transform-rewriteAsPower').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="x^{\\\\frac{1}{6}}"]')).toBeVisible();
+});
+
+test('PRL3 smoke exposes Calculate rewrite-as-root transforms', async ({ page }) => {
+  await setMathFieldLatex(page, 'x^{\\frac{1}{6}}');
+  await page.getByTestId('soft-action-algebra').click();
+  await expect(page.getByTestId('algebra-transform-tray')).toBeVisible();
+  await page.getByTestId('algebra-transform-rewriteAsRoot').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="x^{\\\\frac{1}{6}}"]')).toBeVisible();
+  await page.getByTestId('display-outcome-action-to-editor').click();
+  await expect.poll(() => getMathFieldLatex(page)).toBe('\\sqrt[6]{x}');
+});
+
+test('PRL3 smoke exposes Calculate change-base transforms', async ({ page }) => {
+  await setMathFieldLatex(page, '\\log_{4}(x)');
+  await page.getByTestId('soft-action-algebra').click();
+  await expect(page.getByTestId('algebra-transform-tray')).toBeVisible();
+  await page.getByTestId('algebra-transform-changeBase').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(
+    page.getByTestId('display-outcome-exact').locator('[aria-label="\\\\frac{\\\\ln\\\\left(x\\\\right)}{\\\\ln\\\\left(4\\\\right)}"]'),
+  ).toBeVisible();
+});
+
+test('PRL3 smoke lets Equation solve preprocessed fractional-power notation through existing carriers', async ({ page }) => {
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, 'x^{\\frac{1}{2}}=3');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact').locator('[aria-label="x=9"]')).toBeVisible();
 });

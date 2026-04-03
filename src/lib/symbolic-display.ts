@@ -1,6 +1,12 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import type { Settings } from '../types/calculator';
-import { boxLatex, isFiniteNumber, isNodeArray, wrapGroupedLatex } from './symbolic-engine/patterns';
+import {
+  boxLatex,
+  compactRepeatedProductFactors,
+  isFiniteNumber,
+  isNodeArray,
+  wrapGroupedLatex,
+} from './symbolic-engine/patterns';
 
 const ce = new ComputeEngine();
 
@@ -189,6 +195,39 @@ function formatRationalExponentLatex(value: RationalValue) {
   return `\\frac{${boxLatex(value.numerator)}}{${boxLatex(value.denominator)}}`;
 }
 
+function buildNestedRootNode(node: unknown): unknown {
+  if (!isNodeArray(node) || node.length === 0) {
+    return node;
+  }
+
+  const [head, ...children] = node;
+  const [left, right] = children;
+  if (head === 'Sqrt') {
+    return ['Sqrt', buildNestedRootNode(left)];
+  }
+
+  if (head === 'Root') {
+    return ['Root', buildNestedRootNode(left), buildNestedRootNode(right)];
+  }
+
+  if (head === 'Power') {
+    const exponent = asRational(right);
+    if (exponent && exponent.denominator > 1) {
+      const nestedBase = buildNestedRootNode(left);
+      const poweredBase = exponent.numerator === 1
+        ? nestedBase
+        : ['Power', nestedBase, exponent.numerator];
+      return exponent.denominator === 2
+        ? ['Sqrt', poweredBase]
+        : ['Root', poweredBase, exponent.denominator];
+    }
+
+    return ['Power', buildNestedRootNode(left), buildNestedRootNode(right)];
+  }
+
+  return [head, ...children.map((child) => buildNestedRootNode(child))];
+}
+
 function wrapPowerBaseLatex(latex: string, node: unknown) {
   if (typeof node === 'string' || typeof node === 'number') {
     return latex;
@@ -300,9 +339,10 @@ function renderTargetedNode(node: unknown, prefs: SymbolicDisplayPrefs): Display
       : isPlainFamiliarRoot(info);
 
     if (preserveOriginalRoots) {
-      const preserved = serializeRootStructure(node, prefs);
+      const preserved = serializeRootStructure(buildNestedRootNode(node), prefs);
       return {
         ...preserved,
+        changed: true,
         targeted: true,
       };
     }
@@ -362,6 +402,15 @@ function renderNode(
   prefs: SymbolicDisplayPrefs,
   options: RenderOptions = {},
 ): DisplayRenderResult {
+  const compactedProduct = compactRepeatedProductFactors(node);
+  if (compactedProduct !== node) {
+    const compacted = renderNode(compactedProduct, prefs, options);
+    return {
+      ...compacted,
+      changed: true,
+    };
+  }
+
   if (!options.preserveRadicals) {
     const targeted = renderTargetedNode(node, prefs);
     if (targeted) {
@@ -522,7 +571,7 @@ export function normalizeSymbolicDisplayLatex(
   try {
     const parsed = ce.parse(latex);
     const rendered = renderNode(parsed.json, prefs);
-    return rendered.targeted ? rendered.latex : latex;
+    return rendered.changed ? rendered.latex : latex;
   } catch {
     return latex;
   }

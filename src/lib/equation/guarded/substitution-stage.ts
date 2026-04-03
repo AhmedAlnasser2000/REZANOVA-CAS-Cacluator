@@ -19,12 +19,63 @@ import {
 import { equationStateKey } from './state-key';
 
 const ce = new ComputeEngine();
+const EXACT_MATCH_TOLERANCE = 1e-6;
 
 type GuardedSolveRunner = (
   request: GuardedSolveRequest,
   depth: number,
   trail: Set<string>,
 ) => DisplayOutcome;
+
+function parseFiniteNumericValue(latex: string) {
+  try {
+    const numeric = ce.parse(latex).N?.().json;
+    if (typeof numeric === 'number' && Number.isFinite(numeric)) {
+      return numeric;
+    }
+    if (numeric && typeof numeric === 'object' && 'num' in numeric) {
+      const parsed = Number((numeric as { num: string }).num);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function matchAcceptedExactSolutions(exactLatex: string | undefined, accepted: number[]) {
+  if (!exactLatex || accepted.length === 0) {
+    return [] as string[];
+  }
+
+  const exactCandidates = dedupe(extractExactSolutions(exactLatex))
+    .map((latex) => ({
+      latex,
+      numeric: parseFiniteNumericValue(latex),
+    }))
+    .filter((candidate): candidate is { latex: string; numeric: number } => candidate.numeric !== null);
+
+  if (exactCandidates.length === 0) {
+    return [] as string[];
+  }
+
+  const used = new Set<number>();
+  const matched: string[] = [];
+
+  for (const acceptedValue of accepted) {
+    const candidateIndex = exactCandidates.findIndex((candidate, index) =>
+      !used.has(index)
+      && Math.abs(candidate.numeric - acceptedValue) <= EXACT_MATCH_TOLERANCE);
+    if (candidateIndex < 0) {
+      return [] as string[];
+    }
+    used.add(candidateIndex);
+    matched.push(exactCandidates[candidateIndex].latex);
+  }
+
+  return matched;
+}
 
 function substitutionSolve(
   request: GuardedSolveRequest,
@@ -118,40 +169,12 @@ function substitutionSolve(
   const candidates = dedupe([
     ...extractExactSolutions(merged.exactLatex),
   ])
-    .map((value) => {
-      try {
-        const numeric = ce.parse(value).N?.().json;
-        if (typeof numeric === 'number' && Number.isFinite(numeric)) {
-          return numeric;
-        }
-        if (numeric && typeof numeric === 'object' && 'num' in numeric) {
-          const parsed = Number((numeric as { num: string }).num);
-          return Number.isFinite(parsed) ? parsed : null;
-        }
-      } catch {
-        return null;
-      }
-      return null;
-    })
+    .map((value) => parseFiniteNumericValue(value))
     .filter((value): value is number => value !== null);
 
   const approxCandidates = candidates.length === 0
     ? dedupe(extractApproxSolutions(merged.approxText))
-      .map((value) => {
-        try {
-          const numeric = ce.parse(value).N?.().json;
-          if (typeof numeric === 'number' && Number.isFinite(numeric)) {
-            return numeric;
-          }
-          if (numeric && typeof numeric === 'object' && 'num' in numeric) {
-            const parsed = Number((numeric as { num: string }).num);
-            return Number.isFinite(parsed) ? parsed : null;
-          }
-        } catch {
-          return null;
-        }
-        return null;
-      })
+      .map((value) => parseFiniteNumericValue(value))
       .filter((value): value is number => value !== null)
     : [];
 
@@ -182,10 +205,13 @@ function substitutionSolve(
     );
   }
 
-  const acceptedLatex = validation.accepted.map((value) => {
-    const rounded = Number(value.toPrecision(12));
-    return `${rounded}`;
-  });
+  const acceptedExactLatex = matchAcceptedExactSolutions(merged.exactLatex, validation.accepted);
+  const acceptedLatex = acceptedExactLatex.length === validation.accepted.length
+    ? acceptedExactLatex
+    : validation.accepted.map((value) => {
+        const rounded = Number(value.toPrecision(12));
+        return `${rounded}`;
+      });
 
   return {
     kind: 'success',

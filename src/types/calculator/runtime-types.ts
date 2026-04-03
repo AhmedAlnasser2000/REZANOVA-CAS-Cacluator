@@ -194,6 +194,9 @@ export type SolveBadge =
   | 'Candidate Checked'
   | 'Range Guard';
 export type TransformBadge =
+  | 'Rewrite as Root'
+  | 'Rewrite as Power'
+  | 'Change Base'
   | 'Combine Fractions'
   | 'Cancel Factors'
   | 'Use LCD'

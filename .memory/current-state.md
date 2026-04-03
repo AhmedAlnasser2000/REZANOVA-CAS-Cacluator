@@ -33,12 +33,15 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
-- Completed `PRL2` as the broad real-domain numeric powers/roots/logs pass:
-  - added an app-owned shared real numeric evaluator for bounded power, root, and log families
-  - routed `Calculate > evaluate` through that evaluator for numeric PRL2 expressions instead of surfacing raw CE complex/`NaN` behavior
-  - routed `Table` sampling through the same evaluator so out-of-domain rows become `undefined` cells with a table-level warning instead of failing the whole table
-  - added guided inserts for explicit-base `log_a(...)` and exposed the `Algebra` keyboard page in `Table`
-  - kept symbolic behavior, copy/editor/history payloads, and solve scope unchanged for this milestone
+- Completed `PRL3` as the bounded symbolic powers/roots/logs pass:
+  - added an app-owned symbolic normalization layer for bounded power/root/log rewrites and condition tracking
+  - made raw exact symbolic output canonical power-leaning while preserving plain familiar `\sqrt` / `\sqrt[3]` forms
+  - added explicit `Rewrite as Root`, `Rewrite as Power`, and `Change Base` chips to the shared algebra tray in `Calculate` and `Equation`
+  - added bounded same-base log-combine under `Calculate > Simplify` with visible positivity conditions
+  - added Equation-side preprocessing so notational variants such as fractional-power carriers and `\log_e` map into already-supported solve families without widening solve scope
+- Completed a verified `PRL3` follow-up polish pass:
+  - preserved exact symbolic branch LaTeX after substitution validation so supported preprocessed `\log_e(...)` Equation solves no longer downgrade to decimal-only exact output
+  - compacted repeated multiplicative factors in symbolic serializers so outputs stop leaking `xx` / `4xx^3`-style forms and fold back into powers before emission
 - Regression checks:
   - `npm run test:gate`
 
@@ -107,6 +110,16 @@
   - `Calculate` non-evaluate numeric-only power/root/log paths now use the same guard when CE would otherwise leak raw `NaN`/complex output through `Simplify`/`Factor`/`Expand`
   - `Table` uses the same evaluator per sampled row and now marks out-of-domain rows as `undefined` while surfacing a table-level warning
   - the keyboard now exposes `log_a(...)` on `Functions` and shows the `Algebra` page in `Table`
+- `PRL3` bounded symbolic powers/roots/logs is verified:
+  - `src/lib/symbolic-engine/power-log.ts` now provides a bounded symbolic normalization layer for power/root/log exact output, explicit transforms, and Equation preprocessing
+  - `Calculate > Simplify` now canonicalizes selected root/power families plus same-base log sums with explicit condition lines
+  - the shared algebra tray now exposes `Rewrite as Root`, `Rewrite as Power`, and `Change Base` when eligible in both `Calculate` and `Equation`
+  - raw exact results now use canonical PRL3 output while `PRL1` display settings still control rendered presentation on top
+  - browser-first automation now covers PRL3 simplify behavior, explicit transforms, and Equation preprocess-driven solve parity
+- `PRL3` follow-up polish is verified:
+  - guarded substitution validation now keeps exact symbolic branch output when a bounded solve produced it, instead of rebuilding accepted roots only from rounded numeric values
+  - repeated-factor formatting is now compacted in the symbolic power/log serializer and the display-normalization renderer, eliminating visible `xx` / `4xx^3`-style output on affected result surfaces
+  - UI and Playwright regression coverage now include repeated-factor log-combine rendering on the visible Calculate surface
 - Repo line endings are now governed by `.gitattributes`:
   - LF for source, docs, and config text
   - CRLF only for Windows-native scripts
@@ -125,6 +138,11 @@
   - no broader symbolic power/root/log transforms have shipped yet
   - no equation-solving expansion has shipped yet
   - the product still stays strictly in the real domain with no complex numeric fallback
+- `PRL3` is intentionally symbolic-only:
+  - no broader solve-family expansion has shipped yet
+  - same-base log combine remains bounded to `Simplify`
+  - log difference/ratio/power identities remain deferred
+  - raw exact output is more canonical now, but rendered style is still governed separately by `PRL1` display settings
 - Bounded trig sum-to-product currently covers two-term `sin/cos` forms only; broader harmonic families remain deferred.
 - Statistics inference is intentionally bounded to one-sample mean workflows only; no proportion/categorical inference is in scope yet.
 - Statistics still has no prediction UI, residual table, outlier/leverage tooling, or inferential regression; D3 stayed bounded to quality summaries only.
@@ -171,9 +189,9 @@
   - `.memory/research/TRACK-SX1.1-MANUAL-VERIFICATION-CHECKLIST.md`
 - PRL checklist artifact:
   - `.memory/research/TRACK-PRL2-MANUAL-VERIFICATION-CHECKLIST.md`
+  - `.memory/research/TRACK-PRL3-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
 - Preferred next roadmap is now:
-  1. `PRL3` bounded symbolic exponent/root/log support
-  2. `PRL4` bounded solve expansion for these families
-- `PRL3` is now the best next move after `PRL2`: broaden symbolic capability conservatively on top of the new real-domain numeric foundation.
+  1. `PRL4` bounded solve expansion for exponent/root/log families
+- `PRL4` is now the best next move after `PRL3`: widen solve coverage for these families on top of the now-stable display, numeric, and symbolic foundations.

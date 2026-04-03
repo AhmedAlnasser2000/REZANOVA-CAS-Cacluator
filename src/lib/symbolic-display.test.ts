@@ -51,6 +51,12 @@ describe('normalizeSymbolicDisplayLatex', () => {
     expect(normalizeSymbolicDisplayLatex('\\log_{4}(x)', ROOT_PREFS)).toBe('\\log_{4}\\left(x\\right)');
   });
 
+  it('compacts repeated multiplicative factors in rendered symbolic display', () => {
+    expect(normalizeSymbolicDisplayLatex('\\ln\\left(4x\\cdot x^{3}\\right)', ROOT_PREFS)).toBe(
+      '\\ln\\left(4x^{4}\\right)',
+    );
+  });
+
   it('returns unsupported forms unchanged', () => {
     expect(normalizeSymbolicDisplayLatex('\\text{Conditions: } x\\ge0', ROOT_PREFS)).toBe('\\text{Conditions: } x\\ge0');
     expect(normalizeSymbolicDisplayLatex('x+1', POWER_PREFS)).toBe('x+1');

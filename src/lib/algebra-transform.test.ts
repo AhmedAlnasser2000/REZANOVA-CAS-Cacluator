@@ -33,6 +33,33 @@ describe('algebra-transform', () => {
     expect(result?.transformBadges).toEqual(['Cancel Factors']);
   });
 
+  it('offers rewrite-root, rewrite-power, and change-base transforms when they materially change the form', () => {
+    const rootActions = getEligibleExpressionTransforms('x^{1/6}');
+    const powerActions = getEligibleExpressionTransforms('\\sqrt[3]{\\sqrt{x}}');
+    const logActions = getEligibleExpressionTransforms('\\log_{4}(x)');
+
+    expect(rootActions).toContain('rewriteAsRoot');
+    expect(powerActions).toContain('rewriteAsPower');
+    expect(logActions).toContain('changeBase');
+    expect(rootActions).not.toContain('rewriteAsPower');
+  });
+
+  it('rewrites supported power and log forms explicitly in Calculate', () => {
+    const asRoot = applyExpressionTransform('x^{1/6}', 'rewriteAsRoot');
+    const asPower = applyExpressionTransform('\\sqrt[3]{\\sqrt{x}}', 'rewriteAsPower');
+    const changeBase = applyExpressionTransform('\\log_{4}(x)', 'changeBase');
+
+    expect(asRoot?.exactLatex).toBe('\\sqrt[6]{x}');
+    expect(asRoot?.transformBadges).toEqual(['Rewrite as Root']);
+
+    expect(asPower?.exactLatex).toBe('x^{\\frac{1}{6}}');
+    expect(asPower?.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0']);
+    expect(asPower?.transformBadges).toEqual(['Rewrite as Power']);
+
+    expect(changeBase?.exactLatex).toBe('\\frac{\\ln\\left(x\\right)}{\\ln\\left(4\\right)}');
+    expect(changeBase?.transformBadges).toEqual(['Change Base']);
+  });
+
   it('recognizes and applies explicit conjugate transforms', () => {
     const actions = getEligibleExpressionTransforms('\\frac{1}{1+\\sqrt{2}}');
     const result = applyExpressionTransform('\\frac{1}{1+\\sqrt{2}}', 'conjugate');
@@ -82,5 +109,21 @@ describe('algebra-transform', () => {
     expect(result?.exactLatex).toBe('x+1=0');
     expect(result?.exactSupplementLatex?.[0]).toContain('x-1\\ne0');
     expect(result?.transformBadges).toEqual(['Cancel Factors']);
+  });
+
+  it('rewrites supported equation sides without auto-solving', () => {
+    const asRoot = applyEquationTransform('x^{1/2}=3', 'rewriteAsRoot');
+    const asPower = applyEquationTransform('\\sqrt{x}=3', 'rewriteAsPower');
+    const changeBase = applyEquationTransform('\\log_{4}(x)=2', 'changeBase');
+
+    expect(asRoot?.exactLatex).toBe('\\sqrt{x}=3');
+    expect(asRoot?.transformBadges).toEqual(['Rewrite as Root']);
+
+    expect(asPower?.exactLatex).toBe('x^{\\frac{1}{2}}=3');
+    expect(asPower?.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0']);
+    expect(asPower?.transformBadges).toEqual(['Rewrite as Power']);
+
+    expect(changeBase?.exactLatex).toBe('\\frac{\\ln\\left(x\\right)}{\\ln\\left(4\\right)}=2');
+    expect(changeBase?.transformBadges).toEqual(['Change Base']);
   });
 });

@@ -121,7 +121,7 @@ describe('AppMain UI automation flows', () => {
     );
   });
 
-  it('applies symbolic-display settings live to rendered exact results while keeping raw exact latex for copy/editor flows', async () => {
+  it('applies symbolic-display settings live to rendered exact results while keeping canonical raw exact latex for copy/editor flows', async () => {
     const { user } = await renderAppMain();
     const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText');
 
@@ -136,10 +136,10 @@ describe('AppMain UI automation flows', () => {
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x^{\\frac{1}{6}}');
 
     await user.click(screen.getByRole('button', { name: 'Copy Result' }));
-    expect(writeTextSpy).toHaveBeenCalledWith('\\sqrt[3]{\\sqrt{x}}');
+    expect(writeTextSpy).toHaveBeenCalledWith('x^{\\frac{1}{6}}');
 
     await user.click(screen.getByTestId('display-outcome-action-to-editor'));
-    expect(screen.getByTestId('main-editor')).toHaveAttribute('data-value', '\\sqrt[3]{\\sqrt{x}}');
+    expect(screen.getByTestId('main-editor')).toHaveAttribute('data-value', 'x^{\\frac{1}{6}}');
   });
 
   it('keeps plain familiar roots as roots in auto mode', async () => {
@@ -225,6 +225,81 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('algebra-transform-cancelFactors')).toBeInTheDocument();
   });
 
+  it('canonicalizes bounded same-base log sums under simplify with visible condition lines', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\ln(x)+\\ln(x+1)');
+    await user.click(screen.getByTestId('soft-action-simplify'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(
+      screen.getByTestId('display-outcome-exact'),
+      '\\ln\\left(x\\left(x+1\\right)\\right)',
+    );
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x>0/);
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\+1>0/);
+  });
+
+  it('compacts repeated factors when simplify combines same-base log arguments', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\ln(4x)+\\ln(x^3)');
+    await user.click(screen.getByTestId('soft-action-simplify'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(
+      screen.getByTestId('display-outcome-exact'),
+      '\\ln\\left(4x^{4}\\right)',
+    );
+  });
+
+  it('shows the new PRL3 Rewrite as Power transform in Calculate', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\sqrt[3]{\\sqrt{x}}');
+    await user.click(screen.getByTestId('soft-action-algebra'));
+    await waitFor(() => expect(screen.getByTestId('algebra-transform-tray')).toBeInTheDocument());
+    await user.click(screen.getByTestId('algebra-transform-rewriteAsPower'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x^{\\frac{1}{6}}');
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ge0/);
+    expect(screen.getByTestId('algebra-transform-rewriteAsPower')).toBeInTheDocument();
+  });
+
+  it('shows the new PRL3 Rewrite as Root transform in Calculate', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', 'x^{\\frac{1}{6}}');
+    await user.click(screen.getByTestId('soft-action-algebra'));
+    await waitFor(() => expect(screen.getByTestId('algebra-transform-tray')).toBeInTheDocument());
+    await user.click(screen.getByTestId('algebra-transform-rewriteAsRoot'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x^{\\frac{1}{6}}');
+    expect(
+      screen.getByTestId('display-outcome-exact').querySelector('[data-raw-latex="\\\\sqrt[6]{x}"]'),
+    ).not.toBeNull();
+    expect(screen.getByTestId('algebra-transform-rewriteAsRoot')).toBeInTheDocument();
+  });
+
+  it('shows the new PRL3 change-base transform in Calculate', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\log_{4}(x)');
+    await user.click(screen.getByTestId('soft-action-algebra'));
+    await waitFor(() => expect(screen.getByTestId('algebra-transform-tray')).toBeInTheDocument());
+    await user.click(screen.getByTestId('algebra-transform-changeBase'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(
+      screen.getByTestId('display-outcome-exact'),
+      '\\frac{\\ln\\left(x\\right)}{\\ln\\left(4\\right)}',
+    );
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x>0/);
+    expect(screen.getByTestId('algebra-transform-changeBase')).toBeInTheDocument();
+  });
+
   it('renders transform summary math separately from plain text', async () => {
     const { user } = await renderAppMain();
 
@@ -266,6 +341,32 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByText(/Cleared the equation/i)).toBeInTheDocument();
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), /=0/);
     expect(screen.getByTestId('algebra-transform-useLCD')).toBeInTheDocument();
+  });
+
+  it('preprocesses fractional-power notation into existing Equation solve families without broadening solve scope', async () => {
+    const { user } = await renderAppMain();
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', 'x^{\\frac{1}{2}}=3');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x=9');
+  });
+
+  it('shows the new PRL3 Equation transforms without auto-solving the rewritten equation', async () => {
+    const { user } = await renderAppMain();
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', 'x^{\\frac{1}{2}}=3');
+    await user.click(screen.getByTestId('soft-action-algebra'));
+    await waitFor(() => expect(screen.getByTestId('algebra-transform-tray')).toBeInTheDocument());
+    await user.click(screen.getByTestId('algebra-transform-rewriteAsRoot'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), '\\sqrt{x}=3');
+    expect(screen.queryByText(/^x=9$/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('algebra-transform-rewriteAsRoot')).toBeInTheDocument();
   });
 
   it('renders Equation LCD-cleared rational solves with exclusions and provenance', async () => {

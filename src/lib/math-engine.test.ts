@@ -374,6 +374,44 @@ describe('runExpressionAction', () => {
     expect(oddRoot.exactLatex).toBe('3x\\sqrt[3]{2x}')
   })
 
+  it('canonicalizes bounded power-root forms in simplify mode with raw power-leaning output', () => {
+    const nested = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt[3]{\\sqrt{x}}' } },
+      'simplify',
+    )
+    const awkward = runExpressionAction(
+      { ...request, document: { latex: '(\\sqrt{x})^{3}' } },
+      'simplify',
+    )
+
+    expect(nested.error).toBeUndefined()
+    expect(nested.exactLatex).toBe('x^{\\frac{1}{6}}')
+    expect(nested.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0'])
+
+    expect(awkward.error).toBeUndefined()
+    expect(awkward.exactLatex).toBe('x^{\\frac{3}{2}}')
+    expect(awkward.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0'])
+  })
+
+  it('normalizes bounded same-base log sums without applying unsupported log identities', () => {
+    const sameBase = runExpressionAction(
+      { ...request, document: { latex: '\\ln(x)+\\ln(x+1)' } },
+      'simplify',
+    )
+    const difference = runExpressionAction(
+      { ...request, document: { latex: '\\ln(x)-\\ln(y)' } },
+      'simplify',
+    )
+
+    expect(sameBase.error).toBeUndefined()
+    expect(sameBase.exactLatex).toBe('\\ln\\left(x\\left(x+1\\right)\\right)')
+    expect(sameBase.exactSupplementLatex).toEqual(['\\text{Conditions: } x>0,\\;x+1>0'])
+
+    expect(difference.error).toBeUndefined()
+    expect(difference.exactLatex).toBe('\\ln\\left(x\\right)-\\ln\\left(y\\right)')
+    expect(difference.exactSupplementLatex).toBeUndefined()
+  })
+
   it('rationalizes supported radical denominators in simplify mode', () => {
     const numericBinomial = runExpressionAction(
       { ...request, document: { latex: '\\frac{1}{1+\\sqrt{2}}' } },

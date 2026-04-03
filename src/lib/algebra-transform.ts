@@ -7,12 +7,16 @@ import {
   isNodeArray,
   termKey,
 } from './symbolic-engine/patterns';
+import { normalizeExactPowerLogNode } from './symbolic-engine/power-log';
 import { normalizeExactRadicalNode, applyConjugateTransformNode } from './symbolic-engine/radical';
 import { normalizeExactRationalNode } from './symbolic-engine/rational';
 
 const ce = new ComputeEngine();
 
 export type AlgebraTransformAction =
+  | 'rewriteAsRoot'
+  | 'rewriteAsPower'
+  | 'changeBase'
   | 'combineFractions'
   | 'cancelFactors'
   | 'useLCD'
@@ -28,6 +32,9 @@ export type AlgebraTransformResult = {
 };
 
 const ACTION_LABELS: Record<AlgebraTransformAction, string> = {
+  rewriteAsRoot: 'Rewrite as Root',
+  rewriteAsPower: 'Rewrite as Power',
+  changeBase: 'Change Base',
   combineFractions: 'Combine Fractions',
   cancelFactors: 'Cancel Factors',
   useLCD: 'Use LCD',
@@ -36,6 +43,9 @@ const ACTION_LABELS: Record<AlgebraTransformAction, string> = {
 };
 
 const ACTION_ORDER: AlgebraTransformAction[] = [
+  'rewriteAsRoot',
+  'rewriteAsPower',
+  'changeBase',
   'combineFractions',
   'cancelFactors',
   'useLCD',
@@ -68,6 +78,65 @@ function parseEquationNode(latex: string) {
   return {
     left: normalizeAst(parsed[1]),
     right: normalizeAst(parsed[2]),
+  };
+}
+
+function normalizeLatexForComparison(latex: string) {
+  return latex.replace(/\s+/g, '');
+}
+
+function sourceSupportsExplicitTransform(latex: string, action: AlgebraTransformAction) {
+  switch (action) {
+    case 'rewriteAsRoot':
+      return latex.includes('^');
+    case 'rewriteAsPower':
+      return latex.includes('\\sqrt');
+    case 'changeBase':
+      return /\\log_\{/.test(latex);
+    default:
+      return true;
+  }
+}
+
+function rewriteExpressionAsRoot(node: unknown): AlgebraTransformResult | null {
+  const normalized = normalizeExactPowerLogNode(node, 'rewrite-root');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    exactLatex: normalized.normalizedLatex,
+    exactSupplementLatex: normalized.exactSupplementLatex,
+    transformBadges: ['Rewrite as Root'],
+    transformSummaryText: 'Rewrote the supported power form as exact root notation',
+  };
+}
+
+function rewriteExpressionAsPower(node: unknown): AlgebraTransformResult | null {
+  const normalized = normalizeExactPowerLogNode(node, 'rewrite-power');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    exactLatex: normalized.normalizedLatex,
+    exactSupplementLatex: normalized.exactSupplementLatex,
+    transformBadges: ['Rewrite as Power'],
+    transformSummaryText: 'Rewrote the supported root form as an exact rational exponent',
+  };
+}
+
+function changeExpressionBase(node: unknown): AlgebraTransformResult | null {
+  const normalized = normalizeExactPowerLogNode(node, 'change-base');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    exactLatex: normalized.normalizedLatex,
+    exactSupplementLatex: normalized.exactSupplementLatex,
+    transformBadges: ['Change Base'],
+    transformSummaryText: 'Rewrote the logarithm using exact natural-log change of base',
   };
 }
 
@@ -165,6 +234,12 @@ function applyExpressionTransformNode(
   action: AlgebraTransformAction,
 ): AlgebraTransformResult | null {
   switch (action) {
+    case 'rewriteAsRoot':
+      return rewriteExpressionAsRoot(node);
+    case 'rewriteAsPower':
+      return rewriteExpressionAsPower(node);
+    case 'changeBase':
+      return changeExpressionBase(node);
     case 'combineFractions':
       return combineFractionsExpression(node);
     case 'cancelFactors':
@@ -178,6 +253,42 @@ function applyExpressionTransformNode(
     default:
       return null;
   }
+}
+
+function rewriteEquationSideAsRoot(node: unknown) {
+  const normalized = normalizeExactPowerLogNode(node, 'rewrite-root');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    latex: normalized.normalizedLatex,
+    supplement: normalized.exactSupplementLatex,
+  };
+}
+
+function rewriteEquationSideAsPower(node: unknown) {
+  const normalized = normalizeExactPowerLogNode(node, 'rewrite-power');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    latex: normalized.normalizedLatex,
+    supplement: normalized.exactSupplementLatex,
+  };
+}
+
+function changeEquationSideBase(node: unknown) {
+  const normalized = normalizeExactPowerLogNode(node, 'change-base');
+  if (!normalized) {
+    return null;
+  }
+
+  return {
+    latex: normalized.normalizedLatex,
+    supplement: normalized.exactSupplementLatex,
+  };
 }
 
 function combineEquationSideFractions(node: unknown) {
@@ -234,6 +345,51 @@ function conjugateEquationSide(node: unknown) {
   return {
     latex: conjugate.normalizedLatex,
     supplement: conjugate.exactSupplementLatex,
+  };
+}
+
+function rewriteAsRootEquation(left: unknown, right: unknown): AlgebraTransformResult | null {
+  const leftResult = rewriteEquationSideAsRoot(left);
+  const rightResult = rewriteEquationSideAsRoot(right);
+  if (!leftResult && !rightResult) {
+    return null;
+  }
+
+  return {
+    exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
+    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    transformBadges: ['Rewrite as Root'],
+    transformSummaryText: 'Rewrote supported rational exponents as exact root notation',
+  };
+}
+
+function rewriteAsPowerEquation(left: unknown, right: unknown): AlgebraTransformResult | null {
+  const leftResult = rewriteEquationSideAsPower(left);
+  const rightResult = rewriteEquationSideAsPower(right);
+  if (!leftResult && !rightResult) {
+    return null;
+  }
+
+  return {
+    exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
+    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    transformBadges: ['Rewrite as Power'],
+    transformSummaryText: 'Rewrote supported roots as exact rational exponents',
+  };
+}
+
+function changeBaseEquation(left: unknown, right: unknown): AlgebraTransformResult | null {
+  const leftResult = changeEquationSideBase(left);
+  const rightResult = changeEquationSideBase(right);
+  if (!leftResult && !rightResult) {
+    return null;
+  }
+
+  return {
+    exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
+    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    transformBadges: ['Change Base'],
+    transformSummaryText: 'Rewrote supported explicit-base logs with exact natural-log change of base',
   };
 }
 
@@ -327,6 +483,12 @@ function applyEquationTransformNode(
   action: AlgebraTransformAction,
 ): AlgebraTransformResult | null {
   switch (action) {
+    case 'rewriteAsRoot':
+      return rewriteAsRootEquation(left, right);
+    case 'rewriteAsPower':
+      return rewriteAsPowerEquation(left, right);
+    case 'changeBase':
+      return changeBaseEquation(left, right);
     case 'combineFractions':
       return combineFractionsEquation(left, right);
     case 'cancelFactors':
@@ -352,7 +514,17 @@ export function getEligibleExpressionTransforms(latex: string) {
     return [] as AlgebraTransformAction[];
   }
 
-  return ACTION_ORDER.filter((action) => applyExpressionTransformNode(parsed, action));
+  const normalizedInput = normalizeLatexForComparison(latex);
+  return ACTION_ORDER.filter((action) => {
+    if (!sourceSupportsExplicitTransform(latex, action)) {
+      return false;
+    }
+    const result = applyExpressionTransformNode(parsed, action);
+    return Boolean(
+      result
+      && normalizeLatexForComparison(result.exactLatex) !== normalizedInput,
+    );
+  });
 }
 
 export function applyExpressionTransform(latex: string, action: AlgebraTransformAction) {
@@ -370,7 +542,17 @@ export function getEligibleEquationTransforms(latex: string) {
     return [] as AlgebraTransformAction[];
   }
 
-  return ACTION_ORDER.filter((action) => applyEquationTransformNode(equation.left, equation.right, action));
+  const normalizedInput = normalizeLatexForComparison(latex);
+  return ACTION_ORDER.filter((action) => {
+    if (!sourceSupportsExplicitTransform(latex, action)) {
+      return false;
+    }
+    const result = applyEquationTransformNode(equation.left, equation.right, action);
+    return Boolean(
+      result
+      && normalizeLatexForComparison(result.exactLatex) !== normalizedInput,
+    );
+  });
 }
 
 export function applyEquationTransform(latex: string, action: AlgebraTransformAction) {

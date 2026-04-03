@@ -26,6 +26,7 @@ import { getResultGuardError } from './result-guard';
 import { factorMathJson } from './symbolic-factor';
 import { runFactoringEngine } from './symbolic-engine/orchestrator';
 import { parsePartialDerivativeLatex, resolvePartialDerivative } from './symbolic-engine/partials';
+import { normalizeExactPowerLogNode } from './symbolic-engine/power-log';
 import { normalizeExactRadicalNode } from './symbolic-engine/radical';
 import { normalizeExactRationalNode } from './symbolic-engine/rational';
 
@@ -192,6 +193,14 @@ function mergeSupplementLatex(left: string[] = [], right: string[] = []) {
   return [...new Set([...left, ...right])];
 }
 
+function normalizedSupplementLatex(
+  left: string[] | undefined,
+  right: string[] | undefined,
+) {
+  const merged = mergeSupplementLatex(left, right);
+  return merged.length > 0 ? merged : undefined;
+}
+
 function solutionApproximationText(symbol: string, solutions: unknown[]) {
   const approximations = solutions
     .map((solution) => {
@@ -352,6 +361,10 @@ export function runExpressionAction(
         ? normalizeExactRationalNode(radicalExpr.json, action)
         : null;
     if (rational) {
+      const powerLog =
+        action === 'simplify'
+          ? normalizeExactPowerLogNode(rational.normalizedNode, 'simplify')
+          : null;
       const exactExpr = ce.box(rational.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike;
       const approx = isNumericOnlyNode(exactExpr.json)
         ? numericExpression(exactExpr)
@@ -360,6 +373,19 @@ export function runExpressionAction(
         radicalSupplementLatex,
         rational.exactSupplementLatex,
       );
+      if (powerLog?.changed) {
+        return {
+          exactLatex: powerLog.normalizedLatex,
+          exactSupplementLatex: normalizedSupplementLatex(
+            exactSupplementLatex,
+            powerLog.exactSupplementLatex,
+          ),
+          approxText: latexToApproxText(approx?.latex),
+          normalizedMathJson: powerLog.normalizedNode,
+          warnings: prepared.warnings,
+          resultOrigin: 'symbolic-engine',
+        };
+      }
       if (
         action !== 'evaluate'
         && shouldUseRealNumericEvaluator(expr, sourceLatex)
@@ -414,9 +440,23 @@ export function runExpressionAction(
     }
 
     if (radical && action === 'simplify') {
+      const powerLog = normalizeExactPowerLogNode(radical.normalizedNode, 'simplify');
       const approx = isNumericOnlyNode(radicalExpr.json)
         ? numericExpression(radicalExpr)
         : undefined;
+      if (powerLog?.changed) {
+        return {
+          exactLatex: powerLog.normalizedLatex,
+          exactSupplementLatex: normalizedSupplementLatex(
+            radicalSupplementLatex,
+            powerLog.exactSupplementLatex,
+          ),
+          approxText: latexToApproxText(approx?.latex),
+          normalizedMathJson: powerLog.normalizedNode,
+          warnings: prepared.warnings,
+          resultOrigin: 'symbolic-engine',
+        };
+      }
       if (
         shouldUseRealNumericEvaluator(expr, sourceLatex)
         && isInvalidRealNumericApprox(approx?.latex)
@@ -467,6 +507,55 @@ export function runExpressionAction(
         warnings: prepared.warnings,
         resultOrigin: 'symbolic-engine',
       };
+    }
+
+    if (action === 'simplify') {
+      const powerLog = normalizeExactPowerLogNode(radicalExpr.json, 'simplify');
+      if (powerLog?.handled) {
+        if (shouldUseRealNumericEvaluator(expr, sourceLatex)) {
+          const numeric = evaluateRealNumericExpression(expr.json, sourceLatex);
+          if (numeric.kind === 'success') {
+            const guardError = getResultGuardError(numeric.exactLatex, numeric.approxText);
+            if (guardError) {
+              return {
+                warnings: prepared.warnings,
+                error: guardError,
+              };
+            }
+
+            return {
+              exactLatex: numeric.exactLatex,
+              approxText: numeric.approxText,
+              normalizedMathJson: expr.json,
+              warnings: prepared.warnings,
+              resultOrigin: 'numeric-fallback',
+            };
+          }
+
+          if (numeric.kind === 'domain-error') {
+            return {
+              warnings: prepared.warnings,
+              error: numeric.error,
+            };
+          }
+        }
+
+        const exactExpr = ce.box(powerLog.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike;
+        const approx = isNumericOnlyNode(exactExpr.json)
+          ? numericExpression(exactExpr)
+          : undefined;
+        return {
+          exactLatex: powerLog.normalizedLatex,
+          exactSupplementLatex: normalizedSupplementLatex(
+            radicalSupplementLatex,
+            powerLog.exactSupplementLatex,
+          ),
+          approxText: latexToApproxText(approx?.latex),
+          normalizedMathJson: powerLog.normalizedNode,
+          warnings: prepared.warnings,
+          resultOrigin: 'symbolic-engine',
+        };
+      }
     }
 
     if (action === 'solve') {

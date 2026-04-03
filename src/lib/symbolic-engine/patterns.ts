@@ -194,6 +194,20 @@ export function buildTermNode(coefficient: number, factors: FactorMap): unknown 
   return coefficient;
 }
 
+export function compactRepeatedProductFactors(node: unknown): unknown {
+  if (!isNodeArray(node) || node[0] !== 'Multiply') {
+    return node;
+  }
+
+  const decomposed = decomposeProduct(node);
+  if (!decomposed) {
+    return node;
+  }
+
+  const rebuilt = buildTermNode(decomposed.coefficient, decomposed.factors);
+  return termKey(rebuilt) === termKey(node) ? node : rebuilt;
+}
+
 export function addTerms(terms: unknown[]) {
   if (terms.length === 0) {
     return 0;

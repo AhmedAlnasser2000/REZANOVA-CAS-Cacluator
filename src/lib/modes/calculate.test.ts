@@ -67,4 +67,43 @@ describe('runCalculateMode', () => {
     expect(result.transformBadges).toEqual(['Combine Fractions'])
     expect(result.exactSupplementLatex?.[0]).toContain('x\\ne0')
   })
+
+  it('runs PRL3 symbolic algebra transforms explicitly in Calculate', () => {
+    const asPower = runCalculateAlgebraTransform({
+      action: 'rewriteAsPower',
+      latex: '\\sqrt[3]{\\sqrt{x}}',
+      angleUnit: 'deg',
+    })
+    const asRoot = runCalculateAlgebraTransform({
+      action: 'rewriteAsRoot',
+      latex: 'x^{1/6}',
+      angleUnit: 'deg',
+    })
+    const changedBase = runCalculateAlgebraTransform({
+      action: 'changeBase',
+      latex: '\\log_{4}(x)',
+      angleUnit: 'deg',
+    })
+
+    expect(asPower.kind).toBe('success')
+    if (asPower.kind !== 'success') {
+      throw new Error('Expected a success outcome')
+    }
+    expect(asPower.exactLatex).toBe('x^{\\frac{1}{6}}')
+    expect(asPower.transformBadges).toEqual(['Rewrite as Power'])
+
+    expect(asRoot.kind).toBe('success')
+    if (asRoot.kind !== 'success') {
+      throw new Error('Expected a success outcome')
+    }
+    expect(asRoot.exactLatex).toBe('\\sqrt[6]{x}')
+    expect(asRoot.transformBadges).toEqual(['Rewrite as Root'])
+
+    expect(changedBase.kind).toBe('success')
+    if (changedBase.kind !== 'success') {
+      throw new Error('Expected a success outcome')
+    }
+    expect(changedBase.exactLatex).toBe('\\frac{\\ln\\left(x\\right)}{\\ln\\left(4\\right)}')
+    expect(changedBase.transformBadges).toEqual(['Change Base'])
+  })
 })

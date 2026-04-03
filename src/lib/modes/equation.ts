@@ -1,3 +1,4 @@
+import { ComputeEngine } from '@cortex-js/compute-engine';
 import {
   complexSolutionsToApproxText,
   complexSolutionsToLatex,
@@ -12,6 +13,7 @@ import { runExpressionAction } from '../math-engine';
 import { analyzeLatex, isRelationalOperator } from '../math-analysis';
 import { runSharedEquationSolve } from '../equation/shared-solve';
 import { planMathExecution } from '../semantic-planner';
+import { normalizeExactPowerLogNode } from '../symbolic-engine/power-log';
 import { solveLinearSystem } from '../matrix';
 import { solvePolynomialRoots } from '../polynomial-roots';
 import type {
@@ -23,6 +25,7 @@ import type {
   PlannerBadge,
   PolynomialEquationView,
   ResultOrigin,
+  SolveDomainConstraint,
 } from '../../types/calculator';
 
 type PolynomialDegree = 2 | 3 | 4;
@@ -32,6 +35,8 @@ type PolynomialMeta = {
   title: string;
   coefficientLabels: string[];
 };
+
+const ce = new ComputeEngine();
 
 export const POLYNOMIAL_VIEW_META: Record<PolynomialEquationView, PolynomialMeta> = {
   quadratic: {
@@ -383,17 +388,45 @@ function solveSymbolicEquation(
     );
   }
 
+  let sharedResolvedLatex = planner.resolvedLatex;
+  let preprocessSupplementLatex: string[] | undefined;
+  let preprocessDomainConstraints: SolveDomainConstraint[] | undefined;
+
+  try {
+    const preprocess = normalizeExactPowerLogNode(
+      ce.parse(planner.resolvedLatex).json,
+      'equation-preprocess',
+    );
+    if (
+      preprocess
+      && (
+        preprocess.normalizedLatex.replace(/\s+/g, '') !== planner.resolvedLatex.replace(/\s+/g, '')
+        || preprocess.exactSupplementLatex.length > 0
+      )
+    ) {
+      sharedResolvedLatex = preprocess.normalizedLatex;
+      preprocessSupplementLatex =
+        preprocess.exactSupplementLatex.length > 0 ? preprocess.exactSupplementLatex : undefined;
+      preprocessDomainConstraints =
+        preprocess.conditionConstraints.length > 0 ? preprocess.conditionConstraints : undefined;
+    }
+  } catch {
+    // Keep the original resolved equation when bounded preprocessing cannot parse cleanly.
+  }
+
   return withPlannerMetadata(
     runSharedEquationSolve({
       originalLatex: equationLatex,
-      resolvedLatex: planner.resolvedLatex,
+      resolvedLatex: sharedResolvedLatex,
       angleUnit,
       outputStyle,
       ansLatex,
       numericInterval,
+      domainConstraints: preprocessDomainConstraints,
+      exactSupplementLatex: preprocessSupplementLatex,
     }),
     equationLatex,
-    planner.resolvedLatex,
+    sharedResolvedLatex,
     planner.badges,
   );
 }
