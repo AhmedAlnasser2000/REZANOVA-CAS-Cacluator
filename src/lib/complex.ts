@@ -1,3 +1,5 @@
+import { formatApproxNumber } from './numeric-output';
+
 export type ComplexValue = {
   re: number;
   im: number;
@@ -101,7 +103,7 @@ export function complexToLatex(value: ComplexValue, digits = 6) {
 export function complexToApproxText(value: ComplexValue, digits = 6) {
   const normalized = normalizeComplex(value);
   if (normalized.im === 0) {
-    return formatScalar(normalized.re, digits);
+    return formatApproxNumber(normalized.re, { approxDigits: digits });
   }
 
   if (normalized.re === 0) {
@@ -111,11 +113,13 @@ export function complexToApproxText(value: ComplexValue, digits = 6) {
     if (normalized.im === -1) {
       return '-i';
     }
-    return `${formatScalar(normalized.im, digits)}i`;
+    return `${formatApproxNumber(normalized.im, { approxDigits: digits })}i`;
   }
 
   const sign = normalized.im < 0 ? '-' : '+';
   const absImaginary = Math.abs(normalized.im);
-  const imaginaryText = absImaginary === 1 ? 'i' : `${formatScalar(absImaginary, digits)}i`;
-  return `${formatScalar(normalized.re, digits)} ${sign} ${imaginaryText}`;
+  const imaginaryText = absImaginary === 1
+    ? 'i'
+    : `${formatApproxNumber(absImaginary, { approxDigits: digits })}i`;
+  return `${formatApproxNumber(normalized.re, { approxDigits: digits })} ${sign} ${imaginaryText}`;
 }

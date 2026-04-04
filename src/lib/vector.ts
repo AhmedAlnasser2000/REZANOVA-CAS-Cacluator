@@ -3,7 +3,7 @@ import type {
   VectorRequest,
   VectorResponse,
 } from '../types/calculator';
-import { formatNumber, scalarToLatex, vectorToLatex } from './format';
+import { formatApproxNumber, scalarToLatex, vectorToLatex } from './format';
 
 function dot(a: number[], b: number[]) {
   return a.reduce((sum, value, index) => sum + value * b[index], 0);
@@ -45,7 +45,7 @@ export function runVectorOperation(req: VectorRequest): VectorResponse {
       const value = dot(vectorA, vectorB!);
       return {
         resultLatex: scalarToLatex(value),
-        approxText: formatNumber(value),
+        approxText: formatApproxNumber(value),
         warnings: [],
       };
     }
@@ -67,7 +67,7 @@ export function runVectorOperation(req: VectorRequest): VectorResponse {
       const value = norm(vectorA);
       return {
         resultLatex: scalarToLatex(value),
-        approxText: formatNumber(value),
+        approxText: formatApproxNumber(value),
         warnings: [],
       };
     }
@@ -75,7 +75,7 @@ export function runVectorOperation(req: VectorRequest): VectorResponse {
       const value = norm(vectorB!);
       return {
         resultLatex: scalarToLatex(value),
-        approxText: formatNumber(value),
+        approxText: formatApproxNumber(value),
         warnings: [],
       };
     }
@@ -89,7 +89,7 @@ export function runVectorOperation(req: VectorRequest): VectorResponse {
       const suffix = req.angleUnit === 'deg' ? '^{\\circ}' : req.angleUnit === 'grad' ? '^{g}' : '';
       return {
         resultLatex: `${scalarToLatex(angle)}${suffix}`,
-        approxText: formatNumber(angle),
+        approxText: formatApproxNumber(angle),
         warnings: [],
       };
     }

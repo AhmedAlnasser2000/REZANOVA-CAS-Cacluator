@@ -59,6 +59,29 @@ test('PRL2 Calculate smoke keeps simplify from leaking raw NaN on invalid logs',
   await expect(page.getByText(/^NaN$/)).toHaveCount(0);
 });
 
+test('NP1 settings smoke updates numeric preview and approximate equation output live', async ({ page }) => {
+  await openSettingsPanel(page);
+
+  const digitsInput = page.getByTestId('settings-approx-digits-input');
+  await digitsInput.fill('3');
+  await digitsInput.blur();
+  await page.getByTestId('settings-notation-mode-scientific').click();
+  await page.getByTestId('settings-scientific-style-e').click();
+
+  await expect(page.getByTestId('settings-numeric-preview-result')).toContainText('1.235e6');
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+  await expect(page.getByTestId('settings-panel')).toHaveCount(0);
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\log(x^2+9x-5)=\\log(8x+\\ln 4)');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toHaveCount(0);
+  await expect(page.getByTestId('display-outcome-approx')).toContainText('x ~= 2.076');
+  await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('ln(4)>0');
+});
+
 test('Equation smoke renders solved condition line', async ({ page }) => {
   await openEquationSymbolic(page);
   await setMathFieldLatex(page, '\\frac{1}{\\sqrt{x}}=1');
@@ -67,6 +90,15 @@ test('Equation smoke renders solved condition line', async ({ page }) => {
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
   await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('x');
   await expect(page.getByTestId('display-outcome-action-send-equation')).toHaveCount(0);
+});
+
+test('Equation smoke uses preserved-domain wording on rejected same-base log candidates', async ({ page }) => {
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\ln(4x+2)=\\ln(5x+6)');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-error')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-error')).toContainText(/undefined in the real domain/i);
 });
 
 test('Equation smoke exposes transform-only algebra controls', async ({ page }) => {

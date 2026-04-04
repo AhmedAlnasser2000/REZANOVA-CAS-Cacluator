@@ -1,5 +1,5 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
-import { formatNumber } from './format';
+import { formatApproxNumber } from './format';
 
 const ce = new ComputeEngine();
 const TARGET_OPERATORS = new Set(['Power', 'Root', 'Sqrt', 'Log', 'Ln']);
@@ -470,7 +470,7 @@ function fallbackToComputeEngine(node: unknown): RealNumericEvaluation {
       kind: 'success',
       value,
       exactLatex: ce.number(value).latex,
-      approxText: formatNumber(value),
+        approxText: formatApproxNumber(value),
     };
   } catch {
     return {
@@ -515,7 +515,7 @@ export function evaluateRealNumericExpression(
       kind: 'success',
       value: result.value,
       exactLatex: ce.number(result.value).latex,
-      approxText: formatNumber(result.value),
+        approxText: formatApproxNumber(result.value),
     };
   }
 

@@ -88,7 +88,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Same-Base Equality');
   });
 
-  it('reports preserved domain conditions when a reduced same-base log equality has no valid real solution', () => {
+  it('reports meaningful real-domain wording when a reduced same-base log equality has no valid real solution', () => {
     const result = runGuardedEquationSolve({
       ...request,
       originalLatex: '\\ln(4x+2)=\\ln(5x+6)',
@@ -99,8 +99,24 @@ describe('runGuardedEquationSolve', () => {
     if (result.kind !== 'error') {
       throw new Error('Expected guarded solve error');
     }
-    expect(result.error).toContain('preserved domain conditions');
+    expect(result.error).toContain('undefined in the real domain');
     expect(result.solveBadges).toContain('Candidate Checked');
+  });
+
+  it('keeps decimal-only symbolic roots as approximate output after same-base equality reduction', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      originalLatex: '\\log(x^2+9x-5)=\\log(8x+\\ln 4)',
+      resolvedLatex: '\\log(x^2+9x-5)=\\log(8x+\\ln 4)',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected guarded solve success');
+    }
+    expect(result.exactLatex).toBeUndefined();
+    expect(result.approxText).toContain('2.076101');
+    expect(result.solveBadges).toContain('Same-Base Equality');
   });
 
   it('solves bounded common-log inverse isolation forms', () => {

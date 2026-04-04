@@ -70,6 +70,9 @@ struct Settings {
   high_contrast: bool,
   symbolic_display_mode: String,
   flatten_nested_roots_when_safe: bool,
+  approx_digits: i32,
+  numeric_notation_mode: String,
+  scientific_notation_style: String,
 }
 
 impl Default for Settings {
@@ -85,6 +88,9 @@ impl Default for Settings {
       high_contrast: false,
       symbolic_display_mode: "auto".into(),
       flatten_nested_roots_when_safe: true,
+      approx_digits: 6,
+      numeric_notation_mode: "decimal".into(),
+      scientific_notation_style: "times10".into(),
     }
   }
 }
@@ -102,6 +108,9 @@ struct SettingsPatch {
   high_contrast: Option<bool>,
   symbolic_display_mode: Option<String>,
   flatten_nested_roots_when_safe: Option<bool>,
+  approx_digits: Option<i32>,
+  numeric_notation_mode: Option<String>,
+  scientific_notation_style: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -940,6 +949,15 @@ fn save_settings(
   }
   if let Some(flatten_nested_roots_when_safe) = patch.flatten_nested_roots_when_safe {
     snapshot.settings.flatten_nested_roots_when_safe = flatten_nested_roots_when_safe;
+  }
+  if let Some(approx_digits) = patch.approx_digits {
+    snapshot.settings.approx_digits = approx_digits.clamp(0, 20);
+  }
+  if let Some(numeric_notation_mode) = patch.numeric_notation_mode {
+    snapshot.settings.numeric_notation_mode = numeric_notation_mode;
+  }
+  if let Some(scientific_notation_style) = patch.scientific_notation_style {
+    snapshot.settings.scientific_notation_style = scientific_notation_style;
   }
 
   let settings = snapshot.settings.clone();

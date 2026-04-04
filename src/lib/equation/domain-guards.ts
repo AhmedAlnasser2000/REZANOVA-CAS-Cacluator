@@ -32,7 +32,7 @@ export function equationToZeroFormLatex(equationLatex: string) {
     return equationLatex;
   }
 
-  return boxLatex(['Add', json[1], ['Negate', json[2]]]);
+  return boxLatex(['Subtract', json[1], json[2]]);
 }
 
 export function readNumericNode(node: unknown): number | null {

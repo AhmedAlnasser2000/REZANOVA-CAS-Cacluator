@@ -1,4 +1,5 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
+import { formatApproxNumber } from '../format';
 import { flattenAdd, flattenMultiply, isFiniteNumber, isNodeArray } from '../symbolic-engine/patterns';
 import { normalizeAst } from '../symbolic-engine/normalize';
 import { matchTrigCall, matchTrigSquare } from '../trigonometry/normalize';
@@ -37,7 +38,7 @@ function formatNumber(value: number) {
       return `${rounded}`;
     }
 
-    return value.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+    return formatApproxNumber(value);
   }
 
   if (value === Number.POSITIVE_INFINITY) {

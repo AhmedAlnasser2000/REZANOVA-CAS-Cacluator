@@ -1,5 +1,5 @@
 import type { CosineRuleState, RightTriangleState, SineRuleState } from '../../types/calculator';
-import { formatNumber } from '../format';
+import { formatApproxNumber, formatNumber } from '../format';
 import { parseSignedNumberInput } from '../signed-number';
 import type { TrigEvaluation } from './angles';
 
@@ -46,12 +46,12 @@ function triangleResult(solution: TriangleSolution, warnings: string[] = []): Tr
   return {
     exactLatex: asLatex(solution),
     approxText: [
-      `a=${formatNumber(solution.sideA)}`,
-      `b=${formatNumber(solution.sideB)}`,
-      `c=${formatNumber(solution.sideC)}`,
-      `A=${formatNumber(solution.angleA)} deg`,
-      `B=${formatNumber(solution.angleB)} deg`,
-      `C=${formatNumber(solution.angleC)} deg`,
+      `a=${formatApproxNumber(solution.sideA)}`,
+      `b=${formatApproxNumber(solution.sideB)}`,
+      `c=${formatApproxNumber(solution.sideC)}`,
+      `A=${formatApproxNumber(solution.angleA)} deg`,
+      `B=${formatApproxNumber(solution.angleB)} deg`,
+      `C=${formatApproxNumber(solution.angleC)} deg`,
     ].join(', '),
     warnings,
     resultOrigin: 'triangle-solver',

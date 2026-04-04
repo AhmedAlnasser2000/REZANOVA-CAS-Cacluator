@@ -2,7 +2,7 @@ import type {
   MatrixRequest,
   MatrixResponse,
 } from '../types/calculator';
-import { formatNumber, matrixToLatex, scalarToLatex } from './format';
+import { formatApproxNumber, matrixToLatex, scalarToLatex } from './format';
 
 function cloneMatrix(matrix: number[][]) {
   return matrix.map((row) => [...row]);
@@ -232,7 +232,7 @@ export function runMatrixOperation(req: MatrixRequest): MatrixResponse {
       }
       return {
         resultLatex: scalarToLatex(determinant(matrixA)),
-        approxText: formatNumber(determinant(matrixA)),
+        approxText: formatApproxNumber(determinant(matrixA)),
         warnings: [],
       };
     case 'detB':
@@ -244,7 +244,7 @@ export function runMatrixOperation(req: MatrixRequest): MatrixResponse {
       }
       return {
         resultLatex: scalarToLatex(determinant(matrixB)),
-        approxText: formatNumber(determinant(matrixB)),
+        approxText: formatApproxNumber(determinant(matrixB)),
         warnings: [],
       };
     case 'inverseA': {

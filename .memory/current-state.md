@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `NP1` as the numeric-output-controls and Equation-output-cleanup follow-up:
+  - added persisted Settings controls for typed `Approximate digits`, numeric notation mode (`Decimal`, `Scientific`, `Auto`), and scientific style (`×10^n`, `e`)
+  - routed app-owned approximate output through one shared formatter across Equation, Calculate, Table, and other numeric summaries
+  - stopped decimal-only symbolic Equation outcomes from appearing in the exact line while preserving symbolic provenance and notes
+  - fixed guarded validation follow-through for additive right-hand sides and preserved full-precision accepted candidates through substitution validation so decimal-only symbolic successes stay valid after candidate checking
+- Regression checks:
+  - `npm run test:gate`
 - Completed `PRL4` as the bounded solve expansion for exponentials, roots, and logs:
   - added same-base equality solving for exponential, natural-log, and explicit-base log families
   - broadened bounded equation-side log preprocessing to handle same-base quotients and bounded mixed-base normalization when exact rational coefficient structure exists
@@ -125,6 +132,11 @@
   - bounded mixed-base log solving now succeeds when change-of-base yields exact rational coefficient structure and otherwise returns explicit numeric-guidance errors
   - bounded two-sided radical/rational-power isolation now performs one safe lift before recursing into the guarded algebra solver and validating candidates against the original equation
   - UI/browser coverage now verifies exact same-base, mixed-base, and rational-power PRL4 solve flows with provenance badges and condition lines
+- `NP1` numeric output controls and Equation result cleanup are verified:
+  - `Settings` now include typed `Approximate digits`, notation mode, and scientific-style controls with live preview/persistence
+  - app-owned approximate output now shares one settings-aware formatter instead of scattered hardcoded digit counts
+  - Equation result construction now keeps decimal-only symbolic outcomes out of the exact line and uses better candidate-preservation during guarded validation
+  - guarded Equation wording now distinguishes denominator exclusions, preserved domain conditions, and undefined/non-real substitutions more honestly
 - Repo line endings are now governed by `.gitattributes`:
   - LF for source, docs, and config text
   - CRLF only for Windows-native scripts
@@ -152,6 +164,9 @@
   - `Calculate` still does not gain broad log-difference/quotient simplify rules in this milestone
   - mixed-base symbolic solving remains limited to constant positive bases whose change-of-base coefficients can be cleared exactly with small rational structure
   - variable log bases, Lambert W families, `x^x`, unrestricted log-power identities, and general nested-radical solving remain deferred
+- `NP1` numeric output controls are display-only:
+  - internal solver precision / effort is still app-managed
+  - scientific notation preferences do not change Equation or Calculate solver breadth
 - Bounded trig sum-to-product currently covers two-term `sin/cos` forms only; broader harmonic families remain deferred.
 - Statistics inference is intentionally bounded to one-sample mean workflows only; no proportion/categorical inference is in scope yet.
 - Statistics still has no prediction UI, residual table, outlier/leverage tooling, or inferential regression; D3 stayed bounded to quality summaries only.

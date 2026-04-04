@@ -16,6 +16,8 @@ export const modeIdSchema = z.enum([
 
 export const angleUnitSchema = z.enum(['deg', 'rad', 'grad']);
 export const outputStyleSchema = z.enum(['exact', 'decimal', 'both']);
+export const numericNotationModeSchema = z.enum(['decimal', 'scientific', 'auto']);
+export const scientificNotationStyleSchema = z.enum(['times10', 'e']);
 
 export const settingsSchema = z.object({
   angleUnit: angleUnitSchema,
@@ -28,6 +30,15 @@ export const settingsSchema = z.object({
   highContrast: z.boolean().default(false),
   symbolicDisplayMode: z.enum(['roots', 'powers', 'auto']).default('auto'),
   flattenNestedRootsWhenSafe: z.boolean().default(true),
+  approxDigits: z.preprocess(
+    (value) =>
+      typeof value === 'number'
+        ? Math.min(20, Math.max(0, Math.trunc(value)))
+        : value,
+    z.number().int().default(6),
+  ),
+  numericNotationMode: numericNotationModeSchema.default('decimal'),
+  scientificNotationStyle: scientificNotationStyleSchema.default('times10'),
 });
 
 export const menuNodeSchema: z.ZodType<MenuNode> = z.lazy(() =>

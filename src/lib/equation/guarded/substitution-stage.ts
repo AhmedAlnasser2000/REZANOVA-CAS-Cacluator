@@ -1,5 +1,5 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
-import { solutionsToLatex } from '../../format';
+import { formatApproxNumber, solutionsToLatex } from '../../format';
 import { matchSubstitutionSolve } from '../substitution-solve';
 import { validateCandidateRoots } from '../candidate-validation';
 import type {
@@ -100,14 +100,20 @@ function buildConstraintSupplementLatex(constraints: GuardedSolveRequest['domain
 }
 
 function substitutionRejectionMessage(rejected: CandidateValidationResult[]) {
-  const rejectedReasons = rejected.map((entry) => entry.reason.toLowerCase());
+  const rejectedReasons = rejected.flatMap((entry) =>
+    entry.kind === 'rejected' ? [entry.reason.toLowerCase()] : []);
+
+  if (
+    rejectedReasons.some((reason) => reason.includes('undefined or non-real substitution'))
+  ) {
+    return 'Candidate roots were found but rejected because substituting them back makes the original equation undefined in the real domain.';
+  }
 
   if (
     rejectedReasons.some((reason) =>
       reason.includes('denominator zero')
       || reason.includes('non-positive')
       || reason.includes('even root negative')
-      || reason.includes('undefined or non-real substitution')
       || reason.includes('outside the permitted interval')
       || reason.includes('must stay positive'))
   ) {
@@ -115,6 +121,11 @@ function substitutionRejectionMessage(rejected: CandidateValidationResult[]) {
   }
 
   return 'Candidate roots were found but rejected after substitution back into the original equation.';
+}
+
+function isApproximateOnlySolutionLatex(latex: string) {
+  const normalized = latex.replaceAll('\\,', '').replaceAll(' ', '').trim();
+  return /^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+e[+-]?\d+)$/i.test(normalized);
 }
 
 function substitutionSolve(
@@ -207,19 +218,23 @@ function substitutionSolve(
     return merged;
   }
 
-  const candidates = dedupe([
+  const exactCandidates = dedupe([
     ...extractExactSolutions(merged.exactLatex),
   ])
     .map((value) => parseFiniteNumericValue(value))
     .filter((value): value is number => value !== null);
 
-  const approxCandidates = candidates.length === 0
+  const candidateValues = dedupe(merged.candidateValues ?? []);
+
+  const approxCandidates = exactCandidates.length === 0 && candidateValues.length === 0
     ? dedupe(extractApproxSolutions(merged.approxText))
       .map((value) => parseFiniteNumericValue(value))
       .filter((value): value is number => value !== null)
     : [];
 
-  const validationCandidates = candidates.length > 0 ? candidates : approxCandidates;
+  const validationCandidates = exactCandidates.length > 0
+    ? exactCandidates
+    : (candidateValues.length > 0 ? candidateValues : approxCandidates);
 
   if (validationCandidates.length === 0) {
     return merged;
@@ -249,25 +264,23 @@ function substitutionSolve(
   const acceptedExactLatex = matchAcceptedExactSolutions(merged.exactLatex, validation.accepted);
   const acceptedLatex = acceptedExactLatex.length === validation.accepted.length
     ? acceptedExactLatex
-    : validation.accepted.map((value) => {
-        const rounded = Number(value.toPrecision(12));
-        return `${rounded}`;
-      });
+    : [];
+  const exactLatex = acceptedLatex.length > 0 && acceptedLatex.every((value) => !isApproximateOnlySolutionLatex(value))
+    ? solutionsToLatex('x', acceptedLatex)
+    : undefined;
 
   return {
     kind: 'success',
     title: 'Solve',
-    exactLatex: solutionsToLatex('x', acceptedLatex),
+    exactLatex,
     exactSupplementLatex: dedupe([...(merged.exactSupplementLatex ?? []), ...substitutionSupplementLatex]),
-    approxText: `x ~= ${validation.accepted.map((value) => {
-      const rounded = Number(value.toFixed(12));
-      return `${rounded}`.replace(/0+$/, '').replace(/\.$/, '');
-    }).join(', ')}`,
+    approxText: `x ~= ${validation.accepted.map((value) => formatApproxNumber(value)).join(', ')}`,
     warnings: merged.warnings,
     resultOrigin: 'symbolic',
     plannerBadges: merged.plannerBadges ?? [],
     solveBadges: dedupe([...(merged.solveBadges ?? []), 'Candidate Checked']),
     solveSummaryText: merged.solveSummaryText,
+    candidateValues: validation.accepted,
     rejectedCandidateCount: validation.rejected.length > 0 ? validation.rejected.length : merged.rejectedCandidateCount,
     substitutionDiagnostics: substitution.diagnostics,
     numericMethod: merged.numericMethod,

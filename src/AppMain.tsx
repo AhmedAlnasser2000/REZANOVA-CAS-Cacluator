@@ -67,6 +67,7 @@ import {
   parseGeometryDraft,
 } from './lib/geometry/parser';
 import { getAdvancedCalcProvenanceBadge } from './lib/advanced-calc/ui';
+import { setNumericOutputSettings } from './lib/numeric-output';
 import {
   buildAdvancedFiniteLimitLatex,
   buildAdvancedInfiniteLimitLatex,
@@ -1094,6 +1095,18 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setNumericOutputSettings({
+      approxDigits: settings.approxDigits,
+      numericNotationMode: settings.numericNotationMode,
+      scientificNotationStyle: settings.scientificNotationStyle,
+    });
+  }, [
+    settings.approxDigits,
+    settings.numericNotationMode,
+    settings.scientificNotationStyle,
+  ]);
 
   useEffect(() => {
     if (!hydrated) {

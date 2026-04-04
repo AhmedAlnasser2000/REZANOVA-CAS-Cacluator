@@ -12,6 +12,7 @@ import type {
   TableResponse,
 } from '../types/calculator';
 import {
+  formatApproxNumber,
   latexToApproxText,
   solutionsToLatex,
 } from './format';
@@ -837,7 +838,7 @@ export function buildTable(request: TableRequest): TableResponse {
         warningSet.add(secondary.warning);
       }
       return {
-        x: `${x}`,
+        x: formatApproxNumber(x),
         primary: primary.text,
         secondary: secondaryLatex
           ? secondary?.text

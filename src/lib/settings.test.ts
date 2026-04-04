@@ -26,6 +26,9 @@ describe('settings schema', () => {
       highContrast: true,
       symbolicDisplayMode: 'powers',
       flattenNestedRootsWhenSafe: false,
+      approxDigits: 12,
+      numericNotationMode: 'scientific',
+      scientificNotationStyle: 'e',
     });
 
     expect(parsed.uiScale).toBe(130);
@@ -34,5 +37,20 @@ describe('settings schema', () => {
     expect(parsed.highContrast).toBe(true);
     expect(parsed.symbolicDisplayMode).toBe('powers');
     expect(parsed.flattenNestedRootsWhenSafe).toBe(false);
+    expect(parsed.approxDigits).toBe(12);
+    expect(parsed.numericNotationMode).toBe('scientific');
+    expect(parsed.scientificNotationStyle).toBe('e');
+  });
+
+  it('clamps approximate digits into the supported range', () => {
+    const parsed = settingsSchema.parse({
+      angleUnit: 'deg',
+      outputStyle: 'both',
+      historyEnabled: true,
+      autoSwitchToEquation: false,
+      approxDigits: 24,
+    });
+
+    expect(parsed.approxDigits).toBe(20);
   });
 });

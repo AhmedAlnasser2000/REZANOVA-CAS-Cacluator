@@ -1,5 +1,5 @@
 import type { AngleConvertState, AngleUnit, TrigResultOrigin } from '../../types/calculator';
-import { formatNumber } from '../format';
+import { formatApproxNumber, formatNumber } from '../format';
 import { parseSignedNumberInput } from '../signed-number';
 
 const DEG_PER_RAD = 180 / Math.PI;
@@ -392,7 +392,7 @@ export function convertAngleState(state: AngleConvertState): TrigEvaluation {
 
   return {
     exactLatex,
-    approxText: formatNumber(converted),
+    approxText: formatApproxNumber(converted),
     warnings: [`Converted from ${state.from.toUpperCase()} to ${state.to.toUpperCase()}.`],
     resultOrigin: state.to === 'rad' && degreesToExactRadianLatex(degrees) ? 'exact-special-angle' : 'numeric',
   };

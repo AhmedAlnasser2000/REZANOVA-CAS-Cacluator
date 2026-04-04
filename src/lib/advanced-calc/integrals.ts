@@ -1,6 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { integrateAdaptiveSimpson } from '../adaptive-simpson';
-import { formatNumber, latexToApproxText, numberToLatex } from '../format';
+import { formatApproxNumber, latexToApproxText, numberToLatex } from '../format';
 import { getResultGuardError } from '../result-guard';
 import { resolveAntiderivativeRule } from '../antiderivative-rules';
 import { resolveSymbolicIntegralFromAst } from '../symbolic-engine/integration';
@@ -653,14 +653,14 @@ function integrateFinite(body: unknown, lower: number, upper: number): AdvancedC
     };
   }
 
-  const guardError = getResultGuardError(numberToLatex(result.value), formatNumber(result.value));
+  const guardError = getResultGuardError(numberToLatex(result.value), formatApproxNumber(result.value));
   if (guardError) {
     return { warnings: [], error: guardError };
   }
 
   return {
     exactLatex: numberToLatex(result.value),
-    approxText: formatNumber(result.value),
+    approxText: formatApproxNumber(result.value),
     warnings: ['Symbolic integral unavailable; showing a numeric definite integral.'],
     resultOrigin: 'numeric-fallback',
   };
@@ -701,14 +701,14 @@ function integrateHalfInfinite(body: unknown, finiteBound: number, direction: 'p
     } satisfies AdvancedCalcEvaluation;
   }
 
-  const guardError = getResultGuardError(numberToLatex(result.value), formatNumber(result.value));
+  const guardError = getResultGuardError(numberToLatex(result.value), formatApproxNumber(result.value));
   if (guardError) {
     return { warnings: [], error: guardError } satisfies AdvancedCalcEvaluation;
   }
 
   return {
     exactLatex: numberToLatex(result.value),
-    approxText: formatNumber(result.value),
+    approxText: formatApproxNumber(result.value),
     warnings: ['Symbolic improper integral unavailable; showing a numeric improper integral.'],
     resultOrigin: 'numeric-fallback',
   } satisfies AdvancedCalcEvaluation;
@@ -883,14 +883,14 @@ export function evaluateAdvancedImproperIntegral(
   }
 
   const total = leftValue + rightValue;
-  const guardError = getResultGuardError(numberToLatex(total), formatNumber(total));
+  const guardError = getResultGuardError(numberToLatex(total), formatApproxNumber(total));
   if (guardError) {
     return { warnings: [], error: guardError };
   }
 
   return {
     exactLatex: numberToLatex(total),
-    approxText: formatNumber(total),
+    approxText: formatApproxNumber(total),
     warnings: ['Symbolic improper integral unavailable; showing a numeric improper integral.'],
     resultOrigin: 'numeric-fallback',
   };

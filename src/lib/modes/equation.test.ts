@@ -370,6 +370,25 @@ describe('runEquationMode', () => {
     expect(logCarrier.resolvedInputLatex).toBe('\\ln(2x+1)=3');
   });
 
+  it('keeps decimal-only symbolic equation roots out of the exact line while preserving the approximation', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\log(x^2+9x-5)=\\log(8x+\\ln 4)',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.resultOrigin).toBe('symbolic');
+    expect(result.exactLatex).toBeUndefined();
+    expect(result.approxText).toContain('x ~=');
+    expect(result.approxText).toContain('2.076101');
+    expect(result.exactSupplementLatex?.[0]).toContain('x^2+9x-5>0');
+    expect(result.exactSupplementLatex?.[0]).toContain('8x+\\ln(4)>0');
+  });
+
   it('solves new PRL4 same-base and mixed-base log families exactly in symbolic mode', () => {
     const sameBase = runEquationMode({
       ...makeRequest(),

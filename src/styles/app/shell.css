@@ -1960,6 +1960,22 @@ textarea:focus-visible {
   accent-color: #d7dfab;
 }
 
+.settings-number-input {
+  width: 100%;
+  max-width: 180px;
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  background: rgba(10, 18, 16, 0.75);
+  color: #fffdf1;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.settings-number-input:focus {
+  outline: 2px solid rgba(215, 223, 171, 0.42);
+  outline-offset: 2px;
+}
+
 .settings-chip-row button {
   border: 1px solid var(--control-border);
   border-radius: 14px;

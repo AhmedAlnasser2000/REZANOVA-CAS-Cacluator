@@ -1,5 +1,5 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
-import { formatNumber, latexToApproxText, numberToLatex } from '../format';
+import { formatApproxNumber, latexToApproxText, numberToLatex } from '../format';
 import { MAX_RESULT_MAGNITUDE, getResultGuardError } from '../result-guard';
 import {
   numericLimitAtInfinity,
@@ -203,7 +203,7 @@ export function evaluateAdvancedFiniteLimit(
     if (symbolicRule.kind === 'success') {
       return {
         exactLatex: numberToLatex(symbolicRule.value),
-        approxText: formatNumber(symbolicRule.value),
+        approxText: formatApproxNumber(symbolicRule.value),
         warnings:
           symbolicRule.origin === 'heuristic-symbolic'
             ? ['Rule-based limit resolution used capped L\'Hopital on a supported ratio form.']
@@ -232,14 +232,14 @@ export function evaluateAdvancedFiniteLimit(
       return { warnings: [], error: 'This limit could not be stabilized numerically in Advanced Calc.' };
     }
 
-    const guardError = getResultGuardError(numberToLatex(numeric.value), formatNumber(numeric.value));
+    const guardError = getResultGuardError(numberToLatex(numeric.value), formatApproxNumber(numeric.value));
     if (guardError) {
       return { warnings: [], error: guardError };
     }
 
     return {
       exactLatex: numberToLatex(numeric.value),
-      approxText: formatNumber(numeric.value),
+      approxText: formatApproxNumber(numeric.value),
       warnings: ['Symbolic limit unavailable; showing a numeric finite limit approximation.'],
       resultOrigin: 'numeric-fallback',
     };
@@ -267,7 +267,7 @@ export function evaluateAdvancedInfiniteLimit(
   if (heuristic.kind === 'success') {
     return {
       exactLatex: numberToLatex(heuristic.value),
-      approxText: formatNumber(heuristic.value),
+      approxText: formatApproxNumber(heuristic.value),
       warnings: [],
       resultOrigin: 'heuristic-symbolic',
     };
@@ -299,14 +299,14 @@ export function evaluateAdvancedInfiniteLimit(
     };
   }
 
-  const guardError = getResultGuardError(numberToLatex(numeric.value), formatNumber(numeric.value));
+  const guardError = getResultGuardError(numberToLatex(numeric.value), formatApproxNumber(numeric.value));
   if (guardError) {
     return { warnings: [], error: guardError };
   }
 
   return {
     exactLatex: numberToLatex(numeric.value),
-    approxText: formatNumber(numeric.value),
+    approxText: formatApproxNumber(numeric.value),
     warnings: ['Symbolic limit unavailable; showing a numeric infinite-target approximation.'],
     resultOrigin: 'numeric-fallback',
   };

@@ -1,5 +1,5 @@
 import type { AngleUnit } from '../../types/calculator';
-import { formatNumber } from '../format';
+import { formatApproxNumber, formatNumber } from '../format';
 import {
   type TrigEvaluation,
   convertAngle,
@@ -92,7 +92,7 @@ function toNumericTrigResult(kind: 'sin' | 'cos' | 'tan', degrees: number): Trig
 
   return {
     exactLatex: formatNumber(value),
-    approxText: formatNumber(value),
+    approxText: formatApproxNumber(value),
     warnings: [],
     resultOrigin: 'numeric',
   };
@@ -151,7 +151,7 @@ function evaluateInverseTrig(kind: 'asin' | 'acos' | 'atan', argumentLatex: stri
   if (exactDegrees !== undefined) {
     return {
       exactLatex: formatDegreesAsUnitLatex(exactDegrees, angleUnit),
-      approxText: formatNumber(convertAngle(exactDegrees, 'deg', angleUnit)),
+      approxText: formatApproxNumber(convertAngle(exactDegrees, 'deg', angleUnit)),
       warnings: ['Principal value returned.'],
       resultOrigin: 'exact-special-angle',
     };
@@ -166,7 +166,7 @@ function evaluateInverseTrig(kind: 'asin' | 'acos' | 'atan', argumentLatex: stri
 
   return {
     exactLatex: formatNumber(numeric),
-    approxText: formatNumber(numeric),
+    approxText: formatApproxNumber(numeric),
     warnings: ['Principal value returned.'],
     resultOrigin: 'numeric',
   };

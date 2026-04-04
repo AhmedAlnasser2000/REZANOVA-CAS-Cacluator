@@ -2,6 +2,7 @@ import type {
   DisplayOutcome,
   GuardedSolveRequest,
 } from '../../../types/calculator';
+import { formatApproxNumber } from '../../format';
 import { runNumericIntervalSolve } from '../numeric-interval-solve';
 import {
   errorOutcome,
@@ -35,7 +36,7 @@ function numericIntervalSolve(request: GuardedSolveRequest): DisplayOutcome | nu
   return successOutcome(
     'Solve',
     undefined,
-    `x ~= ${numeric.roots.map((value) => value.toFixed(6).replace(/0+$/,'').replace(/\.$/, '')).join(', ')}`,
+    `x ~= ${numeric.roots.map((value) => formatApproxNumber(value)).join(', ')}`,
     [],
     [],
     ['Numeric Interval', 'Candidate Checked'],

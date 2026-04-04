@@ -2,6 +2,7 @@ import { ComputeEngine } from '@cortex-js/compute-engine';
 import {
   complexSolutionsToApproxText,
   complexSolutionsToLatex,
+  formatApproxNumber,
   formatNumber,
 } from '../format';
 import {
@@ -150,7 +151,7 @@ function solveSystem(source: number[][], size: 2 | 3): DisplayOutcome {
     .map((value, index) => `${['x', 'y', 'z'][index]}=${formatNumber(value, 4)}`)
     .join(',\\;');
   const approxText = solution
-    .map((value, index) => `${['x', 'y', 'z'][index]} ~= ${formatNumber(value, 4)}`)
+    .map((value, index) => `${['x', 'y', 'z'][index]} ~= ${formatApproxNumber(value)}`)
     .join(', ');
 
   return {

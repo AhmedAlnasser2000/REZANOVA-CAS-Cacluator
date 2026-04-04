@@ -88,6 +88,7 @@ function mergeDisplayOutcomes(
   const plannerBadges = dedupe(successes.flatMap((outcome) => outcome.plannerBadges ?? []));
   const badgeSet = dedupe(successes.flatMap((outcome) => outcome.solveBadges ?? []).concat(solveBadges));
   const exactSupplementLatex = dedupe(successes.flatMap((outcome) => outcome.exactSupplementLatex ?? []));
+  const candidateValues = dedupe(successes.flatMap((outcome) => outcome.candidateValues ?? []));
   const rejectedCandidateCount = successes.reduce((total, outcome) => total + (outcome.rejectedCandidateCount ?? 0), 0);
   const numericMethod = dedupe(successes.map((outcome) => outcome.numericMethod).filter((method): method is string => Boolean(method))).join('; ');
 
@@ -102,6 +103,7 @@ function mergeDisplayOutcomes(
     plannerBadges,
     solveBadges: badgeSet,
     solveSummaryText,
+    candidateValues: candidateValues.length > 0 ? candidateValues : undefined,
     rejectedCandidateCount: rejectedCandidateCount > 0 ? rejectedCandidateCount : undefined,
     substitutionDiagnostics: substitutionDiagnostics ?? successes.find((outcome) => outcome.substitutionDiagnostics)?.substitutionDiagnostics,
     numericMethod: numericMethod || undefined,

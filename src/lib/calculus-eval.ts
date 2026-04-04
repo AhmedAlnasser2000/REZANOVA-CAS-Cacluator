@@ -1,6 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { integrateAdaptiveSimpson } from './adaptive-simpson';
-import { formatNumber, latexToApproxText, numberToLatex } from './format';
+import { formatApproxNumber, latexToApproxText, numberToLatex } from './format';
 import { MAX_RESULT_MAGNITUDE } from './result-guard';
 import {
   numericLimitAtInfinity,
@@ -402,7 +402,7 @@ function evaluateDerivativeAtPoint(node: unknown): CalculusEvaluation {
   return {
     kind: 'handled',
     exactLatex: numberToLatex(numeric),
-    approxText: formatNumber(numeric),
+    approxText: formatApproxNumber(numeric),
     warnings: ['Symbolic derivative unavailable; showing a numeric derivative at the selected point.'],
     resultOrigin: 'numeric-fallback',
   };
@@ -495,7 +495,7 @@ export function resolveCalculusEvaluation(
       return {
         kind: 'handled',
         exactLatex: numberToLatex(numeric.value),
-        approxText: formatNumber(numeric.value),
+        approxText: formatApproxNumber(numeric.value),
         warnings: ['Symbolic integral unavailable; showing a numeric definite integral.'],
         resultOrigin: 'numeric-fallback',
       };
@@ -530,7 +530,7 @@ export function resolveCalculusEvaluation(
         return {
           kind: 'handled',
           exactLatex: numberToLatex(symbolic.value),
-          approxText: formatNumber(symbolic.value),
+          approxText: formatApproxNumber(symbolic.value),
           warnings:
             symbolic.origin === 'heuristic-symbolic'
               ? ["Rule-based limit resolution used capped L'Hopital on a supported ratio form."]
@@ -586,7 +586,7 @@ export function resolveCalculusEvaluation(
       return {
         kind: 'handled',
         exactLatex: numberToLatex(numeric.value),
-        approxText: formatNumber(numeric.value),
+        approxText: formatApproxNumber(numeric.value),
         warnings: [limitFallbackWarning(direction, targetKind)],
         resultOrigin: 'numeric-fallback',
       };
@@ -597,7 +597,7 @@ export function resolveCalculusEvaluation(
       return {
         kind: 'handled',
         exactLatex: numberToLatex(heuristic.value),
-        approxText: formatNumber(heuristic.value),
+        approxText: formatApproxNumber(heuristic.value),
         warnings: [],
         resultOrigin: 'rule-based-symbolic',
       };
@@ -635,7 +635,7 @@ export function resolveCalculusEvaluation(
     return {
       kind: 'handled',
       exactLatex: numberToLatex(numeric.value),
-      approxText: formatNumber(numeric.value),
+      approxText: formatApproxNumber(numeric.value),
       warnings: [limitFallbackWarning(direction, targetKind)],
       resultOrigin: 'numeric-fallback',
     };

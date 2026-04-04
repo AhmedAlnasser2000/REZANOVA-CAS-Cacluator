@@ -1,6 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { runExpressionAction } from '../../math-engine';
-import { solutionsToLatex } from '../../format';
+import { formatApproxNumber, solutionsToLatex } from '../../format';
 import { normalizeExactRadicalNode } from '../../symbolic-engine/radical';
 import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
 import { detectRealRangeImpossibility } from '../range-impossibility';
@@ -64,25 +64,34 @@ function formatAcceptedApproximations(values: number[]) {
     return undefined;
   }
 
-  const parts = values.map((value) => value.toFixed(6).replace(/0+$/, '').replace(/\.$/, ''));
+  const parts = values.map((value) => formatApproxNumber(value));
   return parts.length === 1 ? `x ~= ${parts[0]}` : `x ~= ${parts.join(', ')}`;
+}
+
+function isApproximateOnlySolutionLatex(latex: string) {
+  const normalized = latex.replaceAll('\\,', '').replaceAll(' ', '').trim();
+  return /^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+e[+-]?\d+)$/i.test(normalized);
 }
 
 function candidateRejectionMessage(
   constraints: SolveDomainConstraint[] = [],
   rejected: CandidateValidationResult[] = [],
 ) {
-  const rejectedReasons = rejected.map((entry) => entry.reason.toLowerCase());
+  const rejectedReasons = rejected.flatMap((entry) =>
+    entry.kind === 'rejected' ? [entry.reason.toLowerCase()] : []);
 
   if (rejectedReasons.some((reason) => reason.includes('denominator zero'))) {
     return 'No valid real symbolic solution remains after applying denominator exclusions.';
+  }
+
+  if (rejectedReasons.some((reason) => reason.includes('undefined or non-real substitution'))) {
+    return 'No valid real symbolic solution remains because the accepted candidate makes the original equation undefined in the real domain.';
   }
 
   if (
     rejectedReasons.some((reason) =>
       reason.includes('non-positive')
       || reason.includes('even root negative')
-      || reason.includes('undefined or non-real substitution')
       || reason.includes('outside the permitted interval')
       || reason.includes('must stay positive'))
   ) {
@@ -264,16 +273,22 @@ function validateDirectSymbolicOutcome(
     }
   }
 
-  return successOutcome(
-    'Solve',
-    solutionsToLatex('x', acceptedLatex),
-    formatAcceptedApproximations(acceptedValues),
-    symbolic.warnings,
-    [],
-    ['Candidate Checked'],
-    undefined,
-    validation.rejected.length > 0 ? validation.rejected.length : undefined,
-  );
+  const exactLatex = acceptedLatex.length > 0 && acceptedLatex.every((value) => !isApproximateOnlySolutionLatex(value))
+    ? solutionsToLatex('x', acceptedLatex)
+    : undefined;
+
+  return {
+    kind: 'success',
+    title: 'Solve',
+    exactLatex,
+    approxText: formatAcceptedApproximations(acceptedValues),
+    warnings: symbolic.warnings,
+    resultOrigin: 'symbolic',
+    plannerBadges: [],
+    solveBadges: ['Candidate Checked'],
+    candidateValues: acceptedValues,
+    rejectedCandidateCount: validation.rejected.length > 0 ? validation.rejected.length : undefined,
+  };
 }
 
 function runGuardedEquationSolve(

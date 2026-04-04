@@ -9,7 +9,7 @@ import type {
   StatisticsWorkingSource,
   StatsDataset,
 } from '../../types/calculator';
-import { formatNumber } from '../format';
+import { formatApproxNumber, formatNumber } from '../format';
 import { parseSignedNumberInput } from '../signed-number';
 
 export function normalizeStatisticsSource(source: string) {
@@ -205,7 +205,7 @@ export function parseIntegerDraft(value: string) {
 }
 
 export function formatStatisticsNumber(value: number) {
-  return formatNumber(value);
+  return formatApproxNumber(value);
 }
 
 export const DEFAULT_STATISTICS_SOURCE_SYNC_STATE: StatisticsSourceSyncState = {
@@ -244,7 +244,7 @@ export function collapseDatasetToFrequencyTable(dataset: StatsDataset): Frequenc
     }
 
     const parsed = parseSignedNumberInput(trimmed);
-    const key = parsed === null ? trimmed : formatStatisticsNumber(parsed);
+    const key = parsed === null ? trimmed : formatNumber(parsed);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 

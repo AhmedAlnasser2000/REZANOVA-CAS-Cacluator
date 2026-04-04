@@ -29,6 +29,8 @@ export type LauncherLeafId =
 
 export type AngleUnit = 'deg' | 'rad' | 'grad';
 export type OutputStyle = 'exact' | 'decimal' | 'both';
+export type NumericNotationMode = 'decimal' | 'scientific' | 'auto';
+export type ScientificNotationStyle = 'times10' | 'e';
 export type PolynomialEquationView = 'quadratic' | 'cubic' | 'quartic';
 export type SimultaneousEquationView = 'linear2' | 'linear3';
 export type CalculateScreen =
@@ -674,6 +676,7 @@ export type DisplayOutcome =
       transformBadges?: TransformBadge[];
       transformSummaryText?: string;
       transformSummaryLatex?: string;
+      candidateValues?: number[];
       rejectedCandidateCount?: number;
       substitutionDiagnostics?: SubstitutionSolveDiagnostics;
       numericMethod?: string;
@@ -1301,6 +1304,9 @@ export type Settings = {
   highContrast: boolean;
   symbolicDisplayMode: 'roots' | 'powers' | 'auto';
   flattenNestedRootsWhenSafe: boolean;
+  approxDigits: number;
+  numericNotationMode: NumericNotationMode;
+  scientificNotationStyle: ScientificNotationStyle;
 };
 
 export type SettingsPatch = Partial<Settings>;
@@ -1398,6 +1404,9 @@ export const DEFAULT_SETTINGS: Settings = {
   highContrast: false,
   symbolicDisplayMode: 'auto',
   flattenNestedRootsWhenSafe: true,
+  approxDigits: 6,
+  numericNotationMode: 'decimal',
+  scientificNotationStyle: 'times10',
 };
 
 export const DEFAULT_MODE_TREE: MenuNode[] = [

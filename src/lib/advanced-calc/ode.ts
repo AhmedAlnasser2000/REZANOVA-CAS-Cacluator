@@ -1,5 +1,5 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
-import { formatNumber, numberToLatex } from '../format';
+import { formatApproxNumber, numberToLatex } from '../format';
 import { evaluateAdvancedIndefiniteIntegral } from './integrals';
 import { solveOdeNumeric } from '../tauri';
 import type {
@@ -484,7 +484,7 @@ export async function solveNumericIvp(state: NumericIvpState): Promise<AdvancedO
 
   return {
     exactLatex: `y\\left(${numberToLatex(response.finalX)}\\right)\\approx${numberToLatex(response.finalY)}`,
-    approxText: `Final value ~= ${formatNumber(response.finalY)}`,
+    approxText: `Final value ~= ${formatApproxNumber(response.finalY)}`,
     warnings: response.warnings,
     resultOrigin: 'numeric-fallback',
   };

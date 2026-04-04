@@ -111,3 +111,6 @@
 - 2026-04-03: Repeated identical multiplicative factors in user-facing symbolic serializers must compact back into powers before emission (`xx -> x^2`, `4xx^3 -> 4x^4`); this is formatter debt, not a deferred `PRL4` solve-family concern.
 - 2026-04-03: `PRL4` is Equation-first: broader log quotient/difference solving, bounded mixed-base normalization, and bounded radical/rational-power lifting ship only through `Equation > Symbolic`, while `Calculate` keeps its narrower PRL3 simplify contract for now.
 - 2026-04-03: Recognized mixed-base log equations that leave bounded exact symbolic support should stop with explicit numeric guidance instead of silently falling through to numeric fallback or fake symbolic success.
+- 2026-04-04: Numeric output is user-controlled through Settings with a typed `Approximate digits` input (`0..20`, default `6`), notation modes `decimal/scientific/auto`, and scientific styles `×10^n` or `e`; these controls are display-only and do not change solver effort or CE precision.
+- 2026-04-04: Numeric output `Auto` notation switches to scientific form when `abs(x) >= 1e6` or `0 < abs(x) < 1e-4`; otherwise it stays in decimal form.
+- 2026-04-04: Decimal-only symbolic Equation outcomes must not populate the exact line; symbolic provenance may remain, but decimal values belong only in approximate output.

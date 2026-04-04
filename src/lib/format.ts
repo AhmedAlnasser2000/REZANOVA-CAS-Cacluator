@@ -1,4 +1,5 @@
 import { complexToApproxText, complexToLatex, type ComplexValue } from './complex';
+import { formatApproxLiteral, formatApproxNumber } from './numeric-output';
 
 const EPSILON = 1e-10;
 
@@ -15,6 +16,8 @@ export function formatNumber(value: number, digits = 6) {
   const rounded = Number.parseFloat(normalized.toFixed(digits));
   return `${rounded}`;
 }
+
+export { formatApproxNumber };
 
 export function numberToLatex(value: number, digits = 6) {
   const text = formatNumber(value, digits);
@@ -85,7 +88,7 @@ export function latexToApproxText(latex?: string) {
     return undefined;
   }
 
-  return latex
+  const cleaned = latex
     .replaceAll('\\,', '')
     .replaceAll('\\left', '')
     .replaceAll('\\right', '')
@@ -93,4 +96,6 @@ export function latexToApproxText(latex?: string) {
     .replaceAll('\\times', '\u00D7')
     .replaceAll('\\imaginaryI', 'i')
     .trim();
+
+  return formatApproxLiteral(cleaned);
 }

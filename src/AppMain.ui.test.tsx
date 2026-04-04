@@ -121,6 +121,32 @@ describe('AppMain UI automation flows', () => {
     );
   });
 
+  it('applies numeric-output settings live to preview and approximate equation output', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+
+    const digitsInput = screen.getByTestId('settings-approx-digits-input');
+    await user.clear(digitsInput);
+    await user.type(digitsInput, '3');
+    fireEvent.blur(digitsInput);
+    await user.click(screen.getByTestId('settings-notation-mode-scientific'));
+    await user.click(screen.getByTestId('settings-scientific-style-e'));
+
+    expect(screen.getByTestId('settings-numeric-preview-result')).toHaveTextContent('1.235e6');
+    await user.click(screen.getByTestId('settings-toggle'));
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\log(x^2+9x-5)=\\log(8x+\\ln 4)');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.queryByTestId('display-outcome-exact')).not.toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-approx')).toHaveTextContent('x ~= 2.076');
+    expect(screen.getByTestId('display-outcome-supplement-0')).toHaveTextContent('ln(4)>0');
+  });
+
   it('applies symbolic-display settings live to rendered exact results while keeping canonical raw exact latex for copy/editor flows', async () => {
     const { user } = await renderAppMain();
     const writeTextSpy = vi.spyOn(navigator.clipboard, 'writeText');
@@ -365,6 +391,17 @@ describe('AppMain UI automation flows', () => {
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x=4');
     expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /2x-3>0/);
     expect(screen.getByText('Same-Base Equality')).toBeInTheDocument();
+  });
+
+  it('uses preserved-domain wording when a same-base log equality reduces to an invalid real candidate', async () => {
+    const { user } = await renderAppMain();
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\ln(4x+2)=\\ln(5x+6)');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
+    expect(screen.getByTestId('display-outcome-error')).toHaveTextContent(/undefined in the real domain/i);
   });
 
   it('solves PRL4 bounded mixed-base log families exactly in Equation mode', async () => {
