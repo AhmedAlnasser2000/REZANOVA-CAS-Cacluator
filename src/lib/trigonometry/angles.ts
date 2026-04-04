@@ -117,6 +117,42 @@ function normalizeLatex(latex: string) {
     .replaceAll('^{\\circ}', 'deg');
 }
 
+function parsePiLikeScalar(normalized: string) {
+  const sign = normalized.startsWith('-') ? -1 : 1;
+  const unsigned = sign < 0 ? normalized.slice(1) : normalized;
+
+  if (unsigned === '\\pi') {
+    return sign * Math.PI;
+  }
+
+  let match = unsigned.match(/^(\d+)\s*\\pi$/);
+  if (match) {
+    return sign * Number(match[1]) * Math.PI;
+  }
+
+  match = unsigned.match(/^\\frac\{\\pi\}\{(\d+)\}$/);
+  if (match) {
+    return sign * Math.PI / Number(match[1]);
+  }
+
+  match = unsigned.match(/^\\frac\{-\\pi\}\{(\d+)\}$/);
+  if (match) {
+    return sign * -Math.PI / Number(match[1]);
+  }
+
+  match = unsigned.match(/^\\frac\{(\d+)\\pi\}\{(\d+)\}$/);
+  if (match) {
+    return sign * (Number(match[1]) * Math.PI) / Number(match[2]);
+  }
+
+  match = unsigned.match(/^\\frac\{-(\d+)\\pi\}\{(\d+)\}$/);
+  if (match) {
+    return sign * -(Number(match[1]) * Math.PI) / Number(match[2]);
+  }
+
+  return null;
+}
+
 function approximateFraction(value: number, maxDenominator = 360): Ratio | undefined {
   for (let denominator = 1; denominator <= maxDenominator; denominator += 1) {
     const numerator = Math.round(value * denominator);
@@ -213,47 +249,19 @@ export function parseAngleInput(value: string, unit: AngleUnit) {
     return null;
   }
 
-  if (unit !== 'rad') {
-    const cleaned = normalized.replace(/deg$/g, '');
-    const parsed = parseSignedNumberInput(cleaned);
-    return parsed === null ? null : convertAngle(parsed, unit, 'deg');
-  }
-
-  const parsedNumeric = parseSignedNumberInput(normalized);
+  const cleaned = normalized.replace(/deg$/g, '');
+  const parsedNumeric = parseSignedNumberInput(cleaned);
   if (parsedNumeric !== null) {
-    return convertAngle(parsedNumeric, 'rad', 'deg');
+    return convertAngle(parsedNumeric, unit, 'deg');
   }
 
-  const sign = normalized.startsWith('-') ? -1 : 1;
-  const unsigned = sign < 0 ? normalized.slice(1) : normalized;
-
-  if (unsigned === '\\pi') {
-    return sign * 180;
+  const piLikeScalar = parsePiLikeScalar(cleaned);
+  if (piLikeScalar !== null) {
+    return convertAngle(piLikeScalar, unit, 'deg');
   }
 
-  let match = unsigned.match(/^(\d+)\s*\\pi$/);
-  if (match) {
-    return sign * Number(match[1]) * 180;
-  }
-
-  match = unsigned.match(/^\\frac\{\\pi\}\{(\d+)\}$/);
-  if (match) {
-    return sign * 180 / Number(match[1]);
-  }
-
-  match = unsigned.match(/^\\frac\{-\\pi\}\{(\d+)\}$/);
-  if (match) {
-    return sign * -180 / Number(match[1]);
-  }
-
-  match = unsigned.match(/^\\frac\{(\d+)\\pi\}\{(\d+)\}$/);
-  if (match) {
-    return sign * (Number(match[1]) * 180) / Number(match[2]);
-  }
-
-  match = unsigned.match(/^\\frac\{-(\d+)\\pi\}\{(\d+)\}$/);
-  if (match) {
-    return sign * -(Number(match[1]) * 180) / Number(match[2]);
+  if (unit !== 'rad') {
+    return null;
   }
 
   return null;

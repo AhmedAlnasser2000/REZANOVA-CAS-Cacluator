@@ -52,6 +52,10 @@
   - `npm run test:gate`
 
 ## Recent Verified Context
+- Direct trig angle handling is now verified for `Calculate`:
+  - the selected `DEG` / `RAD` / `GRAD` mode now applies even when the numeric trig argument contains `\pi`
+  - `sin(\pi/2)` no longer returns the same answer across all three modes
+  - the full repo gate is green after the fix (`npm run test:gate`)
 - Workflow docs now include `docs/workflow/cloud-local-sync-reference.md` as the quick handoff checklist between cloud and local VS Code sessions.
 - Solver-side and type/content decomposition work from Track `R` is present under:
   - `src/lib/equation/{substitution,guarded}/*`

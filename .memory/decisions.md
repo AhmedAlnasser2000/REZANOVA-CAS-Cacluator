@@ -114,3 +114,5 @@
 - 2026-04-04: Numeric output is user-controlled through Settings with a typed `Approximate digits` input (`0..20`, default `6`), notation modes `decimal/scientific/auto`, and scientific styles `×10^n` or `e`; these controls are display-only and do not change solver effort or CE precision.
 - 2026-04-04: Numeric output `Auto` notation switches to scientific form when `abs(x) >= 1e6` or `0 < abs(x) < 1e-4`; otherwise it stays in decimal form.
 - 2026-04-04: Decimal-only symbolic Equation outcomes must not populate the exact line; symbolic provenance may remain, but decimal values belong only in approximate output.
+- 2026-04-04: The next major Equation-solver roadmap candidate after `PRL4`/`NP1` is bounded composition and nested-function solving, starting with safe outer-function inversion plus range/image impossibility checks before any broader multi-layer search.
+- 2026-04-04: Selected angle mode now applies to direct numeric trig input in `Calculate` even when the numeric argument contains `\pi`; `sin(\pi/2)` is treated as radians only in `RAD`, not silently preserved across `DEG` and `GRAD`.

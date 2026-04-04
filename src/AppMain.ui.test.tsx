@@ -104,6 +104,35 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('quick-setting-auto-equation')).toHaveTextContent('Auto Eq On');
   });
 
+  it('re-evaluates direct trig numeric input according to the selected angle unit', async () => {
+    const { user } = await renderAppMain();
+
+    setMathFieldLatex('main-editor', '\\sin\\left(\\frac{\\pi}{2}\\right)');
+    await user.click(screen.getByTestId('keypad-execute'));
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByTestId('display-outcome-approx')).toHaveTextContent('1');
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-deg'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await user.click(screen.getByTestId('keypad-execute'));
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByTestId('display-outcome-approx')).toHaveTextContent('0.0274121');
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-grad'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await user.click(screen.getByTestId('keypad-execute'));
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByTestId('display-outcome-approx')).toHaveTextContent('0.0246715');
+  });
+
   it('updates the symbolic-display preview live from settings controls', async () => {
     const { user } = await renderAppMain();
 

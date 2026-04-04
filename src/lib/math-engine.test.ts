@@ -189,14 +189,28 @@ describe('runExpressionAction', () => {
     expect(result.exactLatex).toBe('1')
   })
 
-  it('keeps explicit radian trig unchanged even when the global mode is degrees', () => {
-    const result = runExpressionAction(
+  it('applies the selected angle unit to direct trig even when the numeric argument uses pi', () => {
+    const degreeResult = runExpressionAction(
       { ...request, mode: 'calculate', angleUnit: 'deg', document: { latex: '\\sin\\left(\\frac{\\pi}{2}\\right)' } },
       'evaluate',
     )
+    const radianResult = runExpressionAction(
+      { ...request, mode: 'calculate', angleUnit: 'rad', document: { latex: '\\sin\\left(\\frac{\\pi}{2}\\right)' } },
+      'evaluate',
+    )
+    const gradianResult = runExpressionAction(
+      { ...request, mode: 'calculate', angleUnit: 'grad', document: { latex: '\\sin\\left(\\frac{\\pi}{2}\\right)' } },
+      'evaluate',
+    )
 
-    expect(result.error).toBeUndefined()
-    expect(result.exactLatex).toBe('1')
+    expect(degreeResult.error).toBeUndefined()
+    expect(Number(degreeResult.approxText)).toBeCloseTo(0.02741213359, 6)
+
+    expect(radianResult.error).toBeUndefined()
+    expect(radianResult.exactLatex).toBe('1')
+
+    expect(gradianResult.error).toBeUndefined()
+    expect(Number(gradianResult.approxText)).toBeCloseTo(0.02467150746, 6)
   })
 
   it('respects gradian mode for direct numeric trig in Calculate', () => {

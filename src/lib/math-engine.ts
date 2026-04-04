@@ -57,18 +57,6 @@ function isNumericConstantSymbol(symbol: string) {
   return symbol === 'Pi' || symbol === 'ExponentialE';
 }
 
-function containsPiSymbol(node: unknown): boolean {
-  if (typeof node === 'string') {
-    return node === 'Pi';
-  }
-
-  if (isMathJsonArray(node)) {
-    return node.some((child) => containsPiSymbol(child));
-  }
-
-  return false;
-}
-
 function isNumericOnlyNode(node: unknown): boolean {
   if (typeof node === 'number') {
     return Number.isFinite(node);
@@ -116,7 +104,6 @@ function rewriteDirectTrigAngles(node: unknown, angleUnit: EvaluateRequest['angl
     && rewrittenOperands.length >= 1
     && angleUnit !== 'rad'
     && isNumericOnlyNode(rewrittenOperands[0])
-    && !containsPiSymbol(rewrittenOperands[0])
   ) {
     return [
       operator,

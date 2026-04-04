@@ -966,3 +966,134 @@ For this whole roadmap:
 - symbolic behavior should stay conservative
 - real domain remains the default
 - transformed candidates must still validate against the original expression/equation and preserved constraints
+
+## Next Solver Roadmap Candidate - Composition and Nested Function Solving (2026-04-04)
+
+### Why this roadmap exists
+Calcwiz now has a much stronger bounded solve stack for:
+- rational and radical algebra
+- powers, roots, and logs
+- same-base and bounded mixed-base equation families
+
+But it still has a visible capability gap around **composition**:
+- outer functions applied to nontrivial inner carriers
+- nested carriers that should reduce into already-supported solve families
+- range-aware impossibility detection for composite expressions
+
+Typical examples of the gap:
+- `sin(cos x)=1`
+- `ln(x^2+1)=3`
+- `sqrt(ln(x+1))=2`
+- `exp(sqrt(x))=5`
+
+Today many of these either stop too early, surface unsupported-family messaging, or miss mathematically clean impossibility proofs that follow from simple range/image reasoning.
+
+### Product direction
+This roadmap should be treated as a dedicated **bounded composition solver** track, not as scattered one-off fixes.
+
+Guiding principles:
+- real-domain only
+- bounded outer inversion first
+- recurse only into already-supported inner families
+- preserve all domain/image restrictions as first-class conditions
+- reject impossible composites explicitly when range/image analysis is enough
+- prefer honest numeric guidance over fake symbolic success when the bounded symbolic path stops short
+
+### Milestone sequence
+
+#### `COMP1` - Bounded Outer-Function Inversion and Image Guards
+Purpose:
+- teach `Equation > Symbolic` to recognize `f(g(x))=c` patterns and either invert the outer function safely or prove the target is impossible over the real domain.
+
+In scope:
+- one outer function over one inner carrier
+- outer families:
+  - `sin`
+  - `cos`
+  - `tan`
+  - `ln`
+  - `log_a` with constant valid base
+  - `exp`
+  - `sqrt`
+  - bounded rational-power carriers
+- range/image checks for bounded inner outputs where the contradiction is direct
+
+Examples this milestone should handle well:
+- `ln(x^2+1)=3`
+- `sqrt(3x+2)=4`
+- `exp(2x+1)=5`
+- `sin(cos x)=1` -> explicit no-real-solution result from image/range reasoning
+- `cos(sin x)=2` -> explicit no-real-solution result
+
+Expected outcome by end of `COMP1`:
+- the solver can isolate one outer layer safely
+- direct impossibility cases no longer look unsupported
+- nested equations that reduce into already-supported inner families start solving cleanly
+
+#### `COMP2` - Nested Carrier Recursion Into Supported Families
+Purpose:
+- let bounded composite rewrites feed the inner equation back into the existing guarded algebra, trig, and PRL solve families instead of stopping after one inversion.
+
+In scope:
+- one recursive handoff after successful outer inversion
+- inner carriers that reduce into already-supported families:
+  - affine / polynomial algebra
+  - PRL power/root/log families
+  - bounded trig families already shipped
+- preserved domain/image conditions through recursion
+
+Examples this milestone should target:
+- `ln(x^2+1)=3`
+- `sqrt(ln(x+1))=2`
+- `exp(sqrt(x))=5`
+- `log_3((x+1)^2)=2`
+- `sin(x^2)=0` only when the bounded recursion can map it into an already-supported exact family; otherwise explicit numeric guidance
+
+Expected outcome by end of `COMP2`:
+- nested carriers no longer feel like a dead end if each step is individually supported
+- composition solving becomes a real extension of the guarded solver, not a separate one-off mechanism
+
+#### `COMP3` - Composition Provenance, Conditions, and Honest Stops
+Purpose:
+- make composite solving readable and trustworthy in the UI.
+
+In scope:
+- dedicated provenance/summaries for:
+  - outer inversion
+  - image/range guard
+  - nested recursion
+  - candidate checked
+- clearer condition lines for:
+  - inner-domain restrictions
+  - image restrictions
+  - branch-safe outer inversions
+- explicit recognized-but-unresolved messaging with numeric guidance where the composition family is understood but the bounded symbolic solver stops
+
+Examples of the desired UX:
+- `sin(cos x)=1` should explain that the inner image keeps `cos x` inside `[-1,1]`, making the target impossible for the outer sine
+- `sqrt(ln(x+1))=2` should show both the outer inversion and the carried log-domain condition
+- unresolved periodic composite cases should say the family is recognized but outside the current bounded symbolic depth, then offer numeric guidance rather than pretending they are unsupported syntax
+
+Expected outcome by end of `COMP3`:
+- composition-solving results read as deliberate math, not mysterious branch behavior
+- impossible, exact, and recognized-but-unresolved composite cases are clearly separated for the user
+
+### Recommended boundary for the full roadmap
+This composition track should remain bounded and should **not** promise:
+- unrestricted multi-layer composition search
+- general theorem-prover inversion
+- arbitrary periodic family synthesis
+- variable log bases
+- complex-domain composition solving
+- unrestricted nested radicals
+- Lambert W or `x^x`-style transcendental families
+
+### What success looks like at the end of the roadmap
+If `COMP1`-`COMP3` land well, Calcwiz should be able to:
+- solve many practical `f(g(x))=c` equations in the real domain
+- recurse through one nested carrier into already-supported solver families
+- prove impossibility for common composite cases using image/range arguments
+- preserve domain conditions and candidate validation throughout
+- stop honestly, with explicit numeric guidance, when a composite family is recognized but exceeds the current bounded symbolic depth
+
+That would close one of the most visible remaining gaps between Calcwiz's current bounded solver and user expectations for nested textbook-style equations.

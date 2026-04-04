@@ -13,6 +13,17 @@ describe('trigonometry functions', () => {
     expect(result.exactLatex).toBe('\\frac{1}{2}');
   });
 
+  it('treats pi-based direct trig input as a numeric angle in the selected unit', () => {
+    const degreeResult = evaluateTrigFunction('\\sin\\left(\\frac{\\pi}{2}\\right)', 'deg');
+    const gradianResult = evaluateTrigFunction('\\sin\\left(\\frac{\\pi}{2}\\right)', 'grad');
+
+    expect(Number(degreeResult.approxText)).toBeCloseTo(0.02741213359, 6);
+    expect(degreeResult.resultOrigin).toBe('numeric');
+
+    expect(Number(gradianResult.approxText)).toBeCloseTo(0.02467150746, 6);
+    expect(gradianResult.resultOrigin).toBe('numeric');
+  });
+
   it('returns exact inverse-trig principal values when supported', () => {
     const result = evaluateTrigFunction('\\arcsin\\left(\\frac{1}{2}\\right)', 'deg');
     expect(result.exactLatex).toBe('30^{\\circ}');
