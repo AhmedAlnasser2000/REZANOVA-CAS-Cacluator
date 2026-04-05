@@ -186,6 +186,7 @@ export type SolveBadge =
   | 'Composition Branch'
   | 'Nested Recursion'
   | 'Periodic Family'
+  | 'Parameterized Family'
   | 'Trig Rewrite'
   | 'Trig Square Split'
   | 'Trig Sum-Product'
@@ -678,6 +679,7 @@ export type PeriodicIntervalSuggestion = {
 export type PeriodicFamilyInfo = {
   carrierLatex: string;
   parameterLatex: string;
+  parameterConstraintLatex?: string[];
   branchesLatex: string[];
   representatives?: PeriodicFamilyRepresentative[];
   suggestedIntervals?: PeriodicIntervalSuggestion[];

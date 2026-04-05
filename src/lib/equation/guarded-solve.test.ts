@@ -586,7 +586,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.periodicFamily?.suggestedIntervals?.length ?? 0).toBeGreaterThan(0);
   });
 
-  it('returns explicit numeric guidance for recognized composition families with unsupported inverse branching', () => {
+  it('solves bounded nonlinear-in-k families like sin(x^2)=1/2 as symbolic parameterized branches', () => {
     const result = runGuardedEquationSolve({
       ...request,
       angleUnit: 'rad',
@@ -594,15 +594,50 @@ describe('runGuardedEquationSolve', () => {
       resolvedLatex: '\\sin\\left(x^2\\right)=\\frac{1}{2}',
     });
 
-    expect(result.kind).toBe('error');
-    if (result.kind !== 'error') {
-      throw new Error('Expected unresolved composition guidance');
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected parameterized periodic family success');
     }
     expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.solveBadges).toContain('Parameterized Family');
     expect(result.solveBadges).toContain('Composition Branch');
-    expect(result.error).toContain('recognized periodic family');
-    expect(result.exactLatex ?? '').toContain('x^2');
+    expect(result.exactLatex ?? '').toContain('\\sqrt');
+    expect(result.exactSupplementLatex?.join(' ') ?? '').toContain('Parameter constraints');
     expect(result.periodicFamily?.suggestedIntervals?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it('solves bounded affine power-form carriers like sin((2x+1)^3)=0 as symbolic parameterized branches', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sin\\left((2x+1)^3\\right)=0',
+      resolvedLatex: '\\sin\\left((2x+1)^3\\right)=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected affine power-form periodic family success');
+    }
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('x');
+    expect(result.exactLatex ?? '').toContain('k');
+  });
+
+  it('keeps even-power periodic families honest by preserving branch parameter constraints', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sin\\left((x+1)^2\\right)=0',
+      resolvedLatex: '\\sin\\left((x+1)^2\\right)=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected even-power periodic family success');
+    }
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt');
+    expect(result.exactSupplementLatex?.join(' ') ?? '').toContain('\\ge0');
   });
 
   it('solves bounded tan composition families as explicit periodic branch families', () => {
@@ -658,6 +693,90 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Periodic Family');
     expect(result.exactLatex ?? '').toContain('360k+90');
     expect(result.periodicFamily?.representatives?.[0]?.exactLatex ?? '').toContain('90');
+  });
+
+  it('solves bounded outer inverse-trig handoff through a direct affine carrier', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\arcsin\\left(2x-1\\right)=30',
+      resolvedLatex: '\\arcsin\\left(2x-1\\right)=30',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected bounded inverse-trig handoff success');
+    }
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.exactLatex).toBe('x=\\frac{3}{4}');
+  });
+
+  it('solves bounded outer inverse-trig handoff through one supported non-periodic follow-on step', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\arctan\\left(\\ln\\left(x+1\\right)\\right)=45',
+      resolvedLatex: '\\arctan\\left(\\ln\\left(x+1\\right)\\right)=45',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected inverse-trig ln handoff success');
+    }
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Nested Recursion');
+    expect(result.exactLatex ?? '').toContain('e');
+  });
+
+  it('can hand inverse-trig outers into periodic parameterized carrier solving', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\arcsin\\left(\\sin\\left(x^2\\right)\\right)=30',
+      resolvedLatex: '\\arcsin\\left(\\sin\\left(x^2\\right)\\right)=30',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected inverse-trig to parameterized periodic handoff');
+    }
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt');
+  });
+
+  it('keeps broader nonlinear carriers like sin(x^2+x)=1/2 as recognized but unresolved', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sin\\left(x^2+x\\right)=\\frac{1}{2}',
+      resolvedLatex: '\\sin\\left(x^2+x\\right)=\\frac{1}{2}',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected unresolved nonlinear carrier guidance');
+    }
+    expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.error).toContain('recognized periodic family');
+    expect(result.exactLatex ?? '').toContain('x^2+x');
+  });
+
+  it('keeps inverse-trig follow-ons outside the affine/power templates recognized but unresolved', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\arctan\\left(x^3+x\\right)=45',
+      resolvedLatex: '\\arctan\\left(x^3+x\\right)=45',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected unresolved inverse-trig follow-on guidance');
+    }
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.error).toContain('current exact bounded solve set');
   });
 
   it('stops with explicit numeric guidance when a composition would exceed the two-step inversion cap', () => {

@@ -222,6 +222,10 @@
   - only one periodic parameter `k \in \mathbb{Z}` is introduced
   - direct periodic families may finish through bounded exact handoff, but nonlinear-in-`k` carrier solves still stop at structured guidance plus interval suggestions
   - unrestricted periodic-family generation, broader inverse-trig outer families, and open-ended multi-layer composition search remain deferred
+- `COMP4` is intentionally bounded:
+  - parameterized periodic follow-on solving is limited to affine carriers and pure power-form carriers `(ax+b)^n` with integer `n` from `2` to `6`
+  - inverse-trig expansion is limited to `arcsin`, `arccos`, and `arctan`, each with one bounded outer inversion plus one supported follow-on handoff
+  - broader polynomial carriers like `x^2+x`, nonlinear solving in both `x` and `k`, unrestricted inverse-trig nesting, and complex-domain solving remain deferred
 - `NP1` numeric output controls are display-only:
   - internal solver precision / effort is still app-managed
   - scientific notation preferences do not change Equation or Calculate solver breadth
@@ -277,9 +281,12 @@
 ## Next Recommended Task
 - The `PRL1`-`PRL4` stack plus `COMP1`-`COMP3` are now shipped end-to-end.
 - Best next discussion point:
-  1. decide whether `COMP4` should target parameterized nonlinear solves in `k` (for example `x^2 = \alpha + 2\pi k`) or a wider set of bounded inverse-trig / outer-family handoffs first
+  1. decide whether the next composition step should broaden parameterized nonlinear carriers beyond affine / pure power forms, or open a separate calculus-composition lane that reuses the new outer/inner structure engine
 
 ## Recent Verified Context
 - Equation numeric interval solving now respects `RAD` / `DEG` / `GRAD` consistently across residual checks, candidate validation, and interval search.
 - When a direct trig numeric interval miss is explainable, Equation now reports the sampled inner-image range and the current-unit branch family the user should search next, which makes periodic misses like `tan(ln(x+1))=1` in `DEG` / `GRAD` actionable instead of opaque.
 - Shared numeric entry now accepts scientific notation as well as plain decimals, and the Equation numeric interval form is verified end-to-end with large values entered as `3e19`-style input.
+- `COMP4` now finishes parameterized periodic families for bounded affine/power-form carriers such as `sin(x^2)=1/2` and `sin((2x+1)^3)=0`, while still stopping honestly on broader nonlinear carriers like `sin(x^2+x)=1/2`.
+- Inverse-trig outers now participate in bounded composition solving: cases like `arcsin(2x-1)=30` and `arctan(ln(x+1))=45` solve through unit-aware principal-range checks plus one supported follow-on handoff.
+- Compute Engine-backed inverse-trig evaluation now converts principal values into the selected angle unit explicitly, so guarded candidate validation and Equation solving stay consistent in `RAD`, `DEG`, and `GRAD`.

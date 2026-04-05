@@ -536,7 +536,7 @@ test('COMP3 smoke renders finite nested trig compositions as symbolic periodic f
   await expect(page.getByTestId('display-outcome-periodic-intervals')).toContainText(/near x/i);
 });
 
-test('COMP3 smoke keeps recognized but unresolved compositions on structured periodic guidance', async ({ page }) => {
+test('COMP4 smoke solves nonlinear-in-k periodic carriers symbolically', async ({ page }) => {
   await openSettingsPanel(page);
   await page.getByTestId('settings-angle-unit-rad').click();
   await page.getByTestId('side-surface-overlay-backdrop').click();
@@ -545,11 +545,26 @@ test('COMP3 smoke keeps recognized but unresolved compositions on structured per
   await setMathFieldLatex(page, '\\sin\\left(x^2\\right)=\\frac{1}{2}');
   await page.getByTestId('soft-action-solve').click();
 
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-periodic-family')).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Parameterized Family' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Composition Branch' })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText(/√/);
+  await expect(page.getByTestId('display-outcome-periodic-intervals')).toContainText(/near x/i);
+});
+
+test('COMP4 smoke keeps broader nonlinear carriers on structured periodic guidance', async ({ page }) => {
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-rad').click();
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\sin\\left(x^2+x\\right)=\\frac{1}{2}');
+  await page.getByTestId('soft-action-solve').click();
+
   await expect(page.getByTestId('display-outcome-error')).toBeVisible();
   await expect(page.getByTestId('display-outcome-periodic-family')).toBeVisible();
-  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Composition Branch' })).toBeVisible();
   await expect(page.getByTestId('display-outcome-error')).toContainText(/recognized periodic family/i);
-  await expect(page.getByTestId('display-outcome-periodic-intervals')).toContainText(/near x/i);
 });
 
 test('COMP3 smoke solves tan-log compositions as periodic families', async ({ page }) => {
@@ -581,6 +596,21 @@ test('COMP3 smoke formats periodic families in degree mode with numeric-angle br
   await expect(page.getByTestId('display-outcome-periodic-family')).toBeVisible();
   await expect(page.getByTestId('display-outcome-exact')).toContainText(/360k\+90/);
   await expect(page.getByTestId('display-outcome-periodic-representatives')).toContainText(/x=90/);
+});
+
+test('COMP4 smoke solves bounded inverse-trig handoff through one supported follow-on step', async ({ page }) => {
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-deg').click();
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\arctan\\left(\\ln\\left(x+1\\right)\\right)=45');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Outer Inversion' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Nested Recursion' })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText(/e/);
 });
 
 test('Equation numeric interval smoke can follow up unresolved composition guidance with a valid interval', async ({ page }) => {

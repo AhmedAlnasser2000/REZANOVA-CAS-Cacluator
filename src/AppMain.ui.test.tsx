@@ -753,7 +753,7 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('display-outcome-periodic-intervals')).toHaveTextContent(/near x/i);
   });
 
-  it('shows structured periodic guidance for recognized but still-unresolved COMP3 compositions', async () => {
+  it('renders COMP4 nonlinear-in-k families as symbolic periodic branches with parameter constraints', async () => {
     const { user } = await renderAppMain();
 
     await user.click(screen.getByTestId('settings-toggle'));
@@ -766,12 +766,34 @@ describe('AppMain UI automation flows', () => {
     setMathFieldLatex('main-editor', '\\sin\\left(x^2\\right)=\\frac{1}{2}');
     await user.click(screen.getByTestId('soft-action-solve'));
 
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByText('Periodic Family')).toBeInTheDocument();
+    expect(screen.getByText('Parameterized Family')).toBeInTheDocument();
+    expect(screen.getByText('Composition Branch')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-periodic-family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/√/);
+    expect(screen.getByText(/Parameter constraints/i)).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-periodic-intervals')).toHaveTextContent(/near x/i);
+  });
+
+  it('keeps broader nonlinear carriers on structured periodic guidance when they exceed COMP4 templates', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-rad'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\sin\\left(x^2+x\\right)=\\frac{1}{2}');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
     await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
     expect(screen.getByText('Periodic Family')).toBeInTheDocument();
     expect(screen.getByText('Composition Branch')).toBeInTheDocument();
     expect(screen.getByTestId('display-outcome-error')).toHaveTextContent(/recognized periodic family/i);
     expect(screen.getByTestId('display-outcome-periodic-family')).toBeInTheDocument();
-    expect(screen.getByTestId('display-outcome-periodic-intervals')).toHaveTextContent(/near x/i);
   });
 
   it('renders COMP3 tan-log composition families symbolically with interval guidance', async () => {
@@ -811,6 +833,25 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByText('Periodic Family')).toBeInTheDocument();
     expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/360k\+90/);
     expect(screen.getByTestId('display-outcome-periodic-representatives')).toHaveTextContent(/x=90/);
+  });
+
+  it('solves COMP4 bounded outer inverse-trig handoff through one supported follow-on step', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-deg'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\arctan\\left(\\ln\\left(x+1\\right)\\right)=45');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByText('Outer Inversion')).toBeInTheDocument();
+    expect(screen.getByText('Nested Recursion')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/e/);
   });
 
   it('shows the new PRL3 Equation transforms without auto-solving the rewritten equation', async () => {

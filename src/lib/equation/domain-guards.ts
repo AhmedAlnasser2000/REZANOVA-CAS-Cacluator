@@ -10,6 +10,7 @@ import { evaluateRealNumericExpression } from '../real-numeric-eval';
 const ce = new ComputeEngine();
 const RESIDUAL_TOLERANCE = 1e-8;
 const DIRECT_TRIG_OPERATORS = new Set(['Sin', 'Cos', 'Tan', 'Sec', 'Csc', 'Cot']);
+const INVERSE_TRIG_OPERATORS = new Set(['Arcsin', 'Arccos', 'Arctan']);
 
 type BoxedLike = {
   latex: string;
@@ -64,6 +65,18 @@ function rewriteTrigArgumentForAngleUnit(argument: unknown, angleUnit: AngleUnit
   return argument;
 }
 
+function rewriteInverseTrigResultForAngleUnit(node: unknown, angleUnit: AngleUnit) {
+  if (angleUnit === 'deg') {
+    return ['Divide', ['Multiply', node, 180], 'Pi'];
+  }
+
+  if (angleUnit === 'grad') {
+    return ['Divide', ['Multiply', node, 200], 'Pi'];
+  }
+
+  return node;
+}
+
 function rewriteDirectTrigAngles(node: unknown, angleUnit: AngleUnit): unknown {
   if (!isMathJsonArray(node) || node.length === 0) {
     return node;
@@ -84,6 +97,16 @@ function rewriteDirectTrigAngles(node: unknown, angleUnit: AngleUnit): unknown {
       rewriteTrigArgumentForAngleUnit(rewrittenOperands[0], angleUnit),
       ...rewrittenOperands.slice(1),
     ];
+  }
+
+  if (
+    typeof operator === 'string'
+    && INVERSE_TRIG_OPERATORS.has(operator)
+    && rewrittenOperands.length >= 1
+    && angleUnit !== 'rad'
+    && isNumericOnlyNode(rewrittenOperands[0])
+  ) {
+    return rewriteInverseTrigResultForAngleUnit([operator, ...rewrittenOperands], angleUnit);
   }
 
   return [operator, ...rewrittenOperands];

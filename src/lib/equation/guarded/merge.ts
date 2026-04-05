@@ -62,6 +62,9 @@ function mergePeriodicFamilies(families: PeriodicFamilyInfo[]) {
   const representatives = dedupe(
     families.flatMap((family) => family.representatives ?? []).map((entry) => JSON.stringify(entry)),
   ).map((entry) => JSON.parse(entry));
+  const parameterConstraintLatex = dedupe(
+    families.flatMap((family) => family.parameterConstraintLatex ?? []),
+  );
   const suggestedIntervals = dedupe(
     families.flatMap((family) => family.suggestedIntervals ?? []).map((entry) => JSON.stringify(entry)),
   ).map((entry) => JSON.parse(entry));
@@ -69,6 +72,7 @@ function mergePeriodicFamilies(families: PeriodicFamilyInfo[]) {
   return {
     carrierLatex,
     parameterLatex,
+    parameterConstraintLatex: parameterConstraintLatex.length > 0 ? parameterConstraintLatex : undefined,
     branchesLatex: dedupe(families.flatMap((family) => family.branchesLatex)),
     representatives: representatives.length > 0 ? representatives : undefined,
     suggestedIntervals: suggestedIntervals.length > 0 ? suggestedIntervals : undefined,

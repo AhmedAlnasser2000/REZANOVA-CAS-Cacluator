@@ -1078,6 +1078,33 @@ Expected outcome by end of `COMP3`:
 - composition-solving results read as deliberate math, not mysterious branch behavior
 - impossible, exact, and recognized-but-unresolved composite cases are clearly separated for the user
 
+#### `COMP4` - Parameterized Carrier Solving and Bounded Inverse-Trig Handoff
+Purpose:
+- finish the next class of periodic composition families after `COMP3` by solving bounded affine/power-form carriers against `k`-parameter trig families, and widen the composition surface to bounded inverse-trig outers.
+
+In scope:
+- parameterized periodic follow-on when the remaining carrier is:
+  - `x`
+  - `ax+b`
+  - `(ax+b)^n` with constant integer `n` from `2` to `6`
+- inverse-trig outers:
+  - `arcsin`
+  - `arccos`
+  - `arctan`
+- one bounded follow-on handoff after inverse-trig inversion
+- unit-aware principal-range validation for non-radian inverse-trig targets
+
+Examples this milestone should handle well:
+- `sin(x^2)=1/2`
+- `sin((2x+1)^3)=0`
+- `arcsin(2x-1)=30`
+- `arctan(ln(x+1))=45`
+
+Expected outcome by end of `COMP4`:
+- periodic follow-on can now finish exact families for bounded affine / pure power-form carriers instead of stopping at interval guidance
+- inverse-trig outers become first-class bounded composition citizens in Equation
+- broader nonlinear carriers like `sin(x^2+x)=1/2` remain explicitly recognized but unresolved, with honest structured guidance
+
 ### Recommended boundary for the full roadmap
 This composition track should remain bounded and should **not** promise:
 - unrestricted multi-layer composition search

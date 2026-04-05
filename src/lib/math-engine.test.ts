@@ -237,6 +237,30 @@ describe('runExpressionAction', () => {
     expect(Number(gradianResult.approxText)).toBeCloseTo(0.02467150746, 6)
   })
 
+  it('applies the selected angle unit to inverse trig evaluation in Calculate', () => {
+    const degreeResult = runExpressionAction(
+      { ...request, mode: 'calculate', angleUnit: 'deg', document: { latex: '\\arctan\\left(1\\right)' } },
+      'evaluate',
+    )
+    const radianResult = runExpressionAction(
+      { ...request, mode: 'calculate', angleUnit: 'rad', document: { latex: '\\arctan\\left(1\\right)' } },
+      'evaluate',
+    )
+    const gradianResult = runExpressionAction(
+      { ...request, mode: 'calculate', angleUnit: 'grad', document: { latex: '\\arctan\\left(1\\right)' } },
+      'evaluate',
+    )
+
+    expect(degreeResult.error).toBeUndefined()
+    expect(Number(degreeResult.approxText)).toBeCloseTo(45, 6)
+
+    expect(radianResult.error).toBeUndefined()
+    expect(Number(radianResult.approxText)).toBeCloseTo(Math.PI / 4, 6)
+
+    expect(gradianResult.error).toBeUndefined()
+    expect(Number(gradianResult.approxText)).toBeCloseTo(50, 6)
+  })
+
   it('respects gradian mode for direct numeric trig in Calculate', () => {
     const result = runExpressionAction(
       { ...request, mode: 'calculate', angleUnit: 'grad', document: { latex: '\\sin\\left(100\\right)' } },

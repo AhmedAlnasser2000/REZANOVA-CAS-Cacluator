@@ -17,7 +17,7 @@ import {
   errorOutcome,
 } from './guarded/outcome';
 import { equationStateKey } from './guarded/state-key';
-import { convertAngle, formatDegreesAsUnitLatex } from '../trigonometry/angles';
+import { convertAngle, evaluateSpecialTrig, formatDegreesAsUnitLatex } from '../trigonometry/angles';
 import { buildTrigPeriodicTemplate, type TrigPeriodicBranch } from '../trigonometry/equations';
 import { dependsOnVariable, isNodeArray } from '../symbolic-engine/patterns';
 import { normalizeAst } from '../symbolic-engine/normalize';
@@ -40,6 +40,7 @@ const RESIDUAL_TOLERANCE = 1e-6;
 const MAX_TRIG_BRANCHES = 12;
 const MAX_COMPOSITION_INVERSION_DEPTH = 2;
 const DIRECT_TRIG_OPERATORS = new Set(['Sin', 'Cos', 'Tan', 'Sec', 'Csc', 'Cot']);
+const INVERSE_TRIG_OPERATORS = new Set(['Arcsin', 'Arccos', 'Arctan']);
 
 type GuardedSolveRunner = (
   request: GuardedSolveRequest,
@@ -91,6 +92,7 @@ type PeriodicFamilySolveResult =
       domainConstraints?: SolveDomainConstraint[];
       supplementLatex?: string[];
       summaryText: string;
+      solveBadges?: SolveBadge[];
     }
   | {
       kind: 'guided';
@@ -99,6 +101,7 @@ type PeriodicFamilySolveResult =
       domainConstraints?: SolveDomainConstraint[];
       supplementLatex?: string[];
       summaryText: string;
+      solveBadges?: SolveBadge[];
     };
 
 function boxLatex(node: unknown) {
@@ -211,6 +214,18 @@ function rewriteTrigArgumentForAngleUnit(argument: unknown, angleUnit: AngleUnit
   return argument;
 }
 
+function rewriteInverseTrigResultForAngleUnit(node: unknown, angleUnit: AngleUnit) {
+  if (angleUnit === 'deg') {
+    return ['Divide', ['Multiply', node, 180], 'Pi'];
+  }
+
+  if (angleUnit === 'grad') {
+    return ['Divide', ['Multiply', node, 200], 'Pi'];
+  }
+
+  return node;
+}
+
 function rewriteDirectTrigAngles(node: unknown, angleUnit: AngleUnit): unknown {
   if (!isNodeArray(node) || node.length === 0) {
     return node;
@@ -231,6 +246,16 @@ function rewriteDirectTrigAngles(node: unknown, angleUnit: AngleUnit): unknown {
       rewriteTrigArgumentForAngleUnit(rewrittenOperands[0], angleUnit),
       ...rewrittenOperands.slice(1),
     ];
+  }
+
+  if (
+    typeof operator === 'string'
+    && INVERSE_TRIG_OPERATORS.has(operator)
+    && rewrittenOperands.length >= 1
+    && angleUnit !== 'rad'
+    && isNumericOnlyNode(rewrittenOperands[0])
+  ) {
+    return rewriteInverseTrigResultForAngleUnit([operator, ...rewrittenOperands], angleUnit);
   }
 
   return [operator, ...rewrittenOperands];
@@ -494,6 +519,14 @@ function periodicFamilyParameterSupplement(family: PeriodicFamilyInfo) {
   return `\\text{Parameter: } ${family.parameterLatex}`;
 }
 
+function periodicFamilyConstraintSupplements(family: PeriodicFamilyInfo) {
+  if (!family.parameterConstraintLatex || family.parameterConstraintLatex.length === 0) {
+    return [] as string[];
+  }
+
+  return [`\\text{Parameter constraints: } ${family.parameterConstraintLatex.join(',\\;')}`];
+}
+
 function buildPeriodicBranchConditionSupplement(branchLatex: string[]) {
   if (branchLatex.length === 0) {
     return [] as string[];
@@ -510,6 +543,97 @@ function formatBranchConstant(value: number, angleUnit: AngleUnit) {
   return formatNumber(value, 12);
 }
 
+function formatAngleUnitValueText(value: number, angleUnit: AngleUnit) {
+  if (angleUnit === 'deg') {
+    return `${formatNumber(value)} deg`;
+  }
+  if (angleUnit === 'grad') {
+    return `${formatNumber(value)} grad`;
+  }
+  return `${formatNumber(value)} rad`;
+}
+
+function inverseTrigPrincipalRange(kind: 'asin' | 'acos' | 'atan', angleUnit: AngleUnit) {
+  if (kind === 'acos') {
+    return {
+      min: 0,
+      max: convertAngle(180, 'deg', angleUnit),
+      minInclusive: true,
+      maxInclusive: true,
+    };
+  }
+
+  return {
+    min: convertAngle(-90, 'deg', angleUnit),
+    max: convertAngle(90, 'deg', angleUnit),
+    minInclusive: kind === 'asin',
+    maxInclusive: kind === 'asin',
+  };
+}
+
+function isWithinPrincipalRange(
+  value: number,
+  range: { min: number; max: number; minInclusive: boolean; maxInclusive: boolean },
+) {
+  const minCheck = range.minInclusive ? value >= range.min - EPSILON : value > range.min + EPSILON;
+  const maxCheck = range.maxInclusive ? value <= range.max + EPSILON : value < range.max - EPSILON;
+  return minCheck && maxCheck;
+}
+
+function buildInverseTrigPrincipalRangeMessage(
+  kind: 'asin' | 'acos' | 'atan',
+  angleUnit: AngleUnit,
+) {
+  const range = inverseTrigPrincipalRange(kind, angleUnit);
+  const opener = range.minInclusive ? '[' : '(';
+  const closer = range.maxInclusive ? ']' : ')';
+  return `${opener}${formatAngleUnitValueText(range.min, angleUnit)}, ${formatAngleUnitValueText(range.max, angleUnit)}${closer}`;
+}
+
+function buildNumericTargetFromNode(node: unknown, fallbackValue?: number): NumericTarget | null {
+  const normalized = normalizeAst(node);
+  const parsed = parseNumericTarget(normalized);
+  if (parsed) {
+    return parsed;
+  }
+
+  if (fallbackValue === undefined || !Number.isFinite(fallbackValue)) {
+    return null;
+  }
+
+  return {
+    node: normalized,
+    latex: boxLatex(normalized),
+    value: fallbackValue,
+  };
+}
+
+function buildInverseTrigValueTarget(
+  kind: 'sin' | 'cos' | 'tan',
+  target: NumericTarget,
+  angleUnit: AngleUnit,
+) {
+  const degrees = convertAngle(target.value, angleUnit, 'deg');
+  const exactLatex = evaluateSpecialTrig(kind, degrees);
+  if (exactLatex && exactLatex !== '\\text{undefined}') {
+    return buildNumericTargetFromNode(ce.parse(exactLatex).json);
+  }
+
+  const radians = convertAngle(target.value, angleUnit, 'rad');
+  const value =
+    kind === 'sin'
+      ? Math.sin(radians)
+      : kind === 'cos'
+        ? Math.cos(radians)
+        : Math.tan(radians);
+
+  return {
+    node: value,
+    latex: formatNumber(value, 12),
+    value,
+  } satisfies NumericTarget;
+}
+
 function buildSymbolicFamilyBranch(branch: TrigPeriodicBranch): SymbolicFamilyBranch {
   const node = normalizeAst(ce.parse(branch.latex).json);
   return {
@@ -517,6 +641,17 @@ function buildSymbolicFamilyBranch(branch: TrigPeriodicBranch): SymbolicFamilyBr
     latex: boxLatex(node),
     representativeValue: branch.representativeValue,
   };
+}
+
+function dedupeSymbolicFamilyBranches(branches: SymbolicFamilyBranch[]) {
+  const seen = new Set<string>();
+  return branches.filter((branch) => {
+    if (seen.has(branch.latex)) {
+      return false;
+    }
+    seen.add(branch.latex);
+    return true;
+  });
 }
 
 function substituteFamilyBranchLatex(latex: string, kValue: number) {
@@ -585,6 +720,102 @@ function transformAffineBranches(
       representativeValue: (branch.representativeValue - carrier.offsetValue) / carrier.coefficient,
     };
   });
+}
+
+function matchParameterizedPowerCarrier(node: unknown) {
+  const normalized = normalizeAst(node);
+  if (!isNodeArray(normalized) || normalized[0] !== 'Power' || normalized.length !== 3) {
+    return null;
+  }
+
+  const exponent = readExactScalar(normalized[2]);
+  if (
+    !exponent
+    || exponent.denominator !== 1
+    || exponent.numerator < 2
+    || exponent.numerator > 6
+  ) {
+    return null;
+  }
+
+  const affineBase = numericAffineCarrier(normalized[1]);
+  if (!affineBase || !dependsOnVariable(normalized[1], 'x')) {
+    return null;
+  }
+
+  return {
+    degree: exponent.numerator,
+    baseNode: normalized[1],
+    affineBase,
+  };
+}
+
+function buildNthRootNode(node: unknown, degree: number) {
+  if (degree === 2) {
+    return normalizeAst(['Sqrt', node]);
+  }
+
+  return normalizeAst(['Root', node, degree]);
+}
+
+function nthRootRepresentativeValue(value: number, degree: number) {
+  if (!Number.isFinite(value)) {
+    return Number.NaN;
+  }
+
+  if (degree % 2 === 0) {
+    if (value < 0) {
+      return Number.NaN;
+    }
+    return Math.pow(value, 1 / degree);
+  }
+
+  return Math.sign(value) * Math.pow(Math.abs(value), 1 / degree);
+}
+
+function buildParameterizedPowerBranches(
+  carrier: NonNullable<ReturnType<typeof matchParameterizedPowerCarrier>>,
+  branches: SymbolicFamilyBranch[],
+) {
+  const transformedBranches: SymbolicFamilyBranch[] = [];
+  const parameterConstraints: string[] = [];
+
+  for (const branch of branches) {
+    const constantTarget = parseNumericTarget(branch.node);
+    if (carrier.degree % 2 === 0 && constantTarget && constantTarget.value < -EPSILON) {
+      continue;
+    }
+
+    const rootNode = buildNthRootNode(branch.node, carrier.degree);
+    const rootRepresentative = nthRootRepresentativeValue(branch.representativeValue, carrier.degree);
+    const rootBranch: SymbolicFamilyBranch = {
+      node: rootNode,
+      latex: boxLatex(rootNode),
+      representativeValue: rootRepresentative,
+    };
+
+    const affineSolved = transformAffineBranches(carrier.affineBase, [rootBranch]);
+    transformedBranches.push(...affineSolved);
+
+    if (carrier.degree % 2 === 0) {
+      const negativeRootNode = normalizeAst(['Negate', rootNode]);
+      const negativeBranch: SymbolicFamilyBranch = {
+        node: negativeRootNode,
+        latex: boxLatex(negativeRootNode),
+        representativeValue: Number.isFinite(rootRepresentative) ? -rootRepresentative : Number.NaN,
+      };
+      transformedBranches.push(...transformAffineBranches(carrier.affineBase, [negativeBranch]));
+
+      if (!constantTarget || Math.abs(constantTarget.value) > EPSILON) {
+        parameterConstraints.push(`${branch.latex}\\ge0`);
+      }
+    }
+  }
+
+  return {
+    branches: dedupeSymbolicFamilyBranches(transformedBranches),
+    parameterConstraintLatex: dedupe(parameterConstraints),
+  };
 }
 
 function buildRepresentativeBranches(
@@ -793,6 +1024,7 @@ function buildPeriodicFamilyInfo(
   constraints: SolveDomainConstraint[],
   angleUnit: AngleUnit,
   carrierNodeForIntervals?: unknown,
+  parameterConstraintLatex: string[] = [],
 ): PeriodicFamilyInfo {
   const representatives = buildRepresentativeBranches(carrierLatex, branches, carrierNodeForIntervals);
   const intervalRoots = carrierNodeForIntervals
@@ -809,6 +1041,7 @@ function buildPeriodicFamilyInfo(
   return {
     carrierLatex,
     parameterLatex: 'k\\in\\mathbb{Z}',
+    parameterConstraintLatex: parameterConstraintLatex.length > 0 ? dedupe(parameterConstraintLatex) : undefined,
     branchesLatex: dedupe(branches.map((branch) => branch.latex)),
     representatives: representatives.length > 0 ? representatives : undefined,
     suggestedIntervals: suggestedIntervals.length > 0 ? suggestedIntervals : undefined,
@@ -856,10 +1089,60 @@ function transformBlocked(error: string): NonPeriodicTransform {
   };
 }
 
-function matchNonPeriodicTransform(node: unknown, target: NumericTarget): NonPeriodicTransform | null {
+function matchNonPeriodicTransform(
+  node: unknown,
+  target: NumericTarget,
+  angleUnit: AngleUnit,
+): NonPeriodicTransform | null {
   const normalized = normalizeAst(node);
   if (!dependsOnVariable(normalized, 'x')) {
     return null;
+  }
+
+  const inverseTrigKind =
+    isNodeArray(normalized) && normalized.length === 2 && typeof normalized[0] === 'string'
+      ? normalized[0] === 'Arcsin'
+        ? 'asin'
+        : normalized[0] === 'Arccos'
+          ? 'acos'
+          : normalized[0] === 'Arctan'
+            ? 'atan'
+            : null
+      : null;
+
+  if (inverseTrigKind && isNodeArray(normalized)) {
+    const principalRange = inverseTrigPrincipalRange(inverseTrigKind, angleUnit);
+    if (!isWithinPrincipalRange(target.value, principalRange)) {
+      const label =
+        inverseTrigKind === 'asin'
+          ? 'arcsin'
+          : inverseTrigKind === 'acos'
+            ? 'arccos'
+            : 'arctan';
+      return transformBlocked(
+        `No real solutions because ${label} returns principal values only on ${buildInverseTrigPrincipalRangeMessage(inverseTrigKind, angleUnit)}.`,
+      );
+    }
+
+    const invertedTarget = buildInverseTrigValueTarget(
+      inverseTrigKind === 'asin'
+        ? 'sin'
+        : inverseTrigKind === 'acos'
+          ? 'cos'
+          : 'tan',
+      target,
+      angleUnit,
+    );
+    if (!invertedTarget) {
+      return null;
+    }
+
+    return {
+      equations: [buildEquationLatex(normalized[1], invertedTarget.node)],
+      solveBadges: ['Outer Inversion'],
+      solveSummaryText: `Inverted ${boxLatex(normalized)} into ${boxLatex(normalized[1])}=${invertedTarget.latex}`,
+      unresolvedError: 'This recognized inverse-trig composition family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+    };
   }
 
   if (isNodeArray(normalized) && normalized[0] === 'Ln' && normalized.length === 2) {
@@ -1261,6 +1544,38 @@ function resolveCarrierPeriodicFamily(
     };
   }
 
+  const parameterizedPower = matchParameterizedPowerCarrier(normalized);
+  if (parameterizedPower) {
+    const transformed = buildParameterizedPowerBranches(parameterizedPower, branches);
+    if (transformed.branches.length === 0) {
+      return {
+        kind: 'guided',
+        family: buildPeriodicFamilyInfo('x', [], constraints, angleUnit, 'x'),
+        error: 'No real solutions remain because this even-power periodic family requires a negative branch target in the real domain.',
+        domainConstraints: constraints,
+        supplementLatex,
+        summaryText: '',
+        solveBadges: ['Parameterized Family'],
+      };
+    }
+
+    return {
+      kind: 'solved',
+      family: buildPeriodicFamilyInfo(
+        'x',
+        transformed.branches,
+        constraints,
+        angleUnit,
+        'x',
+        transformed.parameterConstraintLatex,
+      ),
+      domainConstraints: constraints,
+      supplementLatex,
+      summaryText: '',
+      solveBadges: ['Parameterized Family'],
+    };
+  }
+
   if (isNodeArray(normalized) && normalized[0] === 'Ln' && normalized.length === 2) {
     return resolveCarrierPeriodicFamily(
       normalized[1],
@@ -1374,11 +1689,16 @@ function solveTrigPeriodicFamily(
   );
 }
 
-function periodicFamilyBadges(node: unknown, nestedContextBadges: SolveBadge[]) {
+function periodicFamilyBadges(
+  node: unknown,
+  nestedContextBadges: SolveBadge[],
+  extraBadges: SolveBadge[] = [],
+) {
   const normalized = normalizeAst(node);
   const inner = isNodeArray(normalized) && normalized.length === 2 ? normalized[1] : null;
   return dedupe<SolveBadge>([
     'Periodic Family',
+    ...extraBadges,
     ...(inner && !numericAffineCarrier(inner) ? ['Composition Branch' as const] : []),
     ...nestedContextBadges,
   ]);
@@ -1387,6 +1707,7 @@ function periodicFamilyBadges(node: unknown, nestedContextBadges: SolveBadge[]) 
 function buildPeriodicOutcomeSupplements(periodic: PeriodicFamilySolveResult) {
   return dedupe([
     periodicFamilyParameterSupplement(periodic.family),
+    ...periodicFamilyConstraintSupplements(periodic.family),
     ...(periodic.supplementLatex ?? []),
     ...buildConstraintSupplementLatex(periodic.domainConstraints),
   ]);
@@ -1577,7 +1898,7 @@ function compositionSolve(
     if (trigBranches?.kind === 'unresolved') {
       const periodic = solveTrigPeriodicFamily(attempt.composite, target, request);
       if (periodic?.kind === 'solved') {
-        const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges);
+        const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges, periodic.solveBadges);
         const supplements = buildPeriodicOutcomeSupplements(periodic);
         return {
           kind: 'success',
@@ -1593,7 +1914,7 @@ function compositionSolve(
         };
       }
       if (periodic?.kind === 'guided') {
-        const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges);
+        const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges, periodic.solveBadges);
         const supplements = buildPeriodicOutcomeSupplements(periodic);
         return {
           kind: 'error',
@@ -1638,7 +1959,7 @@ function compositionSolve(
 
     const periodic = solveTrigPeriodicFamily(attempt.composite, target, request);
     if (periodic?.kind === 'solved') {
-      const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges);
+      const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges, periodic.solveBadges);
       const supplements = buildPeriodicOutcomeSupplements(periodic);
       return {
         kind: 'success',
@@ -1654,7 +1975,7 @@ function compositionSolve(
       };
     }
     if (periodic?.kind === 'guided') {
-      const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges);
+      const badges = periodicFamilyBadges(attempt.composite, nestedContextBadges, periodic.solveBadges);
       const supplements = buildPeriodicOutcomeSupplements(periodic);
       return {
         kind: 'error',
@@ -1670,7 +1991,7 @@ function compositionSolve(
       };
     }
 
-    const transform = matchNonPeriodicTransform(attempt.composite, target);
+    const transform = matchNonPeriodicTransform(attempt.composite, target, request.angleUnit);
     if (!transform) {
       continue;
     }
