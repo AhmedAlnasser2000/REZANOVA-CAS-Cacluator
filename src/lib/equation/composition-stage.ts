@@ -1024,6 +1024,53 @@ function matchParameterizedPowerCarrier(node: unknown) {
   };
 }
 
+function matchParameterizedRationalPowerCarrier(node: unknown) {
+  const normalized = normalizeAst(node);
+  let baseNode: unknown;
+  let numerator: number;
+  let denominator: number;
+
+  if (isNodeArray(normalized) && normalized[0] === 'Sqrt' && normalized.length === 2) {
+    baseNode = normalized[1];
+    numerator = 1;
+    denominator = 2;
+  } else if (isNodeArray(normalized) && normalized[0] === 'Root' && normalized.length === 3) {
+    const indexTarget = parseNumericTarget(normalized[2]);
+    if (!indexTarget || !Number.isInteger(indexTarget.value) || indexTarget.value < 2) {
+      return null;
+    }
+    baseNode = normalized[1];
+    numerator = 1;
+    denominator = indexTarget.value;
+  } else if (isNodeArray(normalized) && normalized[0] === 'Power' && normalized.length === 3) {
+    const exponent = readExactScalar(normalized[2]);
+    if (!exponent || exponent.numerator <= 0 || exponent.denominator <= 1) {
+      return null;
+    }
+    baseNode = normalized[1];
+    numerator = exponent.numerator;
+    denominator = exponent.denominator;
+  } else {
+    return null;
+  }
+
+  if (!dependsOnVariable(baseNode, 'x')) {
+    return null;
+  }
+
+  const affineBase = numericAffineCarrier(baseNode);
+  if (!affineBase) {
+    return null;
+  }
+
+  return {
+    baseNode,
+    affineBase,
+    numerator,
+    denominator,
+  };
+}
+
 function buildNthRootNode(node: unknown, degree: number) {
   if (degree === 2) {
     return normalizeAst(['Sqrt', node]);
@@ -1089,6 +1136,93 @@ function buildParameterizedPowerBranches(
   return {
     branches: dedupeSymbolicFamilyBranches(transformedBranches),
     parameterConstraintLatex: dedupe(parameterConstraints),
+  };
+}
+
+function rationalPowerRequiresNonnegativeTarget(numerator: number, denominator: number) {
+  return denominator % 2 === 0 || numerator % 2 === 0;
+}
+
+function realRationalPowerValue(value: number, numerator: number, denominator: number) {
+  if (!Number.isFinite(value)) {
+    return Number.NaN;
+  }
+
+  if (denominator % 2 === 0 && value < 0) {
+    return Number.NaN;
+  }
+
+  const rootValue = denominator === 1
+    ? value
+    : nthRootRepresentativeValue(value, denominator);
+  if (!Number.isFinite(rootValue)) {
+    return Number.NaN;
+  }
+
+  return Math.sign(rootValue) * Math.pow(Math.abs(rootValue), numerator);
+}
+
+function buildParameterizedRationalPowerBranches(
+  carrier: NonNullable<ReturnType<typeof matchParameterizedRationalPowerCarrier>>,
+  branches: SymbolicFamilyBranch[],
+) {
+  const transformedBranches: SymbolicFamilyBranch[] = [];
+  const parameterConstraints: string[] = [];
+  const domainConstraints: SolveDomainConstraint[] = [];
+  const requiresNonnegativeTarget = rationalPowerRequiresNonnegativeTarget(
+    carrier.numerator,
+    carrier.denominator,
+  );
+
+  if (carrier.denominator % 2 === 0) {
+    domainConstraints.push({
+      kind: 'nonnegative',
+      expressionLatex: boxLatex(carrier.baseNode),
+    });
+  }
+
+  for (const branch of branches) {
+    const constantTarget = parseNumericTarget(branch.node);
+    if (requiresNonnegativeTarget && constantTarget && constantTarget.value < -EPSILON) {
+      continue;
+    }
+
+    const poweredNode = normalizeAst([
+      'Power',
+      branch.node,
+      buildScalarNode(carrier.denominator, carrier.numerator),
+    ]);
+    const poweredRepresentative = realRationalPowerValue(
+      branch.representativeValue,
+      carrier.denominator,
+      carrier.numerator,
+    );
+    const positiveBranch: SymbolicFamilyBranch = {
+      node: poweredNode,
+      latex: boxLatex(poweredNode),
+      representativeValue: poweredRepresentative,
+    };
+    transformedBranches.push(...transformAffineBranches(carrier.affineBase, [positiveBranch]));
+
+    if (carrier.denominator % 2 !== 0 && carrier.numerator % 2 === 0) {
+      const negativePoweredNode = normalizeAst(['Negate', poweredNode]);
+      const negativeBranch: SymbolicFamilyBranch = {
+        node: negativePoweredNode,
+        latex: boxLatex(negativePoweredNode),
+        representativeValue: Number.isFinite(poweredRepresentative) ? -poweredRepresentative : Number.NaN,
+      };
+      transformedBranches.push(...transformAffineBranches(carrier.affineBase, [negativeBranch]));
+    }
+
+    if (requiresNonnegativeTarget && (!constantTarget || Math.abs(constantTarget.value) > EPSILON)) {
+      parameterConstraints.push(`${branch.latex}\\ge0`);
+    }
+  }
+
+  return {
+    branches: dedupeSymbolicFamilyBranches(transformedBranches),
+    parameterConstraintLatex: dedupe(parameterConstraints),
+    domainConstraints,
   };
 }
 
@@ -1460,33 +1594,6 @@ function matchNonPeriodicTransform(
         };
       }
 
-      const affineCarrier = numericAffineCarrier(directInner[1]);
-      if (!affineCarrier) {
-        return {
-          equations: [],
-          solveBadges: ['Principal Range'],
-          solveSummaryText: `Affine sawtooth closure: ${outerLatex} crosses principal-range folds, but ${reducedCarrierLatex} is not an affine carrier in x.`,
-          unresolvedError: 'This recognized inverse/direct trig identity leaves a non-affine carrier outside the current bounded affine sawtooth-closure set. Use Numeric Solve with a chosen interval in Equation mode.',
-          exactSupplementLatex: [`\\text{Principal range: } ${principalRangeLatex}`],
-          detailSections: [
-            {
-              title: 'Piecewise Exact',
-              lines: [
-                `${outerLatex} only closes exactly in this milestone when ${reducedCarrierLatex} is affine and the sawtooth branches stay single-parameter.`,
-              ],
-            },
-          ],
-          periodicFamilyExtras: {
-            carrierLatex: reducedCarrierLatex,
-            parameterLatex: 'k\\in\\mathbb{Z}',
-            branchesLatex: [],
-            principalRangeLatex,
-            reducedCarrierLatex,
-            structuredStopReason: 'unsupported-sawtooth-closure',
-          },
-        };
-      }
-
       const mappedKind =
         inverseTrigKind === 'asin'
           ? 'sin'
@@ -1508,14 +1615,14 @@ function matchNonPeriodicTransform(
       return {
         equations: [buildEquationLatex(directInner, invertedTarget.node)],
         solveBadges: ['Outer Inversion', 'Principal Range'],
-        solveSummaryText: `Affine sawtooth closure: ${outerLatex}=${target.latex} reduces to ${boxLatex(directInner)}=${invertedTarget.latex} on bounded principal-range branches.`,
-        unresolvedError: 'This recognized affine inverse/direct trig identity is outside the current exact bounded sawtooth-closure set. Use Numeric Solve with a chosen interval in Equation mode.',
+        solveSummaryText: `Sawtooth closure: ${outerLatex}=${target.latex} reduces to ${boxLatex(directInner)}=${invertedTarget.latex} on bounded principal-range branches.`,
+        unresolvedError: 'This recognized inverse/direct trig identity is outside the current exact bounded sawtooth-closure set. Use Numeric Solve with a chosen interval in Equation mode.',
         exactSupplementLatex: [`\\text{Principal range: } ${principalRangeLatex}`],
         detailSections: [
           {
             title: 'Piecewise Exact',
             lines: [
-              `${outerLatex} matches ${target.latex} on the bounded affine sawtooth branches of ${reducedCarrierLatex}.`,
+              `${outerLatex} matches ${target.latex} on the bounded sawtooth branches of ${reducedCarrierLatex}.`,
             ],
           },
         ],
@@ -2384,6 +2491,39 @@ function resolveCarrierPeriodicFamily(
     };
   }
 
+  const parameterizedRationalPower = matchParameterizedRationalPowerCarrier(normalized);
+  if (parameterizedRationalPower) {
+    const transformed = buildParameterizedRationalPowerBranches(parameterizedRationalPower, branches);
+    const mergedConstraints = mergeConstraints(constraints, transformed.domainConstraints);
+    if (transformed.branches.length === 0) {
+      return {
+        kind: 'guided',
+        family: buildPeriodicFamilyInfo('x', [], mergedConstraints, angleUnit, 'x'),
+        error: 'No real solutions remain because this rational-power periodic family requires branch targets that stay in the real-domain image of the carrier.',
+        domainConstraints: mergedConstraints,
+        supplementLatex,
+        summaryText: '',
+        solveBadges: ['Parameterized Family'],
+      };
+    }
+
+    return {
+      kind: 'solved',
+      family: buildPeriodicFamilyInfo(
+        'x',
+        transformed.branches,
+        mergedConstraints,
+        angleUnit,
+        'x',
+        transformed.parameterConstraintLatex,
+      ),
+      domainConstraints: mergedConstraints,
+      supplementLatex,
+      summaryText: '',
+      solveBadges: ['Parameterized Family'],
+    };
+  }
+
   if (isNodeArray(normalized) && normalized.length === 2 && typeof normalized[0] === 'string') {
     const directTrigKind =
       normalized[0] === 'Sin'
@@ -2665,6 +2805,24 @@ function recurseComposition(
     ? recursiveOutcomes[0]
     : mergeDisplayOutcomes(recursiveOutcomes, effectiveBadges, summaryText);
 
+  const mergedPeriodicFamilyWithStructuredStop = (() => {
+    const mergedFamily = merged.kind === 'prompt'
+      ? undefined
+      : mergePeriodicFamilyExtras(merged.periodicFamily, periodicFamilyExtras);
+    if (
+      merged.kind === 'error'
+      && mergedFamily
+      && !mergedFamily.structuredStopReason
+      && periodicFamilyExtras?.piecewiseBranches?.length
+    ) {
+      return {
+        ...mergedFamily,
+        structuredStopReason: 'unsupported-sawtooth-closure',
+      } satisfies PeriodicFamilyInfo;
+    }
+    return mergedFamily;
+  })();
+
   if (merged.kind === 'error' && merged.error === UNSUPPORTED_FAMILY_ERROR && unresolvedError) {
     return errorOutcome(
       'Solve',
@@ -2688,7 +2846,7 @@ function recurseComposition(
     const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
     return appendSolveMetadata({
       ...merged,
-      periodicFamily: mergePeriodicFamilyExtras(merged.periodicFamily, periodicFamilyExtras),
+      periodicFamily: mergedPeriodicFamilyWithStructuredStop,
       exactSupplementLatex: supplements.length > 0 ? supplements : undefined,
       detailSections: detailSections.length > 0 ? detailSections : undefined,
     }, effectiveBadges, summaryText);
@@ -2733,7 +2891,7 @@ function recurseComposition(
       title: 'Solve',
       error: compositionRejectionMessage(validation.rejected, domainConstraints),
       exactLatex: merged.exactLatex,
-      periodicFamily: mergePeriodicFamilyExtras(merged.periodicFamily, periodicFamilyExtras),
+      periodicFamily: mergedPeriodicFamilyWithStructuredStop,
       exactSupplementLatex: supplements.length > 0 ? supplements : undefined,
       approxText: merged.approxText,
       detailSections: detailSections.length > 0 ? detailSections : undefined,

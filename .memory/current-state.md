@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `COMP9` as the mixed-carrier inverse/direct trig sawtooth-closure milestone:
+  - generalized `COMP8` sawtooth closure so inverse/direct trig branch windows now hand off into the broader single-parameter carrier resolver instead of stopping at affine-only carriers
+  - reused current bounded exact follow-on families for power-form, logarithmic, and exponential carriers after sawtooth windowing, including cases like `\arcsin(\sin(x^2))=30`, `\arcsin(\sin(\ln(x+1)))=30`, and `\arctan(\tan(e^x))=45`
+  - added bounded root/rational-power carrier resolution for periodic-family follow-on so selected radical cases like `\arccos(\cos(\sqrt[3]{2x+1}))=45` can now finish exactly when they stay real-domain-safe and single-parameter
+  - kept broader carriers like `\arcsin(\sin(x^2+x))=\frac{1}{2}` on structured guidance with reduced-carrier and sawtooth-stop messaging instead of fake exact closure
+- Regression checks:
+  - `npm run test:gate`
 - Completed `COMP8` as the affine inverse/direct trig sawtooth-closure milestone:
   - added bounded sawtooth-style closure for `\arcsin(\sin(g(x)))`, `\arccos(\cos(g(x)))`, and `\arctan(\tan(g(x)))` when the reduced carrier normalizes to `x`, `ax+b`, or a sign-flipped/reordered affine equivalent
   - preserved the existing principal-range exact collapse when the carrier is already inside the selected unit's principal range, and otherwise emitted structured piecewise exact branch windows plus the final single-parameter family when affine closure stays honest

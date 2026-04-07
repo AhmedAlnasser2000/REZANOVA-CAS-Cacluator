@@ -1035,7 +1035,27 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('display-outcome-periodic-principal-range')).toHaveTextContent(/90/);
   });
 
-  it('renders COMP8 non-affine sawtooth stops with reduced-carrier guidance', async () => {
+  it('renders COMP9 mixed-carrier sawtooth closures beyond affine carriers', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-deg'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\arcsin\\left(\\sin\\left(x^2\\right)\\right)=30');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
+    expect(screen.getByText('Parameterized Family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/360k/);
+    expect(screen.getByTestId('display-outcome-periodic-piecewise')).toHaveTextContent(/arcsin/);
+  });
+
+  it('keeps broader polynomial sawtooth carriers on structured guidance after COMP9', async () => {
     const { user } = await renderAppMain();
 
     await user.click(screen.getByTestId('settings-toggle'));
@@ -1045,12 +1065,13 @@ describe('AppMain UI automation flows', () => {
     await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
 
     await openEquationSymbolic(user);
-    setMathFieldLatex('main-editor', '\\arcsin\\left(\\sin\\left(x^2\\right)\\right)=\\frac{1}{2}');
+    setMathFieldLatex('main-editor', '\\arcsin\\left(\\sin\\left(x^2+x\\right)\\right)=\\frac{1}{2}');
     await user.click(screen.getByTestId('soft-action-solve'));
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
     expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
-    expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/sawtooth-style reduction/i);
+    expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/broader sawtooth-style reduction/i);
+    expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/reduced carrier/i);
     expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/x/);
   });
 
