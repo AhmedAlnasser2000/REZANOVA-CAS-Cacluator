@@ -633,7 +633,6 @@ textarea:focus-visible {
 
 .preview-math,
 .result-math,
-.history-math,
 .standby-math,
 .table-header-math {
   color: var(--lcd-ink);
@@ -644,6 +643,10 @@ textarea:focus-visible {
 .standby-math,
 .table-header-math {
   font-size: calc(1em * var(--math-scale));
+}
+
+.history-math {
+  color: inherit;
 }
 
 .result-math-supplement {

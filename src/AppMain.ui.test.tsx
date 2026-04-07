@@ -813,7 +813,9 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('display-outcome-periodic-intervals')).toHaveTextContent(/near x/i);
   });
 
-  it('keeps broader nonlinear carriers on structured periodic guidance when they exceed COMP4 templates', async () => {
+  it(
+    'renders COMP10 quadratic periodic carriers as symbolic parameterized branches',
+    async () => {
     const { user } = await renderAppMain();
 
     await user.click(screen.getByTestId('settings-toggle'));
@@ -826,11 +828,34 @@ describe('AppMain UI automation flows', () => {
     setMathFieldLatex('main-editor', '\\sin\\left(x^2+x\\right)=\\frac{1}{2}');
     await user.click(screen.getByTestId('soft-action-solve'));
 
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getByText('Periodic Family')).toBeInTheDocument();
+    expect(screen.getByText('Parameterized Family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/√/);
+      expect(screen.getByText(/Parameter constraints/i)).toBeInTheDocument();
+      expect(screen.getByTestId('display-outcome-periodic-intervals')).toHaveTextContent(/near x/i);
+    },
+    15000,
+  );
+
+  it('keeps broader mixed polynomial periodic carriers on structured guidance after COMP10', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-rad'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\sin\\left(x^3+x\\right)=\\frac{1}{2}');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
     await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
     expect(screen.getByText('Periodic Family')).toBeInTheDocument();
     expect(screen.getByText('Composition Branch')).toBeInTheDocument();
     expect(screen.getByTestId('display-outcome-error')).toHaveTextContent(/recognized periodic family/i);
-    expect(screen.getByTestId('display-outcome-periodic-family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-periodic-family')).toHaveTextContent(/x\^3\+x/i);
   });
 
   it('renders COMP3 tan-log composition families symbolically with interval guidance', async () => {
@@ -1055,7 +1080,7 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('display-outcome-periodic-piecewise')).toHaveTextContent(/arcsin/);
   });
 
-  it('keeps broader polynomial sawtooth carriers on structured guidance after COMP9', async () => {
+  it('renders COMP10 quadratic sawtooth carriers as exact families with piecewise details', async () => {
     const { user } = await renderAppMain();
 
     await user.click(screen.getByTestId('settings-toggle'));
@@ -1068,10 +1093,50 @@ describe('AppMain UI automation flows', () => {
     setMathFieldLatex('main-editor', '\\arcsin\\left(\\sin\\left(x^2+x\\right)\\right)=\\frac{1}{2}');
     await user.click(screen.getByTestId('soft-action-solve'));
 
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
+    expect(screen.getByText('Parameterized Family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/√/);
+    expect(screen.getByTestId('display-outcome-periodic-piecewise')).toHaveTextContent(/arcsin/);
+    expect(screen.getByText(/Parameter constraints/i)).toBeInTheDocument();
+  });
+
+  it('renders COMP10 shifted-power sawtooth carriers exactly', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-deg'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\arctan\\left(\\tan\\left((2x+1)^2+3\\right)\\right)=30');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
+    expect(screen.getByText('Parameterized Family')).toBeInTheDocument();
+    expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/180k\+27/);
+    expect(screen.getByTestId('display-outcome-periodic-piecewise')).toHaveTextContent(/arctan/);
+  });
+
+  it('keeps broader polynomial sawtooth carriers on structured guidance after COMP10', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-rad'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\arcsin\\left(\\sin\\left(x^3+x\\right)\\right)=\\frac{1}{2}');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
     await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
     expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
     expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/broader sawtooth-style reduction/i);
-    expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/reduced carrier/i);
     expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/x/);
   });
 

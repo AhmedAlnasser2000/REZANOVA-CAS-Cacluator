@@ -745,7 +745,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.exactLatex ?? '').toContain('360k');
   });
 
-  it('keeps broader nonlinear carriers like sin(x^2+x)=1/2 as recognized but unresolved', () => {
+  it('solves quadratic periodic carriers like sin(x^2+x)=1/2 as symbolic parameterized branches', () => {
     const result = runGuardedEquationSolve({
       ...request,
       angleUnit: 'rad',
@@ -753,13 +753,32 @@ describe('runGuardedEquationSolve', () => {
       resolvedLatex: '\\sin\\left(x^2+x\\right)=\\frac{1}{2}',
     });
 
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected quadratic periodic-family success');
+    }
+    expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt');
+    expect(result.exactLatex ?? '').toContain('2\\pi k');
+    expect(result.periodicFamily?.parameterConstraintLatex?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it('keeps broader mixed polynomial carriers like sin(x^3+x)=1/2 as recognized but unresolved', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sin\\left(x^3+x\\right)=\\frac{1}{2}',
+      resolvedLatex: '\\sin\\left(x^3+x\\right)=\\frac{1}{2}',
+    });
+
     expect(result.kind).toBe('error');
     if (result.kind !== 'error') {
-      throw new Error('Expected unresolved nonlinear carrier guidance');
+      throw new Error('Expected unresolved broader polynomial carrier guidance');
     }
     expect(result.solveBadges).toContain('Periodic Family');
     expect(result.error).toContain('recognized periodic family');
-    expect(result.exactLatex ?? '').toContain('x^2+x');
+    expect(result.exactLatex ?? '').toContain('x^3+x');
   });
 
   it('keeps inverse-trig follow-ons outside the affine/power templates recognized but unresolved', () => {
@@ -1017,7 +1036,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.exactLatex ?? '').toContain('360k');
   });
 
-  it('keeps broader polynomial inverse/direct trig sawtooth identities on structured guidance', () => {
+  it('closes quadratic inverse/direct trig sawtooth identities exactly', () => {
     const result = runGuardedEquationSolve({
       ...request,
       angleUnit: 'rad',
@@ -1025,12 +1044,85 @@ describe('runGuardedEquationSolve', () => {
       resolvedLatex: '\\arcsin\\left(\\sin\\left(x^2+x\\right)\\right)=\\frac{1}{2}',
     });
 
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected quadratic sawtooth exact closure');
+    }
+    expect(result.solveBadges).toContain('Principal Range');
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt');
+    expect(result.periodicFamily?.piecewiseBranches?.length ?? 0).toBeGreaterThan(1);
+  });
+
+  it('closes shifted quadratic inverse/direct trig sawtooth identities exactly', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\arctan\\left(\\tan\\left((2x+1)^2+3\\right)\\right)=30',
+      resolvedLatex: '\\arctan\\left(\\tan\\left((2x+1)^2+3\\right)\\right)=30',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected shifted quadratic sawtooth exact closure');
+    }
+    expect(result.solveBadges).toContain('Principal Range');
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('180k+27');
+    expect(result.periodicFamily?.piecewiseBranches?.[0]?.resultLatex ?? '').toContain('\\arctan');
+  });
+
+  it('closes shifted cubic periodic carriers like sin((2x+1)^3+5)=0 exactly', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\sin\\left((2x+1)^3+5\\right)=0',
+      resolvedLatex: '\\sin\\left((2x+1)^3+5\\right)=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected shifted cubic periodic-family success');
+    }
+    expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt[3]');
+  });
+
+  it('closes shifted fourth-power periodic carriers exactly', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'deg',
+      originalLatex: '\\sin\\left((x+1)^4+5\\right)=0',
+      resolvedLatex: '\\sin\\left((x+1)^4+5\\right)=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected shifted fourth-power periodic-family success');
+    }
+    expect(result.solveBadges).toContain('Periodic Family');
+    expect(result.solveBadges).toContain('Parameterized Family');
+    expect(result.exactLatex ?? '').toContain('\\sqrt[4]');
+    expect(result.periodicFamily?.parameterConstraintLatex?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it('keeps broader polynomial inverse/direct trig sawtooth identities on structured guidance', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\arcsin\\left(\\sin\\left(x^3+x\\right)\\right)=\\frac{1}{2}',
+      resolvedLatex: '\\arcsin\\left(\\sin\\left(x^3+x\\right)\\right)=\\frac{1}{2}',
+    });
+
     expect(result.kind).toBe('error');
     if (result.kind !== 'error') {
       throw new Error('Expected broader polynomial sawtooth guidance');
     }
     expect(result.solveBadges).toContain('Principal Range');
-    expect(result.periodicFamily?.reducedCarrierLatex).toContain('x^2+x');
+    expect(result.periodicFamily?.reducedCarrierLatex).toContain('x^3+x');
     expect(result.error).toContain('parameterized nonlinear');
   });
 

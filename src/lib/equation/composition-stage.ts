@@ -532,6 +532,233 @@ function buildScalarNode(numerator: number, denominator = 1): unknown {
   return ['Rational', numerator, denominator];
 }
 
+type ExactScalar = {
+  numerator: number;
+  denominator: number;
+};
+
+type PolynomialTerms = Map<number, ExactScalar>;
+
+function greatestCommonDivisor(left: number, right: number) {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+  while (b !== 0) {
+    const next = a % b;
+    a = b;
+    b = next;
+  }
+  return a || 1;
+}
+
+function normalizeExactScalar(value: ExactScalar): ExactScalar {
+  if (value.denominator === 0) {
+    return value;
+  }
+
+  if (value.numerator === 0) {
+    return { numerator: 0, denominator: 1 };
+  }
+
+  const sign = value.denominator < 0 ? -1 : 1;
+  const numerator = value.numerator * sign;
+  const denominator = Math.abs(value.denominator);
+  const divisor = greatestCommonDivisor(numerator, denominator);
+  return {
+    numerator: numerator / divisor,
+    denominator: denominator / divisor,
+  };
+}
+
+function negateExactScalar(value: ExactScalar): ExactScalar {
+  return {
+    numerator: -value.numerator,
+    denominator: value.denominator,
+  };
+}
+
+function addExactScalar(left: ExactScalar, right: ExactScalar): ExactScalar {
+  return normalizeExactScalar({
+    numerator: left.numerator * right.denominator + right.numerator * left.denominator,
+    denominator: left.denominator * right.denominator,
+  });
+}
+
+function multiplyExactScalar(left: ExactScalar, right: ExactScalar): ExactScalar {
+  return normalizeExactScalar({
+    numerator: left.numerator * right.numerator,
+    denominator: left.denominator * right.denominator,
+  });
+}
+
+function divideExactScalar(left: ExactScalar, right: ExactScalar): ExactScalar | null {
+  if (right.numerator === 0) {
+    return null;
+  }
+
+  return normalizeExactScalar({
+    numerator: left.numerator * right.denominator,
+    denominator: left.denominator * right.numerator,
+  });
+}
+
+function buildExactScalarNode(value: ExactScalar) {
+  return buildScalarNode(value.numerator, value.denominator);
+}
+
+function exactScalarToNumber(value: ExactScalar) {
+  return value.numerator / value.denominator;
+}
+
+function polynomialFromScalar(value: ExactScalar): PolynomialTerms {
+  return new Map<number, ExactScalar>([[0, normalizeExactScalar(value)]]);
+}
+
+function polynomialFromDegree(degree: number, coefficient: ExactScalar): PolynomialTerms {
+  return new Map<number, ExactScalar>([[degree, normalizeExactScalar(coefficient)]]);
+}
+
+function addPolynomialTerms(
+  left: PolynomialTerms,
+  right: PolynomialTerms,
+  sign: 1 | -1 = 1,
+): PolynomialTerms {
+  const result = new Map<number, ExactScalar>();
+  for (const [degree, coefficient] of left.entries()) {
+    result.set(degree, coefficient);
+  }
+
+  for (const [degree, coefficient] of right.entries()) {
+    const signed = sign === 1 ? coefficient : negateExactScalar(coefficient);
+    const current = result.get(degree);
+    const next = current ? addExactScalar(current, signed) : signed;
+    if (next.numerator === 0) {
+      result.delete(degree);
+    } else {
+      result.set(degree, next);
+    }
+  }
+
+  return result;
+}
+
+function scalePolynomialTerms(terms: PolynomialTerms, factor: ExactScalar): PolynomialTerms {
+  const result = new Map<number, ExactScalar>();
+  for (const [degree, coefficient] of terms.entries()) {
+    const next = multiplyExactScalar(coefficient, factor);
+    if (next.numerator !== 0) {
+      result.set(degree, next);
+    }
+  }
+  return result;
+}
+
+function multiplyPolynomialTerms(
+  left: PolynomialTerms,
+  right: PolynomialTerms,
+  maxDegree: number,
+): PolynomialTerms | null {
+  const result = new Map<number, ExactScalar>();
+
+  for (const [leftDegree, leftCoefficient] of left.entries()) {
+    for (const [rightDegree, rightCoefficient] of right.entries()) {
+      const degree = leftDegree + rightDegree;
+      const coefficient = multiplyExactScalar(leftCoefficient, rightCoefficient);
+      if (coefficient.numerator === 0) {
+        continue;
+      }
+      if (degree > maxDegree) {
+        return null;
+      }
+
+      const current = result.get(degree);
+      const next = current ? addExactScalar(current, coefficient) : coefficient;
+      if (next.numerator === 0) {
+        result.delete(degree);
+      } else {
+        result.set(degree, next);
+      }
+    }
+  }
+
+  return result;
+}
+
+function parsePolynomialTerms(node: unknown, maxDegree: number): PolynomialTerms | null {
+  const normalized = normalizeAst(node);
+  const scalar = readExactScalar(normalized);
+  if (scalar) {
+    return polynomialFromScalar(scalar);
+  }
+
+  if (isBareVariable(normalized)) {
+    return polynomialFromDegree(1, { numerator: 1, denominator: 1 });
+  }
+
+  if (!isNodeArray(normalized) || normalized.length === 0 || typeof normalized[0] !== 'string') {
+    return null;
+  }
+
+  const operator = normalized[0];
+  if (operator === 'Negate' && normalized.length === 2) {
+    const child = parsePolynomialTerms(normalized[1], maxDegree);
+    return child ? scalePolynomialTerms(child, { numerator: -1, denominator: 1 }) : null;
+  }
+
+  if (operator === 'Add' || operator === 'Subtract') {
+    const [first, ...rest] = normalized.slice(1);
+    const initial = parsePolynomialTerms(first, maxDegree);
+    if (!initial) {
+      return null;
+    }
+
+    return rest.reduce<PolynomialTerms | null>((current, child) => {
+      if (!current) {
+        return null;
+      }
+      const parsedChild = parsePolynomialTerms(child, maxDegree);
+      if (!parsedChild) {
+        return null;
+      }
+      return addPolynomialTerms(current, parsedChild, operator === 'Add' ? 1 : -1);
+    }, initial);
+  }
+
+  if (operator === 'Multiply') {
+    const factors = normalized.slice(1);
+    if (factors.length === 0) {
+      return null;
+    }
+
+    return factors.reduce<PolynomialTerms | null>((current, factor) => {
+      const parsedFactor = parsePolynomialTerms(factor, maxDegree);
+      if (!current || !parsedFactor) {
+        return null;
+      }
+      return multiplyPolynomialTerms(current, parsedFactor, maxDegree);
+    }, polynomialFromScalar({ numerator: 1, denominator: 1 }));
+  }
+
+  if (operator === 'Divide' && normalized.length === 3) {
+    const numerator = parsePolynomialTerms(normalized[1], maxDegree);
+    const denominator = readExactScalar(normalized[2]);
+    if (!numerator || !denominator) {
+      return null;
+    }
+    const reciprocal = divideExactScalar({ numerator: 1, denominator: 1 }, denominator);
+    return reciprocal ? scalePolynomialTerms(numerator, reciprocal) : null;
+  }
+
+  if (operator === 'Power' && normalized.length === 3 && isBareVariable(normalized[1])) {
+    const exponent = readExactScalar(normalized[2]);
+    if (!exponent || exponent.denominator !== 1 || exponent.numerator < 0 || exponent.numerator > maxDegree) {
+      return null;
+    }
+    return polynomialFromDegree(exponent.numerator, { numerator: 1, denominator: 1 });
+  }
+
+  return null;
+}
+
 function buildEquationLatex(left: unknown, right: unknown) {
   return `${boxLatex(left)}=${boxLatex(right)}`;
 }
@@ -809,7 +1036,11 @@ function substituteFamilyBranchLatex(latex: string, kValue: number) {
   if (/\\arc(?:sin|cos|tan)/.test(latex)) {
     return expression.latex;
   }
-  return expression.simplify().latex;
+  const simplified = expression.simplify();
+  if (simplified.latex.includes('NaN')) {
+    return expression.latex;
+  }
+  return simplified.latex;
 }
 
 function evaluateFamilyBranchAt(branch: SymbolicFamilyBranch, kValue: number) {
@@ -1071,6 +1302,114 @@ function matchParameterizedRationalPowerCarrier(node: unknown) {
   };
 }
 
+function matchQuadraticCarrier(node: unknown) {
+  const normalized = normalizeAst(node);
+  const terms = parsePolynomialTerms(normalized, 2);
+  if (!terms) {
+    return null;
+  }
+
+  const a = terms.get(2);
+  if (!a || a.numerator === 0) {
+    return null;
+  }
+
+  const b = terms.get(1) ?? { numerator: 0, denominator: 1 };
+  const c = terms.get(0) ?? { numerator: 0, denominator: 1 };
+
+  return {
+    a,
+    b,
+    c,
+    aNode: buildExactScalarNode(a),
+    bNode: buildExactScalarNode(b),
+    cNode: buildExactScalarNode(c),
+    aValue: exactScalarToNumber(a),
+    bValue: exactScalarToNumber(b),
+    cValue: exactScalarToNumber(c),
+  };
+}
+
+function supportsShiftedCarrierClosure(node: unknown) {
+  const parameterizedPower = matchParameterizedPowerCarrier(node);
+  if (parameterizedPower && parameterizedPower.degree >= 2 && parameterizedPower.degree <= 4) {
+    return true;
+  }
+
+  return Boolean(matchQuadraticCarrier(node));
+}
+
+function matchShiftedSupportedCarrier(node: unknown) {
+  const normalized = normalizeAst(node);
+  if (isNodeArray(normalized) && normalized[0] === 'Negate' && normalized.length === 2) {
+    const inner = normalizeAst(normalized[1]);
+    if (supportsShiftedCarrierClosure(inner)) {
+      return {
+        innerNode: inner,
+        shiftNode: 0 as unknown,
+        shiftValue: 0,
+        sign: -1 as const,
+      };
+    }
+  }
+
+  if (!isNodeArray(normalized) || normalized.length !== 3) {
+    return null;
+  }
+
+  const [operator, left, right] = normalized;
+  if (operator !== 'Add' && operator !== 'Subtract') {
+    return null;
+  }
+
+  const leftNormalized = normalizeAst(left);
+  const rightNormalized = normalizeAst(right);
+  const leftTarget = parseNumericTarget(leftNormalized);
+  const rightTarget = parseNumericTarget(rightNormalized);
+
+  if (operator === 'Add') {
+    if (rightTarget && supportsShiftedCarrierClosure(leftNormalized)) {
+      return {
+        innerNode: leftNormalized,
+        shiftNode: rightTarget.node,
+        shiftValue: rightTarget.value,
+        sign: 1 as const,
+      };
+    }
+
+    if (leftTarget && supportsShiftedCarrierClosure(rightNormalized)) {
+      return {
+        innerNode: rightNormalized,
+        shiftNode: leftTarget.node,
+        shiftValue: leftTarget.value,
+        sign: 1 as const,
+      };
+    }
+  }
+
+  if (operator === 'Subtract') {
+    if (rightTarget && supportsShiftedCarrierClosure(leftNormalized)) {
+      return {
+        innerNode: leftNormalized,
+        shiftNode: normalizeAst(['Negate', rightTarget.node]),
+        shiftValue: -rightTarget.value,
+        sign: 1 as const,
+      };
+    }
+
+    if (leftTarget && supportsShiftedCarrierClosure(rightNormalized)) {
+      return {
+        innerNode: rightNormalized,
+        shiftNode: leftTarget.node,
+        shiftValue: leftTarget.value,
+        sign: -1 as const,
+      };
+    }
+  }
+
+  return null;
+}
+
 function buildNthRootNode(node: unknown, degree: number) {
   if (degree === 2) {
     return normalizeAst(['Sqrt', node]);
@@ -1223,6 +1562,70 @@ function buildParameterizedRationalPowerBranches(
     branches: dedupeSymbolicFamilyBranches(transformedBranches),
     parameterConstraintLatex: dedupe(parameterConstraints),
     domainConstraints,
+  };
+}
+
+function buildShiftedCarrierBranches(
+  carrier: NonNullable<ReturnType<typeof matchShiftedSupportedCarrier>>,
+  branches: SymbolicFamilyBranch[],
+) {
+  return branches.map((branch) => {
+    const node = carrier.sign === 1
+      ? normalizeAst(['Subtract', branch.node, carrier.shiftNode])
+      : normalizeAst(['Subtract', carrier.shiftNode, branch.node]);
+    const representativeValue = carrier.sign === 1
+      ? branch.representativeValue - carrier.shiftValue
+      : carrier.shiftValue - branch.representativeValue;
+    return buildSymbolicFamilyBranchFromNode(node, representativeValue);
+  });
+}
+
+function buildQuadraticBranches(
+  carrier: NonNullable<ReturnType<typeof matchQuadraticCarrier>>,
+  branches: SymbolicFamilyBranch[],
+) {
+  const transformedBranches: SymbolicFamilyBranch[] = [];
+  const parameterConstraints: string[] = [];
+  const negativeBNode = normalizeAst(['Negate', carrier.bNode]);
+  const twoANode = buildExactScalarNode(multiplyExactScalar(carrier.a, { numerator: 2, denominator: 1 }));
+  const bSquaredNode = normalizeAst(['Power', carrier.bNode, 2]);
+  const fourANode = buildExactScalarNode(multiplyExactScalar(carrier.a, { numerator: 4, denominator: 1 }));
+
+  for (const branch of branches) {
+    const cMinusTargetNode = normalizeAst(['Subtract', carrier.cNode, branch.node]);
+    const discriminantNode = normalizeAst(['Subtract', bSquaredNode, ['Multiply', fourANode, cMinusTargetNode]]);
+    const discriminantTarget = parseNumericTarget(discriminantNode);
+    if (discriminantTarget && discriminantTarget.value < -EPSILON) {
+      continue;
+    }
+
+    if (!discriminantTarget) {
+      parameterConstraints.push(`${boxLatex(discriminantNode)}\\ge0`);
+    }
+
+    const discriminantValue = carrier.bValue * carrier.bValue
+      - 4 * carrier.aValue * (carrier.cValue - branch.representativeValue);
+    const sqrtRepresentative = discriminantValue >= -EPSILON
+      ? Math.sqrt(Math.max(0, discriminantValue))
+      : Number.NaN;
+    const denominator = 2 * carrier.aValue;
+
+    const positiveNode = normalizeAst(['Divide', ['Add', negativeBNode, ['Sqrt', discriminantNode]], twoANode]);
+    const negativeNode = normalizeAst(['Divide', ['Subtract', negativeBNode, ['Sqrt', discriminantNode]], twoANode]);
+
+    transformedBranches.push(buildSymbolicFamilyBranchFromNode(
+      positiveNode,
+      Number.isFinite(sqrtRepresentative) ? ((-carrier.bValue + sqrtRepresentative) / denominator) : Number.NaN,
+    ));
+    transformedBranches.push(buildSymbolicFamilyBranchFromNode(
+      negativeNode,
+      Number.isFinite(sqrtRepresentative) ? ((-carrier.bValue - sqrtRepresentative) / denominator) : Number.NaN,
+    ));
+  }
+
+  return {
+    branches: dedupeSymbolicFamilyBranches(transformedBranches),
+    parameterConstraintLatex: dedupe(parameterConstraints),
   };
 }
 
@@ -2459,6 +2862,18 @@ function resolveCarrierPeriodicFamily(
     };
   }
 
+  const shiftedCarrier = matchShiftedSupportedCarrier(normalized);
+  if (shiftedCarrier) {
+    return resolveCarrierPeriodicFamily(
+      shiftedCarrier.innerNode,
+      buildShiftedCarrierBranches(shiftedCarrier, branches),
+      angleUnit,
+      constraints,
+      supplementLatex,
+      periodicNestingDepth,
+    );
+  }
+
   const parameterizedPower = matchParameterizedPowerCarrier(normalized);
   if (parameterizedPower) {
     const transformed = buildParameterizedPowerBranches(parameterizedPower, branches);
@@ -2518,6 +2933,38 @@ function resolveCarrierPeriodicFamily(
         transformed.parameterConstraintLatex,
       ),
       domainConstraints: mergedConstraints,
+      supplementLatex,
+      summaryText: '',
+      solveBadges: ['Parameterized Family'],
+    };
+  }
+
+  const quadraticCarrier = matchQuadraticCarrier(normalized);
+  if (quadraticCarrier) {
+    const transformed = buildQuadraticBranches(quadraticCarrier, branches);
+    if (transformed.branches.length === 0) {
+      return {
+        kind: 'guided',
+        family: buildPeriodicFamilyInfo('x', [], constraints, angleUnit, 'x'),
+        error: 'No real solutions remain because this quadratic periodic family requires a negative discriminant in the real domain.',
+        domainConstraints: constraints,
+        supplementLatex,
+        summaryText: '',
+        solveBadges: ['Parameterized Family'],
+      };
+    }
+
+    return {
+      kind: 'solved',
+      family: buildPeriodicFamilyInfo(
+        'x',
+        transformed.branches,
+        constraints,
+        angleUnit,
+        'x',
+        transformed.parameterConstraintLatex,
+      ),
+      domainConstraints: constraints,
       supplementLatex,
       summaryText: '',
       solveBadges: ['Parameterized Family'],

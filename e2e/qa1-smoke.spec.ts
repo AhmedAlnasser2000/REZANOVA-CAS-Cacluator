@@ -575,13 +575,28 @@ test('COMP4 smoke solves nonlinear-in-k periodic carriers symbolically', async (
   await expect(page.getByTestId('display-outcome-periodic-intervals')).toContainText(/near x/i);
 });
 
-test('COMP4 smoke keeps broader nonlinear carriers on structured periodic guidance', async ({ page }) => {
+test('COMP10 smoke solves quadratic periodic carriers symbolically', async ({ page }) => {
   await openSettingsPanel(page);
   await page.getByTestId('settings-angle-unit-rad').click();
   await page.getByTestId('side-surface-overlay-backdrop').click();
 
   await openEquationSymbolic(page);
   await setMathFieldLatex(page, '\\sin\\left(x^2+x\\right)=\\frac{1}{2}');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByTestId('display-outcome-periodic-family')).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Parameterized Family' })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText(/√/);
+});
+
+test('COMP10 smoke keeps broader mixed polynomial periodic carriers on structured guidance', async ({ page }) => {
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-rad').click();
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\sin\\left(x^3+x\\right)=\\frac{1}{2}');
   await page.getByTestId('soft-action-solve').click();
 
   await expect(page.getByTestId('display-outcome-error')).toBeVisible();
@@ -728,7 +743,7 @@ test('COMP9 smoke renders mixed-carrier sawtooth closure for power-form carriers
   await expect(page.getByTestId('display-outcome-periodic-piecewise')).toContainText(/arcsin/);
 });
 
-test('COMP9 smoke keeps broader polynomial sawtooth carriers on structured guidance', async ({ page }) => {
+test('COMP10 smoke renders quadratic sawtooth closure for mixed polynomial carriers', async ({ page }) => {
   await openSettingsPanel(page);
   await page.getByTestId('settings-angle-unit-rad').click();
   await page.getByTestId('side-surface-overlay-backdrop').click();
@@ -737,11 +752,40 @@ test('COMP9 smoke keeps broader polynomial sawtooth carriers on structured guida
   await setMathFieldLatex(page, '\\arcsin\\left(\\sin\\left(x^2+x\\right)\\right)=\\frac{1}{2}');
   await page.getByTestId('soft-action-solve').click();
 
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Principal Range' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Parameterized Family' })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText(/√/);
+  await expect(page.getByTestId('display-outcome-periodic-piecewise')).toContainText(/arcsin/);
+});
+
+test('COMP10 smoke renders shifted-power sawtooth closure', async ({ page }) => {
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-deg').click();
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\arctan\\left(\\tan\\left((2x+1)^2+3\\right)\\right)=30');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Principal Range' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Parameterized Family' })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText(/180k\+27/);
+});
+
+test('COMP10 smoke keeps broader polynomial sawtooth carriers on structured guidance', async ({ page }) => {
+  await openSettingsPanel(page);
+  await page.getByTestId('settings-angle-unit-rad').click();
+  await page.getByTestId('side-surface-overlay-backdrop').click();
+
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\arcsin\\left(\\sin\\left(x^3+x\\right)\\right)=\\frac{1}{2}');
+  await page.getByTestId('soft-action-solve').click();
+
   await expect(page.getByTestId('display-outcome-error')).toBeVisible();
   await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Principal Range' })).toBeVisible();
   await expect(page.getByTestId('display-outcome-periodic-structured-stop')).toContainText(/broader sawtooth-style reduction/i);
-  await expect(page.getByTestId('display-outcome-periodic-structured-stop')).toContainText(/reduced carrier/i);
-  await expect(page.getByTestId('display-outcome-periodic-structured-stop')).toContainText(/x/);
 });
 
 test('Equation numeric interval smoke can follow up unresolved composition guidance with a valid interval', async ({ page }) => {

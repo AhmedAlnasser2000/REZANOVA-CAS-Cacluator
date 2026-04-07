@@ -27,6 +27,7 @@ import { compositionSolve } from '../composition-stage';
 const MAX_RECURSION_DEPTH = 4;
 const ce = new ComputeEngine();
 const NUMERIC_MATCH_TOLERANCE = 1e-6;
+const DIRECT_TRIG_OPERATORS = new Set(['Sin', 'Cos', 'Tan', 'Sec', 'Csc', 'Cot']);
 
 function isMathJsonArray(node: unknown): node is unknown[] {
   return Array.isArray(node);
@@ -40,6 +41,63 @@ function isZeroNode(node: unknown) {
       && node.length === 3
       && node[1] === 0
     );
+}
+
+function isNumericConstantNode(node: unknown): boolean {
+  if (typeof node === 'number') {
+    return Number.isFinite(node);
+  }
+
+  if (typeof node === 'object' && node !== null && 'num' in node) {
+    const value = Number((node as { num: string }).num);
+    return Number.isFinite(value);
+  }
+
+  if (typeof node === 'string') {
+    return node === 'Pi' || node === 'ExponentialE';
+  }
+
+  if (!isMathJsonArray(node) || node.length === 0) {
+    return false;
+  }
+
+  return node.slice(1).every((child) => isNumericConstantNode(child));
+}
+
+function containsSolveVariable(node: unknown, variable = 'x'): boolean {
+  if (typeof node === 'string') {
+    return node === variable;
+  }
+
+  if (!isMathJsonArray(node) || node.length === 0) {
+    return false;
+  }
+
+  return node.slice(1).some((child) => containsSolveVariable(child, variable));
+}
+
+function isDirectTrigExpression(node: unknown) {
+  return isMathJsonArray(node)
+    && typeof node[0] === 'string'
+    && DIRECT_TRIG_OPERATORS.has(node[0])
+    && node.length >= 2;
+}
+
+function shouldSkipDirectSymbolicSolve(equationLatex: string) {
+  try {
+    const parsed = ce.parse(equationLatex).json;
+    if (!isMathJsonArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
+      return false;
+    }
+
+    const [, left, right] = parsed;
+    return (
+      (isDirectTrigExpression(left) && containsSolveVariable(right) && !isNumericConstantNode(right))
+      || (isDirectTrigExpression(right) && containsSolveVariable(left) && !isNumericConstantNode(left))
+    );
+  } catch {
+    return false;
+  }
 }
 
 function mergeDomainConstraints(
@@ -299,6 +357,25 @@ function runGuardedEquationSolve(
   trail = new Set<string>(),
 ): DisplayOutcome {
   const preparedRequest = prepareAlgebraSolveRequest(request);
+  let symbolicCache: ReturnType<typeof runExpressionAction> | null = null;
+  const getSymbolic = () => {
+    if (symbolicCache) {
+      return symbolicCache;
+    }
+
+    symbolicCache = runExpressionAction(
+      {
+        mode: 'equation',
+        document: { latex: preparedRequest.resolvedLatex },
+        angleUnit: preparedRequest.angleUnit,
+        outputStyle: preparedRequest.outputStyle,
+        variables: { Ans: preparedRequest.ansLatex },
+      },
+      'solve',
+    );
+
+    return symbolicCache;
+  };
   const stateKey = equationStateKey(preparedRequest.resolvedLatex);
   if (trail.has(stateKey)) {
     return attachAlgebraMetadata(errorOutcome(
@@ -308,24 +385,13 @@ function runGuardedEquationSolve(
   }
   trail.add(stateKey);
 
-  const symbolic = runExpressionAction(
-    {
-      mode: 'equation',
-      document: { latex: preparedRequest.resolvedLatex },
-      angleUnit: preparedRequest.angleUnit,
-      outputStyle: preparedRequest.outputStyle,
-      variables: { Ans: preparedRequest.ansLatex },
-    },
-    'solve',
-  );
-
   const rangeImpossibility = detectRealRangeImpossibility(preparedRequest.resolvedLatex);
 
   if (rangeImpossibility.kind === 'impossible') {
     return attachAlgebraMetadata(errorOutcome(
       'Solve',
       rangeImpossibility.error,
-      symbolic.warnings,
+      [],
       [],
       ['Range Guard'],
       rangeImpossibility.summaryText,
@@ -394,6 +460,14 @@ function runGuardedEquationSolve(
     return attachAlgebraMetadata(substituted, request.resolvedLatex, preparedRequest);
   }
 
+  if (shouldSkipDirectSymbolicSolve(preparedRequest.resolvedLatex)) {
+    return attachAlgebraMetadata(errorOutcome(
+      'Solve',
+      UNSUPPORTED_FAMILY_ERROR,
+    ), request.resolvedLatex, preparedRequest);
+  }
+
+  const symbolic = getSymbolic();
   if (!symbolic.error && symbolic.exactLatex && !hasNonFiniteRawSolutions(symbolic)) {
     const validated = validateDirectSymbolicOutcome(preparedRequest, symbolic);
     return attachAlgebraMetadata(validated ?? successOutcome(

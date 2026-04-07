@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `COMP10` as the quadratic and shifted-power carrier-closure milestone:
+  - extended the bounded single-parameter periodic carrier resolver to finish normalized quadratic carriers `ax^2+bx+c = \alpha+\beta k` exactly, including symbolic quadratic-form branches and discriminant-based parameter constraints when they remain in the real domain
+  - broadened shifted-power closure to `(ax+b)^n+c` for bounded integer powers `n=2..4`, reusing the existing parameterized power/rational-power machinery after constant-shift normalization instead of stopping early on additive shifts
+  - reused the same broadened carrier resolver on both plain periodic families and inverse/direct trig sawtooth windows, so cases like `\sin(x^2+x)=\frac{1}{2}`, `\arcsin(\sin(x^2+x))=\frac{1}{2}`, `\arccos(\cos(x^2+1))=45`, and `\arctan(\tan((2x+1)^2+3))=30` now finish symbolically when they stay single-parameter and real-domain-safe
+  - kept broader polynomial carriers such as `\sin(x^3+x)=\frac{1}{2}` and `\arcsin(\sin(x^3+x))=\frac{1}{2}` on structured guidance instead of widening into general-polynomial or multi-parameter exact solving
+- Regression checks:
+  - `npm run test:gate`
 - Completed `COMP9` as the mixed-carrier inverse/direct trig sawtooth-closure milestone:
   - generalized `COMP8` sawtooth closure so inverse/direct trig branch windows now hand off into the broader single-parameter carrier resolver instead of stopping at affine-only carriers
   - reused current bounded exact follow-on families for power-form, logarithmic, and exponential carriers after sawtooth windowing, including cases like `\arcsin(\sin(x^2))=30`, `\arcsin(\sin(\ln(x+1)))=30`, and `\arctan(\tan(e^x))=45`
@@ -281,6 +288,9 @@
   - parameterized periodic follow-on solving is limited to affine carriers and pure power-form carriers `(ax+b)^n` with integer `n` from `2` to `6`
   - inverse-trig expansion is limited to `arcsin`, `arccos`, and `arctan`, each with one bounded outer inversion plus one supported follow-on handoff
   - broader polynomial carriers like `x^2+x`, nonlinear solving in both `x` and `k`, unrestricted inverse-trig nesting, and complex-domain solving remain deferred
+- `COMP10` is intentionally bounded:
+  - normalized quadratics `ax^2+bx+c` and shifted powers `(ax+b)^n+c` for integer `n=2..4` may now close through the single-parameter periodic/sawtooth carrier resolver
+  - broader polynomial families beyond true quadratics, mixed polynomial sums outside shifted-power templates, and multi-parameter periodic exact closure remain deferred
 - `NP1` numeric output controls are display-only:
   - internal solver precision / effort is still app-managed
   - scientific notation preferences do not change Equation or Calculate solver breadth
@@ -334,13 +344,21 @@
   - `.memory/research/TRACK-PRL4-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- The `PRL1`-`PRL4` stack plus `COMP1`-`COMP7` are now shipped end-to-end.
+- The `PRL1`-`PRL4` stack plus `COMP1`-`COMP10` are now shipped end-to-end.
 - Best next discussion point:
-  1. choose which explicit post-`COMP5` lane starts first:
-     - `COMP8` for affine inverse/direct trig sawtooth closure in Equation
+  1. choose whether the next milestone stays in the Equation composition lane:
+     - `COMP11` for the next bounded post-`COMP10` carrier/closure step
      - `CALC-COMP1` for bounded substitution-style antiderivatives
 
 ## Recent Verified Context
+- Post-`COMP10` cleanup is now verified:
+  - guarded Equation solve no longer eagerly calls Compute Engine symbolic solve before bounded stages, and unsupported direct-trig variable-target equations no longer trigger the old stderr rule-check noise during test/runtime handoff flows
+  - the History side panel now renders stored expression math in readable panel text color instead of inheriting the darker LCD-ink styling
+- `COMP10` quadratic and shifted-power carrier closure is now verified in `Equation > Symbolic`:
+  - plain periodic carriers such as `\sin(x^2+x)=\frac{1}{2}` now finish as symbolic parameterized families with quadratic-form exact branches and discriminant-aware parameter constraints
+  - inverse/direct trig sawtooth cases such as `\arcsin(\sin(x^2+x))=\frac{1}{2}` and `\arctan(\tan((2x+1)^2+3))=30` now reuse the same broadened carrier resolver instead of stopping at the old affine/mixed-carrier boundary
+  - shifted cubic and fourth-power carriers with additive constants can now finish when they normalize cleanly back into the existing bounded power-family surface
+  - broader polynomial carriers outside normalized quadratic or shifted-power templates still stop honestly with structured reduced-carrier guidance
 - Equation numeric interval solving now respects `RAD` / `DEG` / `GRAD` consistently across residual checks, candidate validation, and interval search.
 - When a direct trig numeric interval miss is explainable, Equation now reports the sampled inner-image range and the current-unit branch family the user should search next, which makes periodic misses like `tan(ln(x+1))=1` in `DEG` / `GRAD` actionable instead of opaque.
 - Shared numeric entry now accepts scientific notation as well as plain decimals, and the Equation numeric interval form is verified end-to-end with large values entered as `3e19`-style input.
