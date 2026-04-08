@@ -33,6 +33,15 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `RAD1` as the shared radical-core and bounded visible-normalization milestone:
+  - added `src/lib/radical-core.ts` as the canonical app-owned recognition layer for bounded radicals, centralizing supported-radicand recognition, condition generation, perfect-square quadratic detection through the shared polynomial core, and bounded one-step conjugate/rationalization eligibility
+  - refactored `src/lib/symbolic-engine/radical.ts` to consume the shared core and ship visible exact normalization wins in read-only surfaces, including `\sqrt{x^2+2x+1}\to|x+1|`, scalar-times-square affine collapse such as `\sqrt{9(x+1)^2}\to3|x+1|`, and bounded two-radical denominator rationalization like `1/(\sqrt{x+1}+\sqrt{x})`
+  - refactored `src/lib/equation/guarded/algebra-stage.ts` to reuse the same shared radical recognition and conjugate-eligibility helpers while explicitly keeping Equation solve scope conservative: no new automatic `\sqrt{(... )^2}\to|...|` preprocessing and no widened multi-radical solve families in this milestone
+  - fixed guarded algebra supplement assembly so repeated transform-domain constraints no longer show up twice as both `Exclusions:` and `Conditions:` lines when the same bounded restriction was already preserved earlier in the solve request
+- Regression checks:
+  - `npm run test:unit -- src/lib/modes/equation.test.ts src/lib/symbolic-engine/radical.test.ts src/lib/math-engine.test.ts src/lib/equation/shared-solve.test.ts`
+  - `npm run lint`
+  - `npm run test:gate`
 - Completed `POLY2` as the bounded exact cubic/quartic factor-and-solve milestone:
   - added `src/lib/polynomial-factor-solve.ts` as the shared bounded exact factor/solve layer on top of `POLY1`, with denominator clearing to primitive integer form, rational-root-theorem search, exact linear division, quartic biquadratic recognition, and bounded quartic factor-into-quadratics support
   - wired the same bounded engine into guided `Equation > Polynomial`, free-form `Equation > Symbolic`, and `Calculate > Factor` so supported cubic/quartic families now resolve exactly through one shared factor-first path instead of separate feature-local logic

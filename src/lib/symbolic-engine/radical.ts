@@ -1,5 +1,18 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import type { SolveDomainConstraint } from '../../types/calculator';
+import type { ExactScalar } from '../polynomial-core';
+import {
+  buildConditionSupplementLatex,
+  buildSquareRootConjugateProfile,
+  detectSingleVariable,
+  expressionHasVariable,
+  mergeSolveDomainConstraints as mergeConstraints,
+  needsEvenRootConstraint,
+  parseInteger,
+  parseMonomial,
+  recognizePerfectSquareRadicand,
+  type Monomial,
+} from '../radical-core';
 import {
   boxLatex,
   flattenAdd,
@@ -10,20 +23,8 @@ import {
 import { normalizeAst } from './normalize';
 
 const ce = new ComputeEngine();
-const NUMERIC_CONSTANT_SYMBOLS = new Set(['Pi', 'ExponentialE']);
-
-type ExactScalar = {
-  numerator: number;
-  denominator: number;
-};
 
 type RadicalNormalizationMode = 'simplify' | 'factor' | 'expand' | 'equation';
-
-type Monomial = {
-  scalar: ExactScalar;
-  variable?: string;
-  exponent: number;
-};
 
 type NormalizedNodeResult = {
   node: unknown;
@@ -91,17 +92,6 @@ function multiplyScalars(left: ExactScalar, right: ExactScalar): ExactScalar | n
   );
 }
 
-function divideScalars(left: ExactScalar, right: ExactScalar): ExactScalar | null {
-  if (right.numerator === 0) {
-    return null;
-  }
-
-  return normalizeScalar(
-    left.numerator * right.denominator,
-    left.denominator * right.numerator,
-  );
-}
-
 function powerScalar(scalar: ExactScalar, exponent: number): ExactScalar | null {
   if (!Number.isInteger(exponent) || exponent < 0) {
     return null;
@@ -153,6 +143,10 @@ function buildScalarNode(scalar: ExactScalar): unknown {
   return ['Rational', scalar.numerator, scalar.denominator];
 }
 
+function simplifyNode(node: unknown) {
+  return normalizeAst(ce.box(node as Parameters<typeof ce.box>[0]).simplify().json);
+}
+
 function buildPowerNode(base: unknown, exponent: number) {
   if (exponent === 1) {
     return base;
@@ -186,74 +180,6 @@ function buildRootNode(index: number, radicand: unknown) {
   return index === 2 ? ['Sqrt', radicand] : ['Root', radicand, index];
 }
 
-function collectVariables(node: unknown, variables: Set<string>) {
-  if (typeof node === 'string') {
-    if (!NUMERIC_CONSTANT_SYMBOLS.has(node)) {
-      variables.add(node);
-    }
-    return;
-  }
-
-  if (!isNodeArray(node) || node.length === 0) {
-    return;
-  }
-
-  for (let index = 1; index < node.length; index += 1) {
-    collectVariables(node[index], variables);
-  }
-}
-
-function detectSingleVariable(node: unknown) {
-  const variables = new Set<string>();
-  collectVariables(node, variables);
-  if (variables.size > 1) {
-    return null;
-  }
-
-  return [...variables][0];
-}
-
-function expressionHasVariable(node: unknown) {
-  const variables = new Set<string>();
-  collectVariables(node, variables);
-  return variables.size > 0;
-}
-
-function mergeConstraints(
-  left: SolveDomainConstraint[] = [],
-  right: SolveDomainConstraint[] = [],
-) {
-  const merged = new Map<string, SolveDomainConstraint>();
-  for (const constraint of [...left, ...right]) {
-    const key = JSON.stringify(constraint);
-    if (!merged.has(key)) {
-      merged.set(key, constraint);
-    }
-  }
-  return [...merged.values()];
-}
-
-function buildConditionSupplement(constraints: SolveDomainConstraint[]) {
-  const supported = constraints.flatMap((constraint) => {
-    switch (constraint.kind) {
-      case 'nonzero':
-        return [`${constraint.expressionLatex}\\ne0`];
-      case 'nonnegative':
-        return [`${constraint.expressionLatex}\\ge0`];
-      case 'positive':
-        return [`${constraint.expressionLatex}>0`];
-      default:
-        return [];
-    }
-  });
-
-  if (supported.length === 0) {
-    return [] as string[];
-  }
-
-  return [`\\text{Conditions: } ${supported.join(',\\;')}`];
-}
-
 function containsRadical(node: unknown): boolean {
   if (!isNodeArray(node) || node.length === 0) {
     return false;
@@ -264,193 +190,6 @@ function containsRadical(node: unknown): boolean {
   }
 
   return node.slice(1).some((child) => containsRadical(child));
-}
-
-function parseInteger(node: unknown) {
-  if (isExactIntegerNode(node)) {
-    return node;
-  }
-
-  const scalar = readExactScalar(node);
-  return scalar && scalar.denominator === 1 ? scalar.numerator : null;
-}
-
-function combineVariables(left?: string, right?: string) {
-  if (!left) {
-    return right;
-  }
-  if (!right) {
-    return left;
-  }
-  return left === right ? left : null;
-}
-
-function parseMonomial(node: unknown): Monomial | null {
-  const normalized = normalizeAst(node);
-  const scalar = readExactScalar(normalized);
-  if (scalar) {
-    return {
-      scalar,
-      exponent: 0,
-    };
-  }
-
-  if (typeof normalized === 'string') {
-    if (NUMERIC_CONSTANT_SYMBOLS.has(normalized)) {
-      return null;
-    }
-
-    return {
-      scalar: { numerator: 1, denominator: 1 },
-      variable: normalized,
-      exponent: 1,
-    };
-  }
-
-  if (!isNodeArray(normalized) || normalized.length === 0) {
-    return null;
-  }
-
-  if (normalized[0] === 'Negate' && normalized.length === 2) {
-    const child = parseMonomial(normalized[1]);
-    if (!child) {
-      return null;
-    }
-
-    const nextScalar = multiplyScalars(child.scalar, { numerator: -1, denominator: 1 });
-    return nextScalar ? { ...child, scalar: nextScalar } : null;
-  }
-
-  if (
-    normalized[0] === 'Power'
-    && normalized.length === 3
-    && typeof normalized[1] === 'string'
-    && !NUMERIC_CONSTANT_SYMBOLS.has(normalized[1])
-  ) {
-    const exponent = parseInteger(normalized[2]);
-    if (exponent === null || exponent === 0) {
-      return null;
-    }
-
-    return {
-      scalar: { numerator: 1, denominator: 1 },
-      variable: normalized[1],
-      exponent,
-    };
-  }
-
-  if (normalized[0] === 'Multiply') {
-    let current: Monomial = { scalar: { numerator: 1, denominator: 1 }, exponent: 0 };
-
-    for (const child of normalized.slice(1)) {
-      const parsed = parseMonomial(child);
-      if (!parsed) {
-        return null;
-      }
-
-      const variable = combineVariables(current.variable, parsed.variable);
-      if (variable === null) {
-        return null;
-      }
-
-      const scalarProduct = multiplyScalars(current.scalar, parsed.scalar);
-      if (!scalarProduct) {
-        return null;
-      }
-
-      current = {
-        scalar: scalarProduct,
-        variable,
-        exponent: current.exponent + parsed.exponent,
-      };
-    }
-
-    return current;
-  }
-
-  if (normalized[0] === 'Divide' && normalized.length === 3) {
-    const left = parseMonomial(normalized[1]);
-    const right = parseMonomial(normalized[2]);
-    if (!left || !right) {
-      return null;
-    }
-
-    const variable = combineVariables(left.variable, right.variable);
-    if (variable === null) {
-      return null;
-    }
-
-    const scalarQuotient = divideScalars(left.scalar, right.scalar);
-    if (!scalarQuotient) {
-      return null;
-    }
-
-    return {
-      scalar: scalarQuotient,
-      variable,
-      exponent: left.exponent - right.exponent,
-    };
-  }
-
-  return null;
-}
-
-function parseSupportedBinomial(node: unknown) {
-  const normalized = normalizeAst(node);
-  if (!isNodeArray(normalized) || normalized[0] !== 'Add') {
-    return null;
-  }
-
-  const terms = flattenAdd(normalized);
-  if (terms.length !== 2) {
-    return null;
-  }
-
-  let variable: string | undefined;
-  for (const term of terms) {
-    const monomial = parseMonomial(term);
-    if (!monomial) {
-      return null;
-    }
-    variable = combineVariables(variable, monomial.variable) ?? undefined;
-    if (variable === undefined && monomial.variable) {
-      return null;
-    }
-  }
-
-  return {
-    node: normalized,
-    variable,
-  };
-}
-
-function isSupportedRadicandExpression(node: unknown) {
-  return Boolean(readExactScalar(node) || parseMonomial(node) || parseSupportedBinomial(node));
-}
-
-function monomialDependsOnVariable(monomial: Monomial) {
-  return Boolean(monomial.variable && monomial.exponent !== 0);
-}
-
-function isProvablyNonnegativeMonomial(monomial: Monomial) {
-  if (monomial.scalar.numerator < 0) {
-    return false;
-  }
-
-  if (!monomial.variable || monomial.exponent === 0) {
-    return true;
-  }
-
-  return Math.abs(monomial.exponent) % 2 === 0;
-}
-
-function needsEvenRootConstraint(node: unknown) {
-  const monomial = parseMonomial(node);
-  if (monomial) {
-    return monomialDependsOnVariable(monomial) && !isProvablyNonnegativeMonomial(monomial);
-  }
-
-  return Boolean(parseSupportedBinomial(node) && expressionHasVariable(node));
 }
 
 function buildMonomialNode(monomial: Monomial): unknown {
@@ -572,7 +311,7 @@ function composeQuotient(
 
   if (denominatorScalar && denominatorScalar.denominator === 1 && denominatorScalar.numerator < 0) {
     return composeQuotient(
-      normalizeAst(['Negate', numeratorNode]),
+      simplifyNode(['Negate', numeratorNode]),
       buildScalarNode({ numerator: -denominatorScalar.numerator, denominator: 1 }),
     );
   }
@@ -685,17 +424,19 @@ function normalizeMonomialRoot(
   };
 
   if (evenRoot) {
-    if (monomialDependsOnVariable(numeratorResidual) && !isProvablyNonnegativeMonomial(numeratorResidual)) {
+    const numeratorResidualNode = buildMonomialNode(numeratorResidual);
+    if (needsEvenRootConstraint(numeratorResidualNode)) {
       constraints.push({
         kind: 'nonnegative',
-        expressionLatex: boxLatex(buildMonomialNode(numeratorResidual)),
+        expressionLatex: boxLatex(numeratorResidualNode),
       });
     }
 
-    if (monomialDependsOnVariable(denominatorResidual) && !isProvablyNonnegativeMonomial(denominatorResidual)) {
+    const denominatorResidualNode = buildMonomialNode(denominatorResidual);
+    if (needsEvenRootConstraint(denominatorResidualNode)) {
       constraints.push({
         kind: 'nonnegative',
-        expressionLatex: boxLatex(buildMonomialNode(denominatorResidual)),
+        expressionLatex: boxLatex(denominatorResidualNode),
       });
     }
   }
@@ -814,45 +555,6 @@ function combineAddTerms(children: unknown[]) {
   };
 }
 
-function isSupportedConjugateOther(node: unknown, variable?: string) {
-  if (readExactScalar(node)) {
-    return true;
-  }
-
-  if (parseSupportedBinomial(node)) {
-    return true;
-  }
-
-  if (!variable) {
-    return false;
-  }
-
-  const monomial = parseMonomial(node);
-  if (!monomial || monomial.variable !== variable) {
-    return false;
-  }
-
-  return Math.abs(monomial.exponent) <= 1;
-}
-
-function matchSquareRoot(node: unknown) {
-  return isNodeArray(node) && node[0] === 'Sqrt' && node.length === 2 ? node[1] : null;
-}
-
-function decomposeSignedTerm(node: unknown) {
-  if (isNodeArray(node) && node[0] === 'Negate' && node.length === 2) {
-    return {
-      sign: -1,
-      node: node[1],
-    };
-  }
-
-  return {
-    sign: 1,
-    node,
-  };
-}
-
 function tryRationalizeMonomialDenominator(
   numerator: unknown,
   denominator: unknown,
@@ -933,43 +635,21 @@ function tryRationalizeSquareRootBinomial(
   mode: RadicalNormalizationMode,
   variable: string | undefined,
 ) {
-  if (mode !== 'simplify' || !isNodeArray(denominator) || denominator[0] !== 'Add' || denominator.length !== 3) {
+  if (mode !== 'simplify') {
     return null;
   }
 
-  const first = decomposeSignedTerm(denominator[1]);
-  const second = decomposeSignedTerm(denominator[2]);
-  const rootFirst = matchSquareRoot(first.node);
-  const rootSecond = matchSquareRoot(second.node);
-
-  const rootTerm = rootFirst !== null
-    ? { rootNode: first.node, radicand: rootFirst, sign: first.sign, other: second.node }
-    : rootSecond !== null
-      ? { rootNode: second.node, radicand: rootSecond, sign: second.sign, other: first.node }
-      : null;
-  if (!rootTerm) {
+  const profile = buildSquareRootConjugateProfile(denominator, variable);
+  if (!profile) {
     return null;
   }
 
-  if (!isSupportedRadicandExpression(rootTerm.radicand) || !isSupportedConjugateOther(rootTerm.other, variable)) {
-    return null;
-  }
-
-  const conjugate = addChildren([
-    rootTerm.other,
-    rootTerm.sign === 1
-      ? ['Negate', rootTerm.rootNode]
-      : rootTerm.rootNode,
-  ]);
-  const numeratorProduct = buildProductNode([numerator, conjugate]);
-  const denominatorDifference = addChildren([
-    ['Power', rootTerm.other, 2],
-    ['Negate', rootTerm.radicand],
-  ]);
+  const numeratorProduct = buildProductNode([numerator, profile.conjugateNode]);
 
   return {
-    node: normalizeDivisionSign(composeQuotient(numeratorProduct, denominatorDifference)),
+    node: normalizeDivisionSign(composeQuotient(numeratorProduct, profile.denominatorProductNode)),
     rationalized: true,
+    conditionConstraints: profile.conditionConstraints,
   };
 }
 
@@ -982,27 +662,7 @@ function canApplyConjugateTransform(
     return false;
   }
 
-  const denominator = normalizeAst(normalized[2]);
-  if (!isNodeArray(denominator) || denominator[0] !== 'Add' || denominator.length !== 3) {
-    return false;
-  }
-
-  const first = decomposeSignedTerm(denominator[1]);
-  const second = decomposeSignedTerm(denominator[2]);
-  const rootFirst = matchSquareRoot(first.node);
-  const rootSecond = matchSquareRoot(second.node);
-
-  const rootTerm = rootFirst !== null
-    ? { radicand: rootFirst, other: second.node }
-    : rootSecond !== null
-      ? { radicand: rootSecond, other: first.node }
-      : null;
-
-  return Boolean(
-    rootTerm
-    && isSupportedRadicandExpression(rootTerm.radicand)
-    && isSupportedConjugateOther(rootTerm.other, variable)
-  );
+  return Boolean(buildSquareRootConjugateProfile(normalized[2], variable));
 }
 
 function normalizeNode(
@@ -1034,6 +694,18 @@ function normalizeNode(
 
   if (operator === 'Sqrt' && children.length === 1) {
     const childResult = normalizeNode(children[0], mode, variable);
+    const perfectSquare = mode !== 'equation'
+      ? recognizePerfectSquareRadicand(childResult.node)
+      : null;
+    if (perfectSquare) {
+      return {
+        node: perfectSquare.normalizedNode,
+        changed: true,
+        conditionConstraints: childResult.conditionConstraints,
+        rationalized: childResult.rationalized,
+      };
+    }
+
     const monomial = parseMonomial(childResult.node);
     const rootResult = monomial
       ? normalizeMonomialRoot(monomial, 2, mode)
@@ -1078,6 +750,18 @@ function normalizeNode(
     }
 
     const childResult = normalizeNode(children[0], mode, variable);
+    const perfectSquare = index === 2 && mode !== 'equation'
+      ? recognizePerfectSquareRadicand(childResult.node)
+      : null;
+    if (perfectSquare) {
+      return {
+        node: perfectSquare.normalizedNode,
+        changed: true,
+        conditionConstraints: childResult.conditionConstraints,
+        rationalized: childResult.rationalized,
+      };
+    }
+
     const monomial = parseMonomial(childResult.node);
     const rootResult = monomial
       ? normalizeMonomialRoot(monomial, index, mode)
@@ -1200,7 +884,16 @@ function normalizeNode(
       return {
         node: rerun.node,
         changed: true,
-        conditionConstraints: mergeConstraints(initialConstraints, mergeConstraints(denominatorCondition, rerun.conditionConstraints)),
+        conditionConstraints: mergeConstraints(
+          initialConstraints,
+          mergeConstraints(
+            denominatorCondition,
+            mergeConstraints(
+              binomialRationalized.conditionConstraints,
+              rerun.conditionConstraints,
+            ),
+          ),
+        ),
         rationalized: true,
       };
     }
@@ -1248,7 +941,7 @@ export function normalizeExactRadicalNode(
     normalizedNode,
     normalizedLatex: ce.box(normalizedNode as Parameters<typeof ce.box>[0]).latex,
     conditionConstraints,
-    exactSupplementLatex: buildConditionSupplement(conditionConstraints),
+    exactSupplementLatex: buildConditionSupplementLatex(conditionConstraints),
     rationalized: normalized.rationalized,
   };
 }

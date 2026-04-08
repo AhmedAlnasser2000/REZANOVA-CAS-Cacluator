@@ -447,6 +447,35 @@ describe('runExpressionAction', () => {
     expect(oddRoot.exactLatex).toBe('3x\\sqrt[3]{2x}')
   })
 
+  it('normalizes perfect-square quadratic radicands and two-radical denominators visibly', () => {
+    const perfectSquare = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{x^2+2x+1}' } },
+      'simplify',
+    )
+    const factorSurface = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{9(x+1)^2}' } },
+      'factor',
+    )
+    const rationalized = runExpressionAction(
+      { ...request, document: { latex: '\\frac{1}{\\sqrt{x+1}+\\sqrt{x}}' } },
+      'simplify',
+    )
+
+    expect(perfectSquare.error).toBeUndefined()
+    expect(perfectSquare.resultOrigin).toBe('symbolic-engine')
+    expect(perfectSquare.exactLatex?.replaceAll('\\left', '').replaceAll('\\right', '')).toBe('\\vert x+1\\vert')
+
+    expect(factorSurface.error).toBeUndefined()
+    expect(factorSurface.resultOrigin).toBe('symbolic-engine')
+    expect(factorSurface.exactLatex?.replaceAll('\\left', '').replaceAll('\\right', '')).toBe('3\\vert x+1\\vert')
+
+    expect(rationalized.error).toBeUndefined()
+    expect(rationalized.resultOrigin).toBe('symbolic-engine')
+    expect(rationalized.exactLatex?.replaceAll('\\left', '').replaceAll('\\right', '')).toBe('\\sqrt{x+1}-\\sqrt{x}')
+    expect(rationalized.exactSupplementLatex?.[0]).toContain('x+1\\ge0')
+    expect(rationalized.exactSupplementLatex?.[0]).toContain('x\\ge0')
+  })
+
   it('canonicalizes bounded power-root forms in simplify mode with raw power-leaning output', () => {
     const nested = runExpressionAction(
       { ...request, document: { latex: '\\sqrt[3]{\\sqrt{x}}' } },
