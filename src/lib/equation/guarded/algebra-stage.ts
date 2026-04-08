@@ -6,9 +6,11 @@ import {
   mergeSolveDomainConstraints as mergeConstraints,
   matchSupportedRadical,
   matchSupportedRationalPower,
+  recognizePerfectSquareRadicand,
   type SupportedRadical,
   type SupportedRationalPower,
 } from '../../radical-core';
+import { parseExactPolynomial } from '../../polynomial-core';
 import { normalizeAst } from '../../symbolic-engine/normalize';
 import { boxLatex, isNodeArray, termKey } from '../../symbolic-engine/patterns';
 import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
@@ -28,6 +30,10 @@ import { equationStateKey } from './state-key';
 
 const ce = new ComputeEngine();
 const PLACEHOLDER_SYMBOL = '__calcwiz_r3_u';
+const MAX_RADICAL_TRANSFORM_STEPS = 2;
+const RADICAL_STEP_BUDGET_ERROR = 'This recognized radical family would require more than two bounded radical transform steps. Use Numeric Solve with an interval in Equation mode.';
+const CONDITION_PREFIX = '\\text{Conditions: } ';
+const EXCLUSION_PREFIX = '\\text{Exclusions: } ';
 
 type ExactScalar = {
   numerator: number;
@@ -57,6 +63,11 @@ type RadicalTarget =
       power: SupportedRationalPower;
     };
 
+type AbsoluteValueTarget = {
+  targetNode: unknown;
+  base: unknown;
+};
+
 type AlgebraTransform = {
   equationLatex: string;
   branchEquations?: string[];
@@ -64,6 +75,7 @@ type AlgebraTransform = {
   solveBadges: SolveBadge[];
   solveSummaryText: string;
   unresolvedError: string;
+  radicalStepCost?: number;
 };
 
 type GuardedSolveRunner = (
@@ -251,6 +263,158 @@ function buildScaledNode(node: unknown, scalar: ExactScalar) {
   return buildProductNode(buildScalarNode(scalar), node);
 }
 
+function buildAbsoluteValueNode(node: unknown) {
+  return simplifyNode(['Abs', node]);
+}
+
+function buildNonnegativeConstraint(expression: unknown): SolveDomainConstraint {
+  return {
+    kind: 'nonnegative',
+    expressionLatex: boxLatex(expression),
+  };
+}
+
+function isSupportedAbsoluteValueExpression(node: unknown, variable: string): boolean {
+  const normalized = normalizeAst(node);
+  if (readExactScalar(normalized)) {
+    return true;
+  }
+
+  if (parseExactPolynomial(normalized, variable, 4)) {
+    return true;
+  }
+
+  return isSupportedRightSideExpression(normalized, variable);
+}
+
+function matchAbsoluteValueTarget(node: unknown, variable: string): AbsoluteValueTarget | null {
+  const normalized = normalizeAst(node);
+  if (isNodeArray(normalized) && normalized[0] === 'Abs' && normalized.length === 2) {
+    if (!isSupportedAbsoluteValueExpression(normalized[1], variable)) {
+      return null;
+    }
+
+    return {
+      targetNode: normalized,
+      base: normalized[1],
+    };
+  }
+
+  if (isNodeArray(normalized) && normalized[0] === 'Multiply' && normalized.length >= 3) {
+    const absChildren = normalized.slice(1).filter((child) =>
+      isNodeArray(child) && child[0] === 'Abs' && child.length === 2,
+    );
+    if (absChildren.length !== 1) {
+      return null;
+    }
+
+    const scalarChildren = normalized
+      .slice(1)
+      .filter((child) => child !== absChildren[0])
+      .every((child) => Boolean(readExactScalar(child)));
+    if (!scalarChildren) {
+      return null;
+    }
+
+    const absBase = (absChildren[0] as unknown[])[1];
+    if (!isSupportedAbsoluteValueExpression(absBase, variable)) {
+      return null;
+    }
+
+    return {
+      targetNode: normalized,
+      base: absBase,
+    };
+  }
+
+  if (isNodeArray(normalized) && normalized[0] === 'Divide' && normalized.length === 3) {
+    const numerator = normalizeAst(normalized[1]);
+    const denominatorScalar = readExactScalar(normalized[2]);
+    if (!denominatorScalar) {
+      return null;
+    }
+
+    const numeratorTarget = matchAbsoluteValueTarget(numerator, variable);
+    if (!numeratorTarget) {
+      return null;
+    }
+
+    return {
+      targetNode: normalized,
+      base: numeratorTarget.base,
+    };
+  }
+
+  return null;
+}
+
+function collectAbsoluteValueTargets(node: unknown, variable: string, targets: AbsoluteValueTarget[] = []) {
+  const normalized = normalizeAst(node);
+  const target = matchAbsoluteValueTarget(normalized, variable);
+  if (target) {
+    targets.push(target);
+  }
+
+  if (!isNodeArray(normalized) || normalized.length === 0) {
+    return targets;
+  }
+
+  for (const child of normalized.slice(1)) {
+    collectAbsoluteValueTargets(child, variable, targets);
+  }
+
+  return targets;
+}
+
+function matchPerfectSquareRadicalCarrier(node: unknown, variable: string) {
+  const normalized = normalizeAst(node);
+  if (
+    isNodeArray(normalized)
+    && ((normalized[0] === 'Sqrt' && normalized.length === 2)
+      || (normalized[0] === 'Root' && normalized.length === 3 && normalized[2] === 2))
+  ) {
+    const directBase =
+      isNodeArray(normalized[1])
+      && normalized[1][0] === 'Power'
+      && normalized[1].length === 3
+      && readExactScalar(normalized[1][2])?.numerator === 2
+      && readExactScalar(normalized[1][2])?.denominator === 1
+      && isSupportedAbsoluteValueExpression(normalized[1][1], variable)
+        ? normalized[1][1]
+        : null;
+    if (directBase) {
+      return {
+        targetNode: normalized,
+        absNode: buildAbsoluteValueNode(directBase),
+      };
+    }
+
+    const profile = recognizePerfectSquareRadicand(normalized[1]);
+    if (!profile || getSolveVariable(profile.absInnerNode) !== variable) {
+      return null;
+    }
+
+    return {
+      targetNode: normalized,
+      absNode: buildScaledNode(profile.absInnerNode, profile.outsideScalar),
+    };
+  }
+
+  return null;
+}
+
+function containsPlaceholder(node: unknown, placeholder: string): boolean {
+  if (node === placeholder) {
+    return true;
+  }
+
+  if (!isNodeArray(node) || node.length === 0) {
+    return false;
+  }
+
+  return node.slice(1).some((child) => containsPlaceholder(child, placeholder));
+}
+
 function parseLinearPlaceholder(node: unknown, placeholder: string): PlaceholderLinearExpression | null {
   const normalized = normalizeAst(node);
   if (normalized === placeholder) {
@@ -265,6 +429,13 @@ function parseLinearPlaceholder(node: unknown, placeholder: string): Placeholder
     return {
       a: { numerator: 0, denominator: 1 },
       remainder: buildScalarNode(scalar),
+    };
+  }
+
+  if (!containsPlaceholder(normalized, placeholder)) {
+    return {
+      a: { numerator: 0, denominator: 1 },
+      remainder: normalized,
     };
   }
 
@@ -504,6 +675,104 @@ function subtractConstraints(
   return constraints.filter((constraint) => !existingKeys.has(JSON.stringify(constraint)));
 }
 
+function getRadicalTransformDepth(request: GuardedSolveRequest) {
+  return request.radicalTransformDepth ?? 0;
+}
+
+function mergeConditionSupplementLatex(
+  existing: string[] = [],
+  constraints: SolveDomainConstraint[] = [],
+) {
+  const supplements: string[] = [];
+  const seenConditionFragments = new Set<string>();
+  const explicitExclusions = new Set<string>();
+
+  const isTautologicalConditionFragment = (fragment: string) => {
+    const operators = ['\\ge0', '>0', '\\ne0'];
+    for (const operator of operators) {
+      if (!fragment.endsWith(operator)) {
+        continue;
+      }
+
+      const expressionLatex = fragment.slice(0, -operator.length);
+      const numeric = evaluateRealNumericExpression(ce.parse(expressionLatex).json, expressionLatex);
+      if (numeric.kind !== 'success') {
+        return false;
+      }
+
+      if (operator === '\\ge0') {
+        return numeric.value >= -1e-10;
+      }
+      if (operator === '>0') {
+        return numeric.value > 1e-10;
+      }
+      return Math.abs(numeric.value) > 1e-10;
+    }
+
+    return false;
+  };
+
+  const addConditionFragments = (line: string) => {
+    const fragments = line.slice(CONDITION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean);
+    for (const fragment of fragments) {
+      if (explicitExclusions.has(fragment) || isTautologicalConditionFragment(fragment)) {
+        continue;
+      }
+      seenConditionFragments.add(fragment);
+    }
+  };
+
+  for (const line of existing) {
+    if (line.startsWith(EXCLUSION_PREFIX)) {
+      line.slice(EXCLUSION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean).forEach((entry) => explicitExclusions.add(entry));
+    }
+
+    if (line.startsWith(CONDITION_PREFIX)) {
+      addConditionFragments(line);
+      continue;
+    }
+
+    supplements.push(line);
+  }
+
+  for (const line of buildConstraintSupplementLatex(constraints)) {
+    if (line.startsWith(CONDITION_PREFIX)) {
+      addConditionFragments(line);
+      continue;
+    }
+
+    supplements.push(line);
+  }
+
+  if (seenConditionFragments.size > 0) {
+    supplements.push(`${CONDITION_PREFIX}${[...seenConditionFragments].join(',\\;')}`);
+  }
+
+  return dedupe(supplements);
+}
+
+function getSolveVariable(...nodes: unknown[]) {
+  const variables = new Set<string>();
+  const collectVariables = (node: unknown) => {
+    if (typeof node === 'string' && node !== PLACEHOLDER_SYMBOL && node !== 'Pi' && node !== 'ExponentialE') {
+      variables.add(node);
+      return;
+    }
+    if (!isNodeArray(node) || node.length === 0) {
+      return;
+    }
+    for (const child of node.slice(1)) {
+      collectVariables(child);
+    }
+  };
+
+  for (const node of nodes) {
+    collectVariables(node);
+  }
+
+  return variables.size === 1 ? [...variables][0] : 'x';
+}
+
 function isSupportedRightSideExpression(node: unknown, variable: string): boolean {
   const normalized = normalizeAst(node);
   if (readExactScalar(normalized) || isSupportedRadicand(normalized, variable)) {
@@ -607,14 +876,8 @@ function buildRadicalPowerTransform(
   const domainConstraints = [...extraConstraints];
 
   if (root.index % 2 === 0) {
-    domainConstraints.push({
-      kind: 'nonnegative',
-      expressionLatex: boxLatex(root.radicand),
-    });
-    domainConstraints.push({
-      kind: 'nonnegative',
-      expressionLatex: boxLatex(isolated),
-    });
+    domainConstraints.push(buildNonnegativeConstraint(root.radicand));
+    domainConstraints.push(buildNonnegativeConstraint(isolated));
   }
 
   return {
@@ -623,6 +886,7 @@ function buildRadicalPowerTransform(
     solveBadges: ['Radical Isolation', 'Root Isolation', 'Power Lift'],
     solveSummaryText: 'Isolated a root and applied an exact power lift',
     unresolvedError: 'This recognized radical family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+    radicalStepCost: 1,
   };
 }
 
@@ -642,21 +906,12 @@ function buildLiftedPowerTransform(
   }
 
   if (power.denominator % 2 === 0) {
-    domainConstraints.push({
-      kind: 'nonnegative',
-      expressionLatex: boxLatex(power.base),
-    });
-    domainConstraints.push({
-      kind: 'nonnegative',
-      expressionLatex: boxLatex(isolated),
-    });
+    domainConstraints.push(buildNonnegativeConstraint(power.base));
+    domainConstraints.push(buildNonnegativeConstraint(isolated));
   }
 
   if (power.denominator % 2 !== 0 && power.numerator % 2 === 0) {
-    domainConstraints.push({
-      kind: 'nonnegative',
-      expressionLatex: boxLatex(isolated),
-    });
+    domainConstraints.push(buildNonnegativeConstraint(isolated));
   }
 
   const solvedMagnitude = buildPoweredNode(isolated, inverseExponent);
@@ -679,6 +934,38 @@ function buildLiftedPowerTransform(
   };
 }
 
+function buildAbsoluteValueRadicalTransform(
+  absNode: unknown,
+  otherSide: unknown,
+): AlgebraTransform {
+  return {
+    equationLatex: `${boxLatex(absNode)}=${boxLatex(otherSide)}`,
+    solveBadges: ['Radical Isolation'],
+    solveSummaryText: 'Reduced an exact square-root square into a bounded absolute-value carrier',
+    unresolvedError: 'This recognized radical family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+    radicalStepCost: 1,
+  };
+}
+
+function buildAbsoluteValueBranchTransform(
+  base: unknown,
+  isolated: unknown,
+): AlgebraTransform {
+  const branchEquations = dedupe([
+    `${boxLatex(base)}=${boxLatex(isolated)}`,
+    `${boxLatex(base)}=${boxLatex(buildNegatedNode(isolated))}`,
+  ]);
+
+  return {
+    equationLatex: branchEquations[0],
+    branchEquations,
+    domainConstraints: [buildNonnegativeConstraint(isolated)],
+    solveBadges: [],
+    solveSummaryText: 'Branched a bounded absolute-value carrier into exact cases',
+    unresolvedError: 'This recognized radical family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+  };
+}
+
 function matchDirectRationalPowerTransform(request: GuardedSolveRequest): AlgebraTransform | null {
   const parsed = ce.parse(request.resolvedLatex).json;
   if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
@@ -687,23 +974,7 @@ function matchDirectRationalPowerTransform(request: GuardedSolveRequest): Algebr
 
   const leftNode = normalizeAst(parsed[1]);
   const rightNode = normalizeAst(parsed[2]);
-
-  const variables = new Set<string>();
-  const collectVariables = (node: unknown) => {
-    if (typeof node === 'string' && node !== 'Pi' && node !== 'ExponentialE') {
-      variables.add(node);
-      return;
-    }
-    if (!isNodeArray(node) || node.length === 0) {
-      return;
-    }
-    for (const child of node.slice(1)) {
-      collectVariables(child);
-    }
-  };
-  collectVariables(leftNode);
-  collectVariables(rightNode);
-  const variable = variables.size === 1 ? [...variables][0] : 'x';
+  const variable = getSolveVariable(leftNode, rightNode);
 
   const attempts: Array<{ target: unknown; other: unknown }> = [
     { target: leftNode, other: rightNode },
@@ -740,23 +1011,7 @@ function matchRadicalIsolationTransform(request: GuardedSolveRequest): AlgebraTr
   }
   const leftNode = normalizeAst(parsed[1]);
   const rightNode = normalizeAst(parsed[2]);
-
-  const variables = new Set<string>();
-  const collectVariables = (node: unknown) => {
-    if (typeof node === 'string' && node !== PLACEHOLDER_SYMBOL && node !== 'Pi' && node !== 'ExponentialE') {
-      variables.add(node);
-      return;
-    }
-    if (!isNodeArray(node) || node.length === 0) {
-      return;
-    }
-    for (const child of node.slice(1)) {
-      collectVariables(child);
-    }
-  };
-  collectVariables(leftNode);
-  collectVariables(rightNode);
-  const variable = variables.size === 1 ? [...variables][0] : 'x';
+  const variable = getSolveVariable(leftNode, rightNode);
 
   const supportedRoots = [
     ...collectSupportedRoots(leftNode, variable),
@@ -845,6 +1100,36 @@ function matchRadicalIsolationTransform(request: GuardedSolveRequest): AlgebraTr
   return null;
 }
 
+function matchPerfectSquareAbsoluteValueTransform(request: GuardedSolveRequest): AlgebraTransform | null {
+  const parsed = ce.parse(request.resolvedLatex).json;
+  if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
+    return null;
+  }
+
+  const leftNode = normalizeAst(parsed[1]);
+  const rightNode = normalizeAst(parsed[2]);
+  const variable = getSolveVariable(leftNode, rightNode);
+
+  const attempts: Array<{ targetSide: unknown; otherSide: unknown }> = [
+    { targetSide: leftNode, otherSide: rightNode },
+    { targetSide: rightNode, otherSide: leftNode },
+  ];
+
+  for (const attempt of attempts) {
+    const target = matchPerfectSquareRadicalCarrier(attempt.targetSide, variable);
+    if (!target || !isSupportedRightSideExpression(attempt.otherSide, variable)) {
+      continue;
+    }
+
+    const transform = buildAbsoluteValueRadicalTransform(target.absNode, attempt.otherSide);
+    if (equationStateKey(transform.equationLatex) !== equationStateKey(request.resolvedLatex)) {
+      return transform;
+    }
+  }
+
+  return null;
+}
+
 function tryRationalizeSquareRootBinomialSide(node: unknown, variable: string): AlgebraTransform | null {
   const normalized = normalizeAst(node);
   if (!isNodeArray(normalized) || normalized[0] !== 'Divide' || normalized.length !== 3) {
@@ -872,6 +1157,7 @@ function tryRationalizeSquareRootBinomialSide(node: unknown, variable: string): 
     solveBadges: ['Conjugate Transform'],
     solveSummaryText: 'Applied a conjugate to remove a square-root denominator',
     unresolvedError: 'This recognized radical conjugate family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+    radicalStepCost: 1,
   };
 }
 
@@ -925,6 +1211,51 @@ function tryCrossMultiplySingleFractionEquation(equationLatex: string, variable:
   return null;
 }
 
+function matchBoundedAbsoluteValueTransform(request: GuardedSolveRequest): AlgebraTransform | null {
+  if (getRadicalTransformDepth(request) <= 0) {
+    return null;
+  }
+
+  const parsed = ce.parse(request.resolvedLatex).json;
+  if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
+    return null;
+  }
+
+  const leftNode = normalizeAst(parsed[1]);
+  const rightNode = normalizeAst(parsed[2]);
+  const variable = getSolveVariable(leftNode, rightNode);
+
+  const attempts: Array<{ targetSide: unknown; otherSide: unknown }> = [
+    { targetSide: leftNode, otherSide: rightNode },
+    { targetSide: rightNode, otherSide: leftNode },
+  ];
+
+  for (const attempt of attempts) {
+    if (!isSupportedAbsoluteValueExpression(attempt.otherSide, variable)) {
+      continue;
+    }
+
+    const candidates = collectAbsoluteValueTargets(attempt.targetSide, variable);
+    for (const candidate of candidates) {
+      const isolatedMagnitude = buildIsolatedExpression(
+        attempt.targetSide,
+        attempt.otherSide,
+        termKey(candidate.targetNode),
+      );
+      if (!isolatedMagnitude) {
+        continue;
+      }
+
+      const transform = buildAbsoluteValueBranchTransform(candidate.base, isolatedMagnitude.isolated);
+      if (equationStateKey(transform.equationLatex) !== equationStateKey(request.resolvedLatex)) {
+        return transform;
+      }
+    }
+  }
+
+  return null;
+}
+
 function matchConjugateTransform(request: GuardedSolveRequest): AlgebraTransform | null {
   const parsed = ce.parse(request.resolvedLatex).json;
   if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
@@ -932,23 +1263,7 @@ function matchConjugateTransform(request: GuardedSolveRequest): AlgebraTransform
   }
   const leftNode = normalizeAst(parsed[1]);
   const rightNode = normalizeAst(parsed[2]);
-
-  const variables = new Set<string>();
-  const collectVariables = (node: unknown) => {
-    if (typeof node === 'string' && node !== 'Pi' && node !== 'ExponentialE') {
-      variables.add(node);
-      return;
-    }
-    if (!isNodeArray(node) || node.length === 0) {
-      return;
-    }
-    for (const child of node.slice(1)) {
-      collectVariables(child);
-    }
-  };
-  collectVariables(leftNode);
-  collectVariables(rightNode);
-  const variable = variables.size === 1 ? [...variables][0] : 'x';
+  const variable = getSolveVariable(leftNode, rightNode);
 
   const leftTransform = tryRationalizeSquareRootBinomialSide(leftNode, variable);
   if (leftTransform) {
@@ -958,6 +1273,7 @@ function matchConjugateTransform(request: GuardedSolveRequest): AlgebraTransform
       return {
         ...cleared,
         domainConstraints: mergeConstraints(leftTransform.domainConstraints, cleared.domainConstraints),
+        radicalStepCost: leftTransform.radicalStepCost,
       };
     }
     if (equationStateKey(equationLatex) !== equationStateKey(request.resolvedLatex)) {
@@ -976,6 +1292,7 @@ function matchConjugateTransform(request: GuardedSolveRequest): AlgebraTransform
       return {
         ...cleared,
         domainConstraints: mergeConstraints(rightTransform.domainConstraints, cleared.domainConstraints),
+        radicalStepCost: rightTransform.radicalStepCost,
       };
     }
     if (equationStateKey(equationLatex) !== equationStateKey(request.resolvedLatex)) {
@@ -1008,6 +1325,18 @@ function recurseTransform(
     );
   }
 
+  const nextRadicalTransformDepth = getRadicalTransformDepth(request) + (transform.radicalStepCost ?? 0);
+  if (nextRadicalTransformDepth > MAX_RADICAL_TRANSFORM_STEPS) {
+    return errorOutcome(
+      'Solve',
+      RADICAL_STEP_BUDGET_ERROR,
+      [],
+      [],
+      transform.solveBadges,
+      transform.solveSummaryText,
+    );
+  }
+
   const parentKey = equationStateKey(request.resolvedLatex);
   const branchEquations = dedupe(transform.branchEquations ?? [transform.equationLatex]).filter(
     (equationLatex) => equationStateKey(equationLatex) !== parentKey,
@@ -1025,6 +1354,7 @@ function recurseTransform(
         validationLatex: request.validationLatex ?? request.resolvedLatex,
         numericInterval: undefined,
         domainConstraints: mergeConstraints(request.domainConstraints, transform.domainConstraints),
+        radicalTransformDepth: nextRadicalTransformDepth,
       },
       depth + 1,
       new Set(trail),
@@ -1067,10 +1397,10 @@ function recurseTransform(
             transform.domainConstraints,
             request.domainConstraints,
           );
-          const supplements = dedupe([
-            ...(recursiveOutcome.exactSupplementLatex ?? []),
-            ...buildConstraintSupplementLatex(newTransformConstraints),
-          ]);
+          const supplements = mergeConditionSupplementLatex(
+            recursiveOutcome.exactSupplementLatex ?? [],
+            newTransformConstraints,
+          );
           return {
             ...recursiveOutcome,
             exactSupplementLatex: supplements.length > 0 ? supplements : undefined,
@@ -1122,11 +1452,41 @@ function algebraTransformSolve(
     }
   }
 
+  const perfectSquareAbsTransform = matchPerfectSquareAbsoluteValueTransform(request);
+  if (perfectSquareAbsTransform) {
+    const recursive = recurseTransform(
+      request,
+      perfectSquareAbsTransform,
+      depth,
+      trail,
+      maxRecursionDepth,
+      runGuardedEquationSolve,
+    );
+    if (recursive) {
+      return recursive;
+    }
+  }
+
   const radicalTransform = matchRadicalIsolationTransform(request);
   if (radicalTransform) {
     const recursive = recurseTransform(
       request,
       radicalTransform,
+      depth,
+      trail,
+      maxRecursionDepth,
+      runGuardedEquationSolve,
+    );
+    if (recursive) {
+      return recursive;
+    }
+  }
+
+  const absoluteValueTransform = matchBoundedAbsoluteValueTransform(request);
+  if (absoluteValueTransform) {
+    const recursive = recurseTransform(
+      request,
+      absoluteValueTransform,
       depth,
       trail,
       maxRecursionDepth,

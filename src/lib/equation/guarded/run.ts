@@ -29,6 +29,7 @@ const MAX_RECURSION_DEPTH = 4;
 const ce = new ComputeEngine();
 const NUMERIC_MATCH_TOLERANCE = 1e-6;
 const DIRECT_TRIG_OPERATORS = new Set(['Sin', 'Cos', 'Tan', 'Sec', 'Csc', 'Cot']);
+const CONDITION_PREFIX = '\\text{Conditions: } ';
 
 function isMathJsonArray(node: unknown): node is unknown[] {
   return Array.isArray(node);
@@ -116,7 +117,32 @@ function mergeDomainConstraints(
 }
 
 function mergeSupplementLatex(left: string[] = [], right: string[] = []) {
-  return [...new Set([...left, ...right])];
+  const supplements: string[] = [];
+  const seenConditionFragments = new Set<string>();
+
+  const addConditionFragments = (line: string) => {
+    const fragments = line.slice(CONDITION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean);
+    for (const fragment of fragments) {
+      seenConditionFragments.add(fragment);
+    }
+  };
+
+  for (const line of [...left, ...right]) {
+    if (line.startsWith(CONDITION_PREFIX)) {
+      addConditionFragments(line);
+      continue;
+    }
+
+    if (!supplements.includes(line)) {
+      supplements.push(line);
+    }
+  }
+
+  if (seenConditionFragments.size > 0) {
+    supplements.push(`${CONDITION_PREFIX}${[...seenConditionFragments].join(',\\;')}`);
+  }
+
+  return supplements;
 }
 
 function formatAcceptedApproximations(values: number[]) {

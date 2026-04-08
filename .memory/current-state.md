@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `RAD2` as the bounded sequential radical-isolation and validation milestone:
+  - extended `src/lib/equation/guarded/algebra-stage.ts` with a two-step radical-specific transform budget, so bounded same-side two-radical equations, root-vs-root-plus-affine equations, and selected nested radical families can now recurse through at most two radical transforms before handing off into existing bounded exact engines
+  - added bounded absolute-value follow-on inside the radical solve pipeline only when an exact supported radical step reaches `\sqrt{(u)^2}`, allowing cases like `\sqrt{(x+1)^2}=x+3` to branch through `|u|=v` without turning Equation preprocess into a broad radical-to-abs rewrite system
+  - preserved original-equation candidate validation, merged domain/exclusion supplements cleanly across sequential radical steps, and added a structured transform-budget stop when a path would require a third radical-specific step
+  - widened exact Equation solve coverage to families such as `\sqrt{x+1}+\sqrt{x}=3`, `\sqrt{x+1}=\sqrt{2x-1}+1`, `\sqrt{x+\sqrt{x}}=3`, and bounded radical follow-ons that reduce into shared polynomial or bounded abs families
+- Regression checks:
+  - `npm run test:gate`
 - Completed `RAD1` as the shared radical-core and bounded visible-normalization milestone:
   - added `src/lib/radical-core.ts` as the canonical app-owned recognition layer for bounded radicals, centralizing supported-radicand recognition, condition generation, perfect-square quadratic detection through the shared polynomial core, and bounded one-step conjugate/rationalization eligibility
   - refactored `src/lib/symbolic-engine/radical.ts` to consume the shared core and ship visible exact normalization wins in read-only surfaces, including `\sqrt{x^2+2x+1}\to|x+1|`, scalar-times-square affine collapse such as `\sqrt{9(x+1)^2}\to3|x+1|`, and bounded two-radical denominator rationalization like `1/(\sqrt{x+1}+\sqrt{x})`
@@ -283,6 +290,10 @@
   - CRLF only for Windows-native scripts
 
 ## Current Known Risks
+- `RAD2` is intentionally bounded:
+  - radical-specific solve depth is capped at two transform steps total
+  - bounded absolute-value solving is allowed only when introduced by an exact supported radical step such as `\sqrt{(u)^2}`
+  - broader multiradical search, unrestricted denesting, three-or-more-radical chains, and general absolute-value solving remain deferred
 - `POLY2` is intentionally factor-first and bounded:
   - exact cubic/quartic solving succeeds only when rational-root factoring, biquadratic reduction, or bounded factor-into-quadratics succeeds
   - general Cardano/Ferrari-style closed forms, irreducible quartics in radicals, higher-degree polynomials, multivariable polynomials, and decimal-driven exact recognition remain deferred
@@ -387,15 +398,14 @@
   - `.memory/research/TRACK-PRL4-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, and `POLY1`-`POLY2` polynomial lane are now shipped.
+- The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, `POLY1`-`POLY2`, and `RAD1`-`RAD2` radical lane are now shipped.
 - Strongest current architecture recommendation before more composition breadth:
   1. continue the polynomial/radical foundation lane
   2. next preferred order:
-     - `RAD1` broader bounded radical normalization
-     - `RAD2` sequential radical isolation
      - `POLY-RAD1` polynomialized radical follow-on solving
+     - then revisit whether broader composition or a dedicated bounded abs milestone is the next better leverage point
 - Reason:
-  - `POLY1` and `POLY2` removed duplicated exact polynomial parsing/arithmetic and delivered bounded exact cubic/quartic families, but broader radical normalization and follow-on radical solving are still intentionally bounded
+  - `POLY1`/`POLY2` and `RAD1`/`RAD2` now provide shared polynomial and radical substrates plus bounded sequential radical solving, so the next clean leverage point is the bridge between them rather than pushing more feature-local special cases into composition
   - continuing directly into `COMP11` would likely duplicate more algebra capability inside composition instead of strengthening reusable substrate first
 
 ## Recent Verified Context

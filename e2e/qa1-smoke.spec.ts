@@ -216,6 +216,19 @@ test('Equation smoke covers bounded conjugate solving', async ({ page }) => {
   await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('x');
 });
 
+test('RAD2 smoke solves bounded sequential radical families', async ({ page }) => {
+  await openEquationSymbolic(page);
+  await setMathFieldLatex(page, '\\sqrt{x+1}=\\sqrt{2x-1}+1');
+  await page.getByTestId('soft-action-solve').click();
+
+  await expect(page.getByTestId('display-outcome-success')).toBeVisible();
+  await expect(page.getByText('Radical Isolation', { exact: true })).toBeVisible();
+  await expect(page.getByText('Power Lift', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('display-outcome-exact')).toContainText('5');
+  await expect(page.getByTestId('display-outcome-exact')).toContainText('√');
+  await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('2x');
+});
+
 test('POLY2 smoke renders guided quartic exact roots through the bounded factor-first path', async ({ page }) => {
   await openLauncherApp(page, 'Core', 'Equation');
   await page.getByRole('button', { name: /polynomial/i }).click();

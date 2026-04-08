@@ -339,8 +339,9 @@ describe('runEquationMode', () => {
       throw new Error('Expected a success outcome');
     }
     expect(result.exactLatex).toBe('x=1');
-    expect(result.exactSupplementLatex?.[0]).toContain('x\\ge0');
-    expect(result.exactSupplementLatex?.[0]).toContain('x\\ne0');
+    const supplements = result.exactSupplementLatex?.join(' ') ?? '';
+    expect(supplements).toContain('x\\ge0');
+    expect(supplements).toContain('x\\ne0');
   });
 
   it('preserves radical denominator conditions on unresolved symbolic equations', () => {
@@ -387,6 +388,42 @@ describe('runEquationMode', () => {
     }
     expect(result.exactLatex).toBe('x=3');
     expect(result.rejectedCandidateCount).toBe(1);
+  });
+
+  it('solves broader root-vs-root-plus-affine families through RAD2 sequential isolation', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\sqrt{x+1}=\\sqrt{2x-1}+1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=5-2\\sqrt{5}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.rejectedCandidateCount).toBe(1);
+    expect(result.resolvedInputLatex).toBe('2x-1=\\frac{(x-1)^2}{4}');
+    expect(result.exactSupplementLatex?.[0]).toContain('2x-1\\ge0');
+  });
+
+  it('solves exact square-root-square families through bounded absolute-value follow-on solving', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\sqrt{(x+1)^2}=x+3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=-2');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+3\\ge0']);
   });
 
   it('preprocesses fractional-power and explicit-base-log notation into existing solver families', () => {

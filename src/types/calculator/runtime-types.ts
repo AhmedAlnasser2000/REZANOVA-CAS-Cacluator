@@ -1200,6 +1200,7 @@ export type GuardedSolveRequest = {
   validationLatex?: string;
   compositionInversionDepth?: number;
   periodicReductionDepth?: number;
+  radicalTransformDepth?: number;
   angleUnit: AngleUnit;
   outputStyle: OutputStyle;
   ansLatex: string;

@@ -605,8 +605,13 @@ describe('AppMain UI automation flows', () => {
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
     expect(screen.queryByTestId('display-outcome-action-send-equation')).not.toBeInTheDocument();
-    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ge0/);
-    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ne0/);
+    const supplementLatex = Array.from(
+      document.querySelectorAll('[data-testid^="display-outcome-supplement-"] [data-raw-latex]'),
+    )
+      .map((node) => node.getAttribute('data-raw-latex') ?? '')
+      .join(' ');
+    expect(supplementLatex).toContain('x\\ge0');
+    expect(supplementLatex).toContain('x\\ne0');
   });
 
   it('shows the Equation algebra tray and keeps transforms separate from solve', async () => {
@@ -1204,6 +1209,21 @@ describe('AppMain UI automation flows', () => {
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x=1');
     expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ge0/);
     expect(screen.getByText('Conjugate Transform')).toBeInTheDocument();
+  });
+
+  it('renders RAD2 sequential radical solves with exact follow-on provenance', async () => {
+    const { user } = await renderAppMain();
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\sqrt{x+1}=\\sqrt{2x-1}+1');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
+    const exactMath = screen.getByTestId('display-outcome-exact').querySelector('[data-raw-latex]');
+    expect(exactMath).toHaveAttribute('data-raw-latex', 'x=5-2\\sqrt{5}');
+    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /2x-1\\ge0/);
+    expect(screen.getByText('Radical Isolation')).toBeInTheDocument();
+    expect(screen.getByText('Power Lift')).toBeInTheDocument();
   });
 
   it('shows Trigonometry handoff only for numeric-eligible unresolved cases', async () => {

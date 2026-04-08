@@ -342,6 +342,98 @@ describe('runSharedEquationSolve', () => {
     expect(result.solveBadges).toContain('Candidate Checked');
   });
 
+  it('solves bounded two-root same-side equations through sequential radical isolation', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+1}+\\sqrt{x}=3',
+      resolvedLatex: '\\sqrt{x+1}+\\sqrt{x}=3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=\\frac{16}{9}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.exactSupplementLatex?.[0]).toContain('x\\ge0');
+    expect(result.exactSupplementLatex?.[0]).toContain('x+1\\ge0');
+  });
+
+  it('solves root-vs-root-plus-affine equations through two bounded radical steps', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+1}=\\sqrt{2x-1}+1',
+      resolvedLatex: '\\sqrt{x+1}=\\sqrt{2x-1}+1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=5-2\\sqrt{5}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(1);
+    expect(result.resolvedInputLatex).toBe('2x-1=\\frac{(x-1)^2}{4}');
+    expect(result.exactSupplementLatex?.[0]).toContain('2x-1\\ge0');
+  });
+
+  it('solves bounded absolute-value follow-ons produced by exact square-root squares', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{(x+1)^2}=x+3',
+      resolvedLatex: '\\sqrt{(x+1)^2}=x+3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toBe('x=-2');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+3\\ge0']);
+  });
+
+  it('rejects invalid absolute-value branches after radical square collapse while keeping valid polynomial branches', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{(x^2-1)^2}=x',
+      resolvedLatex: '\\sqrt{(x^2-1)^2}=x',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('\\frac{1}{2}+\\frac{\\sqrt{5}}{2}');
+    expect(result.exactLatex).toContain('\\frac{\\sqrt{5}}{2}-\\frac{1}{2}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(2);
+    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x\\ge0']);
+  });
+
+  it('stops when a radical solve would exceed the bounded RAD2 transform budget', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+1}=x-1',
+      resolvedLatex: '\\sqrt{x+1}=x-1',
+      radicalTransformDepth: 2,
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected a bounded-radical-budget error outcome');
+    }
+    expect(result.error).toContain('more than two bounded radical transform steps');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+1\\ge0']);
+  });
+
   it('solves supported nth-root equations with affine radicands', () => {
     const result = runSharedEquationSolve({
       ...request,
