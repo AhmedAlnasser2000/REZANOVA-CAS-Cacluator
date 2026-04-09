@@ -1218,7 +1218,12 @@ describe('AppMain UI automation flows', () => {
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), 'x=1');
-    expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /x\\ge0/);
+    const supplements = screen
+      .getAllByTestId(/display-outcome-supplement-/)
+      .map((node) => node.querySelector('[data-raw-latex]')?.getAttribute('data-raw-latex') ?? '')
+      .join(' ');
+    expect(supplements).toContain('x\\ge0');
+    expect(supplements).toContain('\\sqrt{x}+1\\ne0');
     expect(screen.getByText('Conjugate Transform')).toBeInTheDocument();
   });
 

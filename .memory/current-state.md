@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `POLY-RAD4` as the shared condition/exclusion intelligence and trust-polish milestone:
+  - added `src/types/calculator/exact-supplement-types.ts`, `src/lib/exact-supplements.ts`, and `src/lib/equation/candidate-rejection.ts` so shared algebra outputs now have one internal supplement model plus a small rejected-candidate taxonomy instead of stage-local string assembly
+  - rewired `src/lib/math-engine.ts`, `src/lib/algebra-transform.ts`, `src/lib/equation/guarded/run.ts`, `src/lib/equation/composition-stage.ts`, `src/lib/equation/guarded/algebra-stage.ts`, `src/lib/equation/guarded/substitution-stage.ts`, `src/lib/equation/guarded/merge.ts`, and `src/lib/equation/polynomial-carrier-follow-on.ts` to merge supplements through the shared helper and to derive candidate-rejection wording from structured classification
+  - kept `DisplayOutcome.exactSupplementLatex` as the visible surface while normalizing internal grouping into stable informational lines first, then `Exclusions:`, then `Conditions:`
+  - improved user-facing trust without widening solve breadth: denominator exclusions and preserved domain conditions now dedupe cleanly across Equation and existing Calculate algebra outputs, and all-rejected candidate flows no longer depend on scattered rejection-string heuristics
+- Regression checks:
+  - `npm run test:gate`
 - Completed `ARCH4` as the shared runtime-policy and structured stop-reason milestone:
   - added `src/types/calculator/runtime-policy-types.ts` so the internal contract layer now carries a minimal runtime stop taxonomy (`invalid-request`, `planner-hard-stop`, `range-guard`, `unsupported-family`) plus the existing tiny Equation numeric-solve advisory
   - added `src/lib/kernel/runtime-policy.ts` so planner-blocked results, Calculate invalid/unsupported cases, and Equation invalid/range-guard/unsupported-family outcomes now classify through one shared internal policy helper instead of mode-local heuristics
@@ -595,3 +602,7 @@
     - `e2e/qa1-smoke.spec.ts`
   - verified with:
     - `npm run test:gate`
+- The external ChatGPT Poly-Rad roadmap from `C:\Users\ahmed\Downloads\poly_rad_roadmap.md` is now preserved in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md` as a non-binding lane reference.
+- The intended use of that roadmap is comparison, not obedience:
+  - use it to compare external milestone framing against shipped Calcwiz milestones
+  - allow drift where the bounded repo implementation suggests a cleaner next step

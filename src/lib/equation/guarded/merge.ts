@@ -1,4 +1,5 @@
 import { solutionsToLatex } from '../../format';
+import { mergeExactSupplementLatex } from '../../exact-supplements';
 import type {
   DisplayOutcome,
   PeriodicFamilyInfo,
@@ -151,7 +152,9 @@ function mergeDisplayOutcomes(
   const warnings = dedupe(successes.flatMap((outcome) => outcome.warnings));
   const plannerBadges = dedupe(successes.flatMap((outcome) => outcome.plannerBadges ?? []));
   const badgeSet = dedupe(successes.flatMap((outcome) => outcome.solveBadges ?? []).concat(solveBadges));
-  const exactSupplementLatex = dedupe(successes.flatMap((outcome) => outcome.exactSupplementLatex ?? []));
+  const exactSupplementLatex = mergeExactSupplementLatex(
+    ...successes.map((outcome) => ({ latex: outcome.exactSupplementLatex, source: 'legacy' as const })),
+  );
   const detailSections = mergeDetailSections(successes);
   const candidateValues = dedupe(successes.flatMap((outcome) => outcome.candidateValues ?? []));
   const rejectedCandidateCount = successes.reduce((total, outcome) => total + (outcome.rejectedCandidateCount ?? 0), 0);
@@ -167,7 +170,7 @@ function mergeDisplayOutcomes(
     title: 'Solve',
     exactLatex: exactValues.length > 0 ? solutionsToLatex('x', exactValues) : undefined,
     periodicFamily,
-    exactSupplementLatex: exactSupplementLatex.length > 0 ? exactSupplementLatex : undefined,
+      exactSupplementLatex: exactSupplementLatex.length > 0 ? exactSupplementLatex : undefined,
     approxText: approxValues.length > 0 ? `x ~= ${approxValues.join(', ')}` : undefined,
     detailSections: detailSections.length > 0 ? detailSections : undefined,
     warnings,

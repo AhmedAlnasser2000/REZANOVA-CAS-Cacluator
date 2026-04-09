@@ -1,5 +1,8 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { formatApproxNumber, formatNumber, solutionsToLatex } from '../format';
+import {
+  mergeExactSupplementLatex,
+} from '../exact-supplements';
 import { evaluateRealNumericExpression } from '../real-numeric-eval';
 import {
   formatRangeInterval,
@@ -12,6 +15,10 @@ import {
   readNumericNode,
 } from './domain-guards';
 import { dedupe, extractApproxSolutions, extractExactSolutions, mergeDisplayOutcomes } from './guarded/merge';
+import {
+  buildCompositeCandidateRejectionMessage,
+  classifyCandidateRejections,
+} from './candidate-rejection';
 import {
   UNSUPPORTED_FAMILY_ERROR,
   errorOutcome,
@@ -137,25 +144,6 @@ function mergeConstraints(
     }
   }
   return [...merged.values()];
-}
-
-function buildConstraintSupplementLatex(constraints: SolveDomainConstraint[] = []) {
-  const supported = constraints.flatMap((constraint) => {
-    switch (constraint.kind) {
-      case 'positive':
-        return [`${constraint.expressionLatex}>0`];
-      case 'nonnegative':
-        return [`${constraint.expressionLatex}\\ge0`];
-      default:
-        return [];
-    }
-  });
-
-  if (supported.length === 0) {
-    return [] as string[];
-  }
-
-  return [`\\text{Conditions: } ${supported.join(',\\;')}`];
 }
 
 function appendSolveMetadata(
@@ -347,29 +335,9 @@ function validateCompositionCandidates(
 }
 
 function compositionRejectionMessage(rejected: CandidateValidationResult[], constraints: SolveDomainConstraint[]) {
-  const rejectedReasons = rejected.flatMap((entry) =>
-    entry.kind === 'rejected' ? [entry.reason.toLowerCase()] : []);
-
-  if (rejectedReasons.some((reason) => reason.includes('undefined or non-real substitution'))) {
-    return 'Candidate roots were found but rejected because the original composite expression becomes undefined in the real domain.';
-  }
-
-  if (
-    rejectedReasons.some((reason) =>
-      reason.includes('denominator zero')
-      || reason.includes('non-positive')
-      || reason.includes('even root negative')
-      || reason.includes('outside the permitted interval')
-      || reason.includes('must stay positive'))
-  ) {
-    return 'Candidate roots were found but rejected after applying preserved domain conditions to the original composite equation.';
-  }
-
-  if (constraints.length > 0) {
-    return 'Candidate roots were found but rejected after applying preserved domain conditions to the original composite equation.';
-  }
-
-  return 'Candidate roots were found but rejected after substitution back into the original composite equation.';
+  return buildCompositeCandidateRejectionMessage(
+    classifyCandidateRejections(rejected, constraints),
+  );
 }
 
 function isApproximateOnlySolutionLatex(latex: string) {
@@ -2939,12 +2907,12 @@ function periodicFamilyBadges(
 }
 
 function buildPeriodicOutcomeSupplements(periodic: PeriodicFamilySolveResult) {
-  return dedupe([
-    periodicFamilyParameterSupplement(periodic.family),
-    ...periodicFamilyConstraintSupplements(periodic.family),
-    ...(periodic.supplementLatex ?? []),
-    ...buildConstraintSupplementLatex(periodic.domainConstraints),
-  ]);
+  return mergeExactSupplementLatex(
+    { latex: [periodicFamilyParameterSupplement(periodic.family)], source: 'periodic-family' },
+    { latex: periodicFamilyConstraintSupplements(periodic.family), source: 'periodic-family' },
+    { latex: periodic.supplementLatex, source: 'periodic-family' },
+    { constraints: periodic.domainConstraints, source: 'periodic-family' },
+  );
 }
 
 function buildPeriodicSolveSummary(
@@ -3051,11 +3019,11 @@ function recurseComposition(
   }
 
   if (merged.kind === 'error') {
-    const supplements = dedupe([
-      ...(merged.exactSupplementLatex ?? []),
-      ...extraSupplementLatex,
-      ...buildConstraintSupplementLatex(domainConstraints),
-    ]);
+    const supplements = mergeExactSupplementLatex(
+      { latex: merged.exactSupplementLatex, source: 'legacy' },
+      { latex: extraSupplementLatex, source: 'legacy' },
+      { constraints: domainConstraints, source: 'transform' },
+    );
     const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
     return appendSolveMetadata({
       ...merged,
@@ -3071,11 +3039,11 @@ function recurseComposition(
 
   const validationCandidates = collectOutcomeCandidates(merged);
   if (validationCandidates.length === 0) {
-    const supplements = dedupe([
-      ...(merged.exactSupplementLatex ?? []),
-      ...extraSupplementLatex,
-      ...buildConstraintSupplementLatex(domainConstraints),
-    ]);
+    const supplements = mergeExactSupplementLatex(
+      { latex: merged.exactSupplementLatex, source: 'legacy' },
+      { latex: extraSupplementLatex, source: 'legacy' },
+      { constraints: domainConstraints, source: 'transform' },
+    );
     const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
     return appendSolveMetadata({
       ...merged,
@@ -3093,11 +3061,11 @@ function recurseComposition(
   );
 
   if (validation.accepted.length === 0) {
-    const supplements = dedupe([
-      ...(merged.exactSupplementLatex ?? []),
-      ...extraSupplementLatex,
-      ...buildConstraintSupplementLatex(domainConstraints),
-    ]);
+    const supplements = mergeExactSupplementLatex(
+      { latex: merged.exactSupplementLatex, source: 'legacy' },
+      { latex: extraSupplementLatex, source: 'legacy' },
+      { constraints: domainConstraints, source: 'transform' },
+    );
     const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
     return {
       kind: 'error',
@@ -3125,11 +3093,11 @@ function recurseComposition(
       ? solutionsToLatex('x', acceptedExactLatex)
       : undefined;
 
-  const supplements = dedupe([
-    ...(merged.exactSupplementLatex ?? []),
-    ...extraSupplementLatex,
-    ...buildConstraintSupplementLatex(domainConstraints),
-  ]);
+  const supplements = mergeExactSupplementLatex(
+    { latex: merged.exactSupplementLatex, source: 'legacy' },
+    { latex: extraSupplementLatex, source: 'legacy' },
+    { constraints: domainConstraints, source: 'transform' },
+  );
   const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
 
   return {
@@ -3334,10 +3302,10 @@ function compositionSolve(
       if (blocked.kind !== 'error') {
         return blocked;
       }
-      const supplements = dedupe([
-        ...(transform.exactSupplementLatex ?? []),
-        ...buildConstraintSupplementLatex(transform.domainConstraints),
-      ]);
+      const supplements = mergeExactSupplementLatex(
+        { latex: transform.exactSupplementLatex, source: 'transform' },
+        { constraints: transform.domainConstraints, source: 'transform' },
+      );
       return {
         ...blocked,
         periodicFamily: mergePeriodicFamilyExtras(undefined, transform.periodicFamilyExtras),

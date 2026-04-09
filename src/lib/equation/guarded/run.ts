@@ -3,12 +3,16 @@ import { runExpressionAction } from '../../math-engine';
 import { formatApproxNumber, solutionsToLatex } from '../../format';
 import { normalizeExactRadicalNode } from '../../symbolic-engine/radical';
 import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
+import { mergeExactSupplementLatex } from '../../exact-supplements';
 import { detectRealRangeImpossibility } from '../range-impossibility';
 import { validateCandidateRoots } from '../candidate-validation';
+import {
+  buildEquationCandidateRejectionMessage,
+  classifyCandidateRejections,
+} from '../candidate-rejection';
 import { recognizeBoundedPolynomialEquationAst, solveBoundedPolynomialEquationAst } from '../../polynomial-factor-solve';
 import { solveBoundedPolynomialCarrierEquationAst } from '../polynomial-carrier-follow-on';
 import type {
-  CandidateValidationResult,
   DisplayOutcome,
   EquationExecutionBudget,
   GuardedSolveRequest,
@@ -31,7 +35,6 @@ import { compositionSolve } from '../composition-stage';
 const ce = new ComputeEngine();
 const NUMERIC_MATCH_TOLERANCE = 1e-6;
 const DIRECT_TRIG_OPERATORS = new Set(['Sin', 'Cos', 'Tan', 'Sec', 'Csc', 'Cot']);
-const CONDITION_PREFIX = '\\text{Conditions: } ';
 
 function isMathJsonArray(node: unknown): node is unknown[] {
   return Array.isArray(node);
@@ -118,35 +121,6 @@ function mergeDomainConstraints(
   return [...merged.values()];
 }
 
-function mergeSupplementLatex(left: string[] = [], right: string[] = []) {
-  const supplements: string[] = [];
-  const seenConditionFragments = new Set<string>();
-
-  const addConditionFragments = (line: string) => {
-    const fragments = line.slice(CONDITION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean);
-    for (const fragment of fragments) {
-      seenConditionFragments.add(fragment);
-    }
-  };
-
-  for (const line of [...left, ...right]) {
-    if (line.startsWith(CONDITION_PREFIX)) {
-      addConditionFragments(line);
-      continue;
-    }
-
-    if (!supplements.includes(line)) {
-      supplements.push(line);
-    }
-  }
-
-  if (seenConditionFragments.size > 0) {
-    supplements.push(`${CONDITION_PREFIX}${[...seenConditionFragments].join(',\\;')}`);
-  }
-
-  return supplements;
-}
-
 function formatAcceptedApproximations(values: number[]) {
   if (values.length === 0) {
     return undefined;
@@ -189,42 +163,6 @@ function isApproximateOnlySolutionLatex(latex: string) {
   return /^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+e[+-]?\d+)$/i.test(normalized);
 }
 
-function candidateRejectionMessage(
-  constraints: SolveDomainConstraint[] = [],
-  rejected: CandidateValidationResult[] = [],
-) {
-  const rejectedReasons = rejected.flatMap((entry) =>
-    entry.kind === 'rejected' ? [entry.reason.toLowerCase()] : []);
-
-  if (rejectedReasons.some((reason) => reason.includes('denominator zero'))) {
-    return 'No valid real symbolic solution remains after applying denominator exclusions.';
-  }
-
-  if (rejectedReasons.some((reason) => reason.includes('undefined or non-real substitution'))) {
-    return 'No valid real symbolic solution remains because the accepted candidate makes the original equation undefined in the real domain.';
-  }
-
-  if (
-    rejectedReasons.some((reason) =>
-      reason.includes('non-positive')
-      || reason.includes('even root negative')
-      || reason.includes('outside the permitted interval')
-      || reason.includes('must stay positive'))
-  ) {
-    return 'No valid real symbolic solution remains after applying preserved domain conditions.';
-  }
-
-  if (constraints.some((constraint) => constraint.kind === 'nonzero')) {
-    return 'No valid real symbolic solution remains after applying denominator exclusions.';
-  }
-
-  if (constraints.length > 0) {
-    return 'No valid real symbolic solution remains after applying preserved domain conditions.';
-  }
-
-  return 'No valid real symbolic solution remains after candidate checking.';
-}
-
 function hasNonFiniteRawSolutions(symbolic: ReturnType<typeof runExpressionAction>) {
   if (symbolic.rawSolutionLatex?.some((solution) => solution.includes('\\infty') || solution.includes('\\tilde\\infty'))) {
     return true;
@@ -248,9 +186,9 @@ function attachAlgebraMetadata(
     return outcome;
   }
 
-  const exactSupplementLatex = mergeSupplementLatex(
-    outcome.exactSupplementLatex,
-    request.exactSupplementLatex,
+  const exactSupplementLatex = mergeExactSupplementLatex(
+    { latex: outcome.exactSupplementLatex, source: 'legacy' },
+    { latex: request.exactSupplementLatex, source: 'legacy' },
   );
 
   return {
@@ -300,18 +238,12 @@ function prepareAlgebraSolveRequest(request: GuardedSolveRequest): GuardedSolveR
       ),
     ),
   );
-  const exactSupplementLatex = mergeSupplementLatex(
-    request.exactSupplementLatex,
-    mergeSupplementLatex(
-      mergeSupplementLatex(
-        leftRadical?.exactSupplementLatex,
-        rightRadical?.exactSupplementLatex,
-      ),
-      mergeSupplementLatex(
-        leftNormalization?.exactSupplementLatex,
-        rightNormalization?.exactSupplementLatex,
-      ),
-    ),
+  const exactSupplementLatex = mergeExactSupplementLatex(
+    { latex: request.exactSupplementLatex, source: 'legacy' },
+    { latex: leftRadical?.exactSupplementLatex, source: 'radical-domain' },
+    { latex: rightRadical?.exactSupplementLatex, source: 'radical-domain' },
+    { latex: leftNormalization?.exactSupplementLatex, source: 'denominator' },
+    { latex: rightNormalization?.exactSupplementLatex, source: 'denominator' },
   );
 
   let resolvedLatex = ce.box(['Equal', leftNode, rightNode] as Parameters<typeof ce.box>[0]).latex;
@@ -366,12 +298,14 @@ function validateDirectSymbolicOutcome(
   );
 
   if (validation.accepted.length === 0) {
-    return errorOutcome(
-      'Solve',
-      candidateRejectionMessage(request.domainConstraints, validation.rejected),
-      symbolic.warnings,
-      [],
-      ['Candidate Checked'],
+      return errorOutcome(
+        'Solve',
+        buildEquationCandidateRejectionMessage(
+          classifyCandidateRejections(validation.rejected, request.domainConstraints),
+        ),
+        symbolic.warnings,
+        [],
+        ['Candidate Checked'],
       undefined,
       validation.rejected.length,
     );
@@ -476,7 +410,9 @@ function runBoundedPolynomialSolve(request: GuardedSolveRequest): DisplayOutcome
         return {
           kind: 'error',
           title: 'Solve',
-          error: candidateRejectionMessage(request.domainConstraints, validation.rejected),
+          error: buildEquationCandidateRejectionMessage(
+            classifyCandidateRejections(validation.rejected, request.domainConstraints),
+          ),
           exactSupplementLatex:
             carrierAttempt.exactSupplementLatex && carrierAttempt.exactSupplementLatex.length > 0
               ? carrierAttempt.exactSupplementLatex

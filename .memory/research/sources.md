@@ -31,3 +31,7 @@
     - `04_module_contract_sketches.md`
   - Use as a design reference for kernel-first architecture, staged microkernel evolution, result/job/capability contract shapes, and profile/runtime authority concepts.
   - Important Calcwiz-specific interpretation preserved separately in `.memory/research/kernel-architecture-notes.md`: internal kernel contracts and pillar boundaries are the near-term move; do not interpret the pack as an instruction to build a full plugin platform or to force Rust-side runtime authority immediately.
+- 2026-04-09: External Poly-Rad lane roadmap, `poly_rad_roadmap.md`
+  - Local file: `C:\Users\ahmed\Downloads\poly_rad_roadmap.md`
+  - Use as a non-binding reference for the intended Poly-Rad lane arc (`POLY-RAD2` -> `POLY-RAD3` -> `POLY-RAD4` -> Phase B polish milestones).
+  - Important Calcwiz-specific interpretation preserved separately in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md`: compare the roadmap against the repo's actual shipped milestones and allow drift where bounded implementation reality suggests a better next step.

@@ -1,9 +1,13 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { formatApproxNumber, solutionsToLatex } from '../../format';
+import { buildConstraintSupplementLatex, mergeExactSupplementLatex } from '../../exact-supplements';
 import { matchSubstitutionSolve } from '../substitution-solve';
 import { validateCandidateRoots } from '../candidate-validation';
+import {
+  buildEquationCandidateRejectionMessage,
+  classifyCandidateRejections,
+} from '../candidate-rejection';
 import type {
-  CandidateValidationResult,
   DisplayOutcome,
   EquationExecutionBudget,
   GuardedSolveRequest,
@@ -79,51 +83,6 @@ function matchAcceptedExactSolutions(exactLatex: string | undefined, accepted: n
   return matched;
 }
 
-function buildConstraintSupplementLatex(constraints: GuardedSolveRequest['domainConstraints'] = []) {
-  const supported = constraints.flatMap((constraint) => {
-    switch (constraint.kind) {
-      case 'positive':
-        return [`${constraint.expressionLatex}>0`];
-      case 'nonnegative':
-        return [`${constraint.expressionLatex}\\ge0`];
-      case 'nonzero':
-        return [`${constraint.expressionLatex}\\ne0`];
-      default:
-        return [];
-    }
-  });
-
-  if (supported.length === 0) {
-    return [] as string[];
-  }
-
-  return [`\\text{Conditions: } ${supported.join(',\\;')}`];
-}
-
-function substitutionRejectionMessage(rejected: CandidateValidationResult[]) {
-  const rejectedReasons = rejected.flatMap((entry) =>
-    entry.kind === 'rejected' ? [entry.reason.toLowerCase()] : []);
-
-  if (
-    rejectedReasons.some((reason) => reason.includes('undefined or non-real substitution'))
-  ) {
-    return 'Candidate roots were found but rejected because substituting them back makes the original equation undefined in the real domain.';
-  }
-
-  if (
-    rejectedReasons.some((reason) =>
-      reason.includes('denominator zero')
-      || reason.includes('non-positive')
-      || reason.includes('even root negative')
-      || reason.includes('outside the permitted interval')
-      || reason.includes('must stay positive'))
-  ) {
-    return 'Candidate roots were found but rejected after applying preserved domain conditions to the original equation.';
-  }
-
-  return 'Candidate roots were found but rejected after substitution back into the original equation.';
-}
-
 function isApproximateOnlySolutionLatex(latex: string) {
   const normalized = latex.replaceAll('\\,', '').replaceAll(' ', '').trim();
   return /^[+-]?(?:\d+\.\d*|\d*\.\d+|\d+e[+-]?\d+)$/i.test(normalized);
@@ -181,7 +140,10 @@ function substitutionSolve(
     substitution.solveSummaryText,
     substitution.diagnostics,
   );
-  const substitutionSupplementLatex = buildConstraintSupplementLatex(substitution.domainConstraints);
+  const substitutionSupplementLatex = buildConstraintSupplementLatex(
+    substitution.domainConstraints,
+    'transform',
+  );
 
   const isSubstitutionUnsupported =
     merged.kind === 'error'
@@ -252,7 +214,9 @@ function substitutionSolve(
   if (validation.accepted.length === 0) {
     return errorOutcome(
       'Solve',
-      substitutionRejectionMessage(validation.rejected),
+      buildEquationCandidateRejectionMessage(
+        classifyCandidateRejections(validation.rejected, substitution.domainConstraints),
+      ),
       merged.warnings,
       merged.plannerBadges ?? [],
       dedupe([...(merged.solveBadges ?? []), 'Candidate Checked']),
@@ -275,7 +239,10 @@ function substitutionSolve(
     kind: 'success',
     title: 'Solve',
     exactLatex,
-    exactSupplementLatex: dedupe([...(merged.exactSupplementLatex ?? []), ...substitutionSupplementLatex]),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: merged.exactSupplementLatex, source: 'legacy' },
+      { latex: substitutionSupplementLatex, source: 'transform' },
+    ),
     approxText: `x ~= ${validation.accepted.map((value) => formatApproxNumber(value)).join(', ')}`,
     warnings: merged.warnings,
     resultOrigin: 'symbolic',

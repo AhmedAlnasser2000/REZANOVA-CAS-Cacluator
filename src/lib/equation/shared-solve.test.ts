@@ -722,6 +722,8 @@ describe('runSharedEquationSolve', () => {
     expect(result.exactLatex).toBe('x=1');
     expect(result.solveBadges).toContain('Conjugate Transform');
     expect(result.solveBadges).toContain('Candidate Checked');
-    expect(result.exactSupplementLatex?.[0]).toContain('x\\ge0');
+    const supplements = result.exactSupplementLatex?.join(' ') ?? '';
+    expect(supplements).toContain('x\\ge0');
+    expect(supplements).toContain('\\sqrt{x}+1\\ne0');
   });
 });

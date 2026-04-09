@@ -21,6 +21,7 @@ import {
 import { solveBoundedPolynomialEquationAst } from '../polynomial-factor-solve';
 import { normalizeAst } from '../symbolic-engine/normalize';
 import { dependsOnVariable, isNodeArray, termKey } from '../symbolic-engine/patterns';
+import { mergeExactSupplementLatex } from '../exact-supplements';
 import {
   buildParameterizedPowerBranches,
   buildQuadraticBranches,
@@ -199,10 +200,6 @@ function sortAndDedupeRoots<T extends { numeric: number }>(roots: T[]) {
     .sort((left, right) => left.numeric - right.numeric)
     .filter((root, index, list) =>
       index === 0 || Math.abs(root.numeric - list[index - 1].numeric) > ROOT_TOLERANCE);
-}
-
-function dedupeStrings(values: string[]) {
-  return [...new Set(values)];
 }
 
 function isZeroExactScalar(value: ExactScalar) {
@@ -723,7 +720,9 @@ function attemptSupportedCarrier(
   return {
     kind: 'solved',
     roots,
-    exactSupplementLatex: dedupeStrings(exactSupplementLatex),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: exactSupplementLatex, source: 'transform' },
+    ),
   };
 }
 

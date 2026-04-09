@@ -411,7 +411,7 @@ describe('runEquationMode', () => {
     if (result.kind !== 'error') {
       throw new Error('Expected an error outcome');
     }
-    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+\\sqrt{2}\\ne0']);
+    expect(result.exactSupplementLatex).toEqual(['\\text{Exclusions: } x+\\sqrt{2}\\ne0']);
   });
 
   it('solves bounded rational equations by clearing the LCD before guarded recursion', () => {

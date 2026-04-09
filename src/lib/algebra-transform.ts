@@ -1,5 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import type { TransformBadge } from '../types/calculator';
+import { mergeExactSupplementLatex } from './exact-supplements';
 import { normalizeAst } from './symbolic-engine/normalize';
 import {
   boxLatex,
@@ -52,10 +53,6 @@ const ACTION_ORDER: AlgebraTransformAction[] = [
   'rationalize',
   'conjugate',
 ];
-
-function mergeSupplementLatex(left: string[] = [], right: string[] = []) {
-  return [...new Set([...left, ...right])];
-}
 
 function hasAdditiveStructure(node: unknown) {
   return flattenAdd(normalizeAst(node)).length > 1;
@@ -357,7 +354,10 @@ function rewriteAsRootEquation(left: unknown, right: unknown): AlgebraTransformR
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Rewrite as Root'],
     transformSummaryText: 'Rewrote supported rational exponents as exact root notation',
   };
@@ -372,7 +372,10 @@ function rewriteAsPowerEquation(left: unknown, right: unknown): AlgebraTransform
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Rewrite as Power'],
     transformSummaryText: 'Rewrote supported roots as exact rational exponents',
   };
@@ -387,7 +390,10 @@ function changeBaseEquation(left: unknown, right: unknown): AlgebraTransformResu
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Change Base'],
     transformSummaryText: 'Rewrote supported explicit-base logs with exact natural-log change of base',
   };
@@ -402,7 +408,10 @@ function combineFractionsEquation(left: unknown, right: unknown): AlgebraTransfo
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Combine Fractions'],
     transformSummaryText: 'Combined supported fractions on each side into exact rational form',
   };
@@ -417,7 +426,10 @@ function cancelFactorsEquation(left: unknown, right: unknown): AlgebraTransformR
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Cancel Factors'],
     transformSummaryText: 'Canceled supported common factors within each side of the equation',
   };
@@ -456,7 +468,10 @@ function rationalizeEquation(left: unknown, right: unknown): AlgebraTransformRes
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Rationalize'],
     transformSummaryText: 'Rationalized the supported radical denominator inside the equation',
   };
@@ -471,7 +486,10 @@ function conjugateEquation(left: unknown, right: unknown): AlgebraTransformResul
 
   return {
     exactLatex: `${leftResult?.latex ?? boxLatex(left)}=${rightResult?.latex ?? boxLatex(right)}`,
-    exactSupplementLatex: mergeSupplementLatex(leftResult?.supplement, rightResult?.supplement),
+    exactSupplementLatex: mergeExactSupplementLatex(
+      { latex: leftResult?.supplement, source: 'legacy' },
+      { latex: rightResult?.supplement, source: 'legacy' },
+    ),
     transformBadges: ['Conjugate'],
     transformSummaryText: 'Applied the bounded conjugate transform inside the equation',
   };

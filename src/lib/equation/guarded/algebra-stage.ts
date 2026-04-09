@@ -1,6 +1,5 @@
 import { ComputeEngine, expand } from '@cortex-js/compute-engine';
 import {
-  buildConditionSupplementLatex as buildConstraintSupplementLatex,
   buildSquareRootConjugateProfile,
   isSupportedRadicand,
   mergeSolveDomainConstraints as mergeConstraints,
@@ -15,6 +14,7 @@ import { recognizeBoundedPolynomialEquationAst } from '../../polynomial-factor-s
 import { normalizeAst } from '../../symbolic-engine/normalize';
 import { boxLatex, isNodeArray, termKey } from '../../symbolic-engine/patterns';
 import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
+import { mergeExactSupplementLatex } from '../../exact-supplements';
 import { evaluateRealNumericExpression } from '../../real-numeric-eval';
 import { solveBoundedPolynomialCarrierEquationAst } from '../polynomial-carrier-follow-on';
 import type {
@@ -35,8 +35,6 @@ const ce = new ComputeEngine();
 const PLACEHOLDER_SYMBOL = '__calcwiz_r3_u';
 const RADICAL_STEP_BUDGET_ERROR = 'This recognized radical family would require more than two bounded radical transform steps. Use Numeric Solve with an interval in Equation mode.';
 const REPEATED_CLEARING_BUDGET_ERROR = 'This recognized repeated-clearing radical family would require more than one extra bounded radical clear. Use Numeric Solve with an interval in Equation mode.';
-const CONDITION_PREFIX = '\\text{Conditions: } ';
-const EXCLUSION_PREFIX = '\\text{Exclusions: } ';
 
 type ExactScalar = {
   numerator: number;
@@ -791,78 +789,6 @@ function mergePolynomialCarrierHints(
   }
 
   return [...merged.values()];
-}
-
-function mergeConditionSupplementLatex(
-  existing: string[] = [],
-  constraints: SolveDomainConstraint[] = [],
-) {
-  const supplements: string[] = [];
-  const seenConditionFragments = new Set<string>();
-  const explicitExclusions = new Set<string>();
-
-  const isTautologicalConditionFragment = (fragment: string) => {
-    const operators = ['\\ge0', '>0', '\\ne0'];
-    for (const operator of operators) {
-      if (!fragment.endsWith(operator)) {
-        continue;
-      }
-
-      const expressionLatex = fragment.slice(0, -operator.length);
-      const numeric = evaluateRealNumericExpression(ce.parse(expressionLatex).json, expressionLatex);
-      if (numeric.kind !== 'success') {
-        return false;
-      }
-
-      if (operator === '\\ge0') {
-        return numeric.value >= -1e-10;
-      }
-      if (operator === '>0') {
-        return numeric.value > 1e-10;
-      }
-      return Math.abs(numeric.value) > 1e-10;
-    }
-
-    return false;
-  };
-
-  const addConditionFragments = (line: string) => {
-    const fragments = line.slice(CONDITION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean);
-    for (const fragment of fragments) {
-      if (explicitExclusions.has(fragment) || isTautologicalConditionFragment(fragment)) {
-        continue;
-      }
-      seenConditionFragments.add(fragment);
-    }
-  };
-
-  for (const line of existing) {
-    if (line.startsWith(EXCLUSION_PREFIX)) {
-      line.slice(EXCLUSION_PREFIX.length).split(',\\;').map((entry) => entry.trim()).filter(Boolean).forEach((entry) => explicitExclusions.add(entry));
-    }
-
-    if (line.startsWith(CONDITION_PREFIX)) {
-      addConditionFragments(line);
-      continue;
-    }
-
-    supplements.push(line);
-  }
-
-  for (const line of buildConstraintSupplementLatex(constraints)) {
-    if (line.startsWith(CONDITION_PREFIX)) {
-      addConditionFragments(line);
-      continue;
-    }
-
-    supplements.push(line);
-  }
-
-  if (seenConditionFragments.size > 0) {
-    supplements.push(`${CONDITION_PREFIX}${[...seenConditionFragments].join(',\\;')}`);
-  }
-
-  return dedupe(supplements);
 }
 
 function getSolveVariable(...nodes: unknown[]) {
@@ -1763,9 +1689,9 @@ function recurseTransform(
             transform.domainConstraints,
             request.domainConstraints,
           );
-          const supplements = mergeConditionSupplementLatex(
-            recursiveOutcome.exactSupplementLatex ?? [],
-            newTransformConstraints,
+          const supplements = mergeExactSupplementLatex(
+            { latex: recursiveOutcome.exactSupplementLatex, source: 'legacy' },
+            { constraints: newTransformConstraints, source: 'transform' },
           );
           return {
             ...recursiveOutcome,

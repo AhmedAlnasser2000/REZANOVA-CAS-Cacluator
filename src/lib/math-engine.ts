@@ -28,6 +28,7 @@ import {
   evaluateRealNumericExpression,
 } from './real-numeric-eval';
 import { rewriteDiscreteOperators } from './discrete-eval';
+import { mergeExactSupplementLatex } from './exact-supplements';
 import { getResultGuardError } from './result-guard';
 import { factorMathJson } from './symbolic-factor';
 import { runFactoringEngine } from './symbolic-engine/orchestrator';
@@ -205,15 +206,14 @@ function numericExpression(expr: BoxedLike) {
   return expr.evaluate?.().N?.() ?? expr;
 }
 
-function mergeSupplementLatex(left: string[] = [], right: string[] = []) {
-  return [...new Set([...left, ...right])];
-}
-
 function normalizedSupplementLatex(
   left: string[] | undefined,
   right: string[] | undefined,
 ) {
-  const merged = mergeSupplementLatex(left, right);
+  const merged = mergeExactSupplementLatex(
+    { latex: left, source: 'legacy' },
+    { latex: right, source: 'legacy' },
+  );
   return merged.length > 0 ? merged : undefined;
 }
 
@@ -450,6 +450,9 @@ function executePreparedExpressionAction(
     ? (ce.box(radical.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike)
     : expr;
   const radicalSupplementLatex = radical?.exactSupplementLatex ?? [];
+  const normalizedRadicalSupplementLatex = radicalSupplementLatex.length > 0
+    ? mergeExactSupplementLatex({ latex: radicalSupplementLatex, source: 'radical-domain' })
+    : undefined;
 
   const rational =
     action === 'simplify' || action === 'factor'
@@ -464,17 +467,17 @@ function executePreparedExpressionAction(
       const approx = isNumericOnlyNode(exactExpr.json)
         ? numericExpression(exactExpr)
         : undefined;
-      const exactSupplementLatex = mergeSupplementLatex(
-        radicalSupplementLatex,
-        rational.exactSupplementLatex,
+      const exactSupplementLatex = mergeExactSupplementLatex(
+        { latex: radicalSupplementLatex, source: 'radical-domain' },
+        { latex: rational.exactSupplementLatex, source: 'denominator' },
       );
       if (powerLog?.changed) {
         return {
           exactLatex: powerLog.normalizedLatex,
           exactSupplementLatex: normalizedSupplementLatex(
-            exactSupplementLatex,
-            powerLog.exactSupplementLatex,
-          ),
+              exactSupplementLatex,
+              powerLog.exactSupplementLatex,
+            ),
           approxText: latexToApproxText(approx?.latex),
           normalizedMathJson: powerLog.normalizedNode,
           warnings,
@@ -547,9 +550,9 @@ function executePreparedExpressionAction(
         return {
           exactLatex: powerLog.normalizedLatex,
           exactSupplementLatex: normalizedSupplementLatex(
-            radicalSupplementLatex,
-            powerLog.exactSupplementLatex,
-          ),
+              radicalSupplementLatex,
+              powerLog.exactSupplementLatex,
+            ),
           approxText: latexToApproxText(approx?.latex),
           normalizedMathJson: powerLog.normalizedNode,
           warnings,
@@ -573,13 +576,13 @@ function executePreparedExpressionAction(
             return {
               warnings,
               error: guardError,
-              exactSupplementLatex: radicalSupplementLatex,
+              exactSupplementLatex: normalizedRadicalSupplementLatex,
             };
           }
 
           return {
             exactLatex: numeric.exactLatex,
-            exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+            exactSupplementLatex: normalizedRadicalSupplementLatex,
             approxText: numeric.approxText,
             normalizedMathJson: radical.normalizedNode,
             warnings,
@@ -591,7 +594,7 @@ function executePreparedExpressionAction(
           return {
             warnings,
             error: numeric.error,
-            exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+            exactSupplementLatex: normalizedRadicalSupplementLatex,
           };
         }
       }
@@ -600,13 +603,13 @@ function executePreparedExpressionAction(
         return {
           warnings,
           error: guardError,
-          exactSupplementLatex: radicalSupplementLatex,
+          exactSupplementLatex: normalizedRadicalSupplementLatex,
         };
       }
 
       return {
         exactLatex: radical.normalizedLatex,
-        exactSupplementLatex: radicalSupplementLatex.length > 0 ? radicalSupplementLatex : undefined,
+        exactSupplementLatex: normalizedRadicalSupplementLatex,
         approxText: latexToApproxText(approx?.latex),
         normalizedMathJson: radical.normalizedNode,
         warnings,
@@ -659,9 +662,9 @@ function executePreparedExpressionAction(
         return {
           exactLatex: powerLog.normalizedLatex,
           exactSupplementLatex: normalizedSupplementLatex(
-            radicalSupplementLatex,
-            powerLog.exactSupplementLatex,
-          ),
+              radicalSupplementLatex,
+              powerLog.exactSupplementLatex,
+            ),
           approxText: latexToApproxText(approx?.latex),
           normalizedMathJson: powerLog.normalizedNode,
           warnings,

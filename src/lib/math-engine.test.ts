@@ -518,8 +518,9 @@ describe('runExpressionAction', () => {
     expect(rationalized.error).toBeUndefined()
     expect(rationalized.resultOrigin).toBe('symbolic-engine')
     expect(rationalized.exactLatex?.replaceAll('\\left', '').replaceAll('\\right', '')).toBe('\\sqrt{x+1}-\\sqrt{x}')
-    expect(rationalized.exactSupplementLatex?.[0]).toContain('x+1\\ge0')
-    expect(rationalized.exactSupplementLatex?.[0]).toContain('x\\ge0')
+    const supplements = rationalized.exactSupplementLatex?.join(' ') ?? ''
+    expect(supplements).toContain('x+1\\ge0')
+    expect(supplements).toContain('x\\ge0')
   })
 
   it('denests bounded constant nested square roots without widening simplify into variable denesting', () => {
@@ -612,7 +613,7 @@ describe('runExpressionAction', () => {
 
     expect(symbolicBinomial.error).toBeUndefined()
     expect(symbolicBinomial.exactLatex).toContain('x^2-2')
-    expect(symbolicBinomial.exactSupplementLatex).toEqual(['\\text{Conditions: } x+\\sqrt{2}\\ne0'])
+    expect(symbolicBinomial.exactSupplementLatex).toEqual(['\\text{Exclusions: } x+\\sqrt{2}\\ne0'])
   })
 
   it('preserves radical cleanup in factor mode without rationalizing denominators', () => {
