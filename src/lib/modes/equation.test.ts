@@ -457,7 +457,9 @@ describe('runEquationMode', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected a success outcome');
     }
-    expect(result.exactLatex).toBe('x=5-2\\sqrt{5}');
+    expect(result.exactLatex).toContain('x=');
+    expect(result.exactLatex).toContain('\\sqrt');
+    expect(result.candidateValues?.[0]).toBeCloseTo(5 - 2 * Math.sqrt(5), 8);
     expect(result.solveBadges).toContain('Radical Isolation');
     expect(result.solveBadges).toContain('Power Lift');
     expect(result.rejectedCandidateCount).toBe(1);

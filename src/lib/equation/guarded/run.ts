@@ -6,6 +6,7 @@ import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
 import { detectRealRangeImpossibility } from '../range-impossibility';
 import { validateCandidateRoots } from '../candidate-validation';
 import { recognizeBoundedPolynomialEquationAst, solveBoundedPolynomialEquationAst } from '../../polynomial-factor-solve';
+import { solveBoundedPolynomialCarrierEquationAst } from '../polynomial-carrier-follow-on';
 import type {
   CandidateValidationResult,
   DisplayOutcome,
@@ -153,6 +154,32 @@ function formatAcceptedApproximations(values: number[]) {
 
   const parts = values.map((value) => formatApproxNumber(value));
   return parts.length === 1 ? `x ~= ${parts[0]}` : `x ~= ${parts.join(', ')}`;
+}
+
+function shouldAttemptPolynomialCarrierFollowOn(request: GuardedSolveRequest) {
+  return (request.radicalTransformDepth ?? 0) > 0
+    || (request.compositionInversionDepth ?? 0) > 0;
+}
+
+function matchAcceptedSolvedRoots(
+  roots: Array<{ latex: string; numeric: number }>,
+  acceptedValues: number[],
+) {
+  const used = new Set<number>();
+  const matched: string[] = [];
+
+  for (const acceptedValue of acceptedValues) {
+    const matchIndex = roots.findIndex((root, index) =>
+      !used.has(index)
+      && Math.abs(root.numeric - acceptedValue) <= NUMERIC_MATCH_TOLERANCE);
+    if (matchIndex < 0) {
+      continue;
+    }
+    used.add(matchIndex);
+    matched.push(roots[matchIndex].latex);
+  }
+
+  return matched;
 }
 
 function isApproximateOnlySolutionLatex(latex: string) {
@@ -382,30 +409,121 @@ function validateDirectSymbolicOutcome(
 function runBoundedPolynomialSolve(request: GuardedSolveRequest): DisplayOutcome | null {
   try {
     const parsed = ce.parse(request.resolvedLatex).json;
+    let recognizedDirectPolynomial = false;
+
     const recognized = recognizeBoundedPolynomialEquationAst(parsed, 'x');
-    if (!recognized) {
-      return null;
+    if (recognized) {
+      recognizedDirectPolynomial = true;
+      const solved = solveBoundedPolynomialEquationAst(parsed, 'x');
+      if (solved) {
+        return {
+          kind: 'success',
+          title: 'Solve',
+          exactLatex: solved.exactLatex,
+          approxText: solved.approxText,
+          warnings: [],
+          resultOrigin: 'symbolic',
+          plannerBadges: [],
+          solveBadges: [],
+          candidateValues: solved.approxSolutions,
+        };
+      }
     }
 
-    const solved = solveBoundedPolynomialEquationAst(parsed, 'x');
-    if (!solved) {
+    const carrierAttempt = shouldAttemptPolynomialCarrierFollowOn(request)
+      ? solveBoundedPolynomialCarrierEquationAst(parsed)
+      : { kind: 'none' as const };
+
+    if (carrierAttempt.kind === 'solved') {
+      const candidateValues = carrierAttempt.roots.map((root) => root.numeric);
+      const needsValidation =
+        (request.domainConstraints?.length ?? 0) > 0
+        || Boolean(request.validationLatex && request.validationLatex !== request.resolvedLatex);
+
+      if (!needsValidation) {
+        const exactSolutions = carrierAttempt.roots.map((root) => root.latex);
+        const exactLatex = exactSolutions.length > 0 && exactSolutions.every((value) => !isApproximateOnlySolutionLatex(value))
+          ? solutionsToLatex('x', exactSolutions)
+          : undefined;
+        return {
+          kind: 'success',
+          title: 'Solve',
+          exactLatex,
+          exactSupplementLatex:
+            carrierAttempt.exactSupplementLatex && carrierAttempt.exactSupplementLatex.length > 0
+              ? carrierAttempt.exactSupplementLatex
+              : undefined,
+          approxText: formatAcceptedApproximations(candidateValues),
+          warnings: [],
+          resultOrigin: 'symbolic',
+          plannerBadges: [],
+          solveBadges: [],
+          candidateValues,
+        };
+      }
+
+      const validation = validateCandidateRoots(
+        request.validationLatex ?? request.resolvedLatex,
+        candidateValues,
+        request.domainConstraints,
+        'symbolic-direct',
+        request.angleUnit,
+      );
+
+      if (validation.accepted.length === 0) {
+        return {
+          kind: 'error',
+          title: 'Solve',
+          error: candidateRejectionMessage(request.domainConstraints, validation.rejected),
+          exactSupplementLatex:
+            carrierAttempt.exactSupplementLatex && carrierAttempt.exactSupplementLatex.length > 0
+              ? carrierAttempt.exactSupplementLatex
+              : undefined,
+          warnings: [],
+          plannerBadges: [],
+          solveBadges: ['Candidate Checked'],
+          rejectedCandidateCount: validation.rejected.length,
+        };
+      }
+
+      const acceptedLatex = matchAcceptedSolvedRoots(carrierAttempt.roots, validation.accepted);
+      const exactLatex = acceptedLatex.length > 0 && acceptedLatex.every((value) => !isApproximateOnlySolutionLatex(value))
+        ? solutionsToLatex('x', acceptedLatex)
+        : undefined;
+
+      return {
+        kind: 'success',
+        title: 'Solve',
+        exactLatex,
+        exactSupplementLatex:
+          carrierAttempt.exactSupplementLatex && carrierAttempt.exactSupplementLatex.length > 0
+            ? carrierAttempt.exactSupplementLatex
+            : undefined,
+        approxText: formatAcceptedApproximations(validation.accepted),
+        warnings: [],
+        resultOrigin: 'symbolic',
+        plannerBadges: [],
+        solveBadges: ['Candidate Checked'],
+        candidateValues: validation.accepted,
+        rejectedCandidateCount: validation.rejected.length > 0 ? validation.rejected.length : undefined,
+      };
+    }
+
+    if (carrierAttempt.kind === 'empty') {
+      return errorOutcome(
+        'Solve',
+        'No real solutions remain after resolving the bounded carrier roots.',
+      );
+    }
+
+    if (recognizedDirectPolynomial || carrierAttempt.kind === 'recognized') {
       return errorOutcome(
         'Solve',
         UNSUPPORTED_FAMILY_ERROR,
       );
     }
 
-    return {
-      kind: 'success',
-      title: 'Solve',
-      exactLatex: solved.exactLatex,
-      approxText: solved.approxText,
-      warnings: [],
-      resultOrigin: 'symbolic',
-      plannerBadges: [],
-      solveBadges: [],
-      candidateValues: solved.approxSolutions,
-    };
+    return null;
   } catch {
     return null;
   }

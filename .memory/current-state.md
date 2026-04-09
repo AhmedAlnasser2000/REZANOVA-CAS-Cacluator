@@ -535,3 +535,34 @@
     - `src/types/calculator/runtime-contracts.test.ts`
   - verified with:
     - `npm run test:gate`
+- Post-`ARCH5`, the next intended math lane is now the Poly-Rad lane again, with `POLY-RAD2` as the next milestone to plan/ship.
+- `POLY-RAD3` is intentionally deferred as a later decision instead of being auto-queued now.
+- Any later `POLY-RAD3` or abs-bridge milestone should explicitly build on the bounded repeated-radical and radical-to-abs follow-on behavior already shipped in `RAD2`, rather than treating those capabilities as greenfield.
+- `POLY-RAD2` is now verified:
+  - `src/lib/equation/polynomial-carrier-follow-on.ts` adds the shared bounded polynomial-in-carrier bridge for Equation follow-ons
+  - the bridge solves bounded `P(u(x))=0` surfaces by:
+    - solving the polynomial in carrier `u`
+    - back-solving supported carrier equations `u(x)=c`
+    - validating final `x` candidates against the original equation
+  - supported Equation-first carrier families now include:
+    - affine carriers `ax+b`
+    - even-power affine carriers `(ax+b)^2`
+    - shifted even-power carriers `(ax+b)^2+c`
+    - direct quadratic carriers `ax^2+bx+c`
+  - both radical entry paths reuse the same bridge:
+    - `RAD2` sequential radical isolation via `src/lib/equation/guarded/run.ts`
+    - outer-inversion/composition handoff via the same guarded bounded-polynomial stage
+  - `src/lib/equation/guarded/algebra-stage.ts` now allows Equation-only quadratic radicands so bounded radical isolation can reach the new carrier bridge without widening Calculate `Factor`/`Simplify`
+  - extracted composition carrier helpers in `src/lib/equation/composition-stage.ts` are now shared infrastructure for carrier back-solving instead of composition-only logic
+  - visible scope intentionally stayed Equation-first:
+    - no intentional new `Calculate > Factor` behavior
+    - no intentional new `Calculate > Simplify` behavior
+  - focused POLY-RAD2 coverage lives in:
+    - `src/lib/equation/polynomial-carrier-follow-on.test.ts`
+    - `src/lib/equation/shared-solve.test.ts`
+    - `src/lib/equation/guarded-solve.test.ts`
+    - `src/lib/modes/equation.test.ts`
+    - `src/AppMain.ui.test.tsx`
+    - `e2e/qa1-smoke.spec.ts`
+  - verified with:
+    - `npm run test:gate`

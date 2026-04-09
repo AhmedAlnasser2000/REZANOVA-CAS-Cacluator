@@ -40,6 +40,58 @@ type ExactScalar = {
   denominator: number;
 };
 
+function parseRadicalIndex(node: unknown): number | null {
+  return typeof node === 'number' && Number.isInteger(node) && node >= 2
+    ? node
+    : null;
+}
+
+function isEquationSupportedQuadraticRadicand(node: unknown, variable: string) {
+  const polynomial = parseExactPolynomial(normalizeAst(node), variable, 2);
+  return Boolean(polynomial && Math.max(...polynomial.terms.keys(), 0) === 2);
+}
+
+function matchEquationSupportedRadical(node: unknown, variable: string): SupportedRadical | null {
+  const shared = matchSupportedRadical(node, variable);
+  if (shared) {
+    return shared;
+  }
+
+  const normalized = normalizeAst(node);
+  if (!isNodeArray(normalized) || normalized.length === 0) {
+    return null;
+  }
+
+  if (
+    normalized[0] === 'Sqrt'
+    && normalized.length === 2
+    && isEquationSupportedQuadraticRadicand(normalized[1], variable)
+  ) {
+    return {
+      node: normalized,
+      radicand: normalized[1],
+      index: 2,
+    };
+  }
+
+  if (
+    normalized[0] === 'Root'
+    && normalized.length === 3
+    && isEquationSupportedQuadraticRadicand(normalized[1], variable)
+  ) {
+    const index = parseRadicalIndex(normalized[2]);
+    if (index !== null) {
+      return {
+        node: normalized,
+        radicand: normalized[1],
+        index,
+      };
+    }
+  }
+
+  return null;
+}
+
 type PlaceholderLinearExpression = {
   a: ExactScalar;
   remainder: unknown;
@@ -545,7 +597,7 @@ function parseLinearPlaceholder(node: unknown, placeholder: string): Placeholder
 }
 
 function collectSupportedRoots(node: unknown, variable: string, roots: SupportedRadical[] = []) {
-  const radical = matchSupportedRadical(node, variable);
+  const radical = matchEquationSupportedRadical(node, variable);
   if (radical) {
     roots.push(radical);
   }
@@ -563,7 +615,7 @@ function collectSupportedRoots(node: unknown, variable: string, roots: Supported
 
 function collectRadicalTargets(node: unknown, variable: string, targets: RadicalTarget[] = []) {
   const normalized = normalizeAst(node);
-  const root = matchSupportedRadical(normalized, variable);
+  const root = matchEquationSupportedRadical(normalized, variable);
   if (root) {
     targets.push({
       kind: 'root',
@@ -578,7 +630,7 @@ function collectRadicalTargets(node: unknown, variable: string, targets: Radical
     && normalized.length === 3
   ) {
     const numeratorScalar = readExactScalar(normalized[1]);
-    const denominatorRoot = matchSupportedRadical(normalized[2], variable);
+    const denominatorRoot = matchEquationSupportedRadical(normalized[2], variable);
     if (numeratorScalar && denominatorRoot) {
       targets.push({
         kind: 'reciprocal-root',
@@ -775,7 +827,11 @@ function getSolveVariable(...nodes: unknown[]) {
 
 function isSupportedRightSideExpression(node: unknown, variable: string): boolean {
   const normalized = normalizeAst(node);
-  if (readExactScalar(normalized) || isSupportedRadicand(normalized, variable)) {
+  if (
+    readExactScalar(normalized)
+    || isSupportedRadicand(normalized, variable)
+    || isEquationSupportedQuadraticRadicand(normalized, variable)
+  ) {
     return true;
   }
 

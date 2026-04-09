@@ -96,7 +96,7 @@ type TrigBranchResult =
       solveBadges?: SolveBadge[];
     };
 
-type SymbolicFamilyBranch = {
+export type SymbolicFamilyBranch = {
   node: unknown;
   latex: string;
   representativeValue: number;
@@ -760,7 +760,7 @@ function buildSymbolicFamilyBranch(branch: TrigPeriodicBranch): SymbolicFamilyBr
   };
 }
 
-function buildSymbolicFamilyBranchFromNode(node: unknown, representativeValue?: number): SymbolicFamilyBranch {
+export function buildSymbolicFamilyBranchFromNode(node: unknown, representativeValue?: number): SymbolicFamilyBranch {
   const normalized = normalizeAst(node);
   return {
     node: normalized,
@@ -772,7 +772,7 @@ function buildSymbolicFamilyBranchFromNode(node: unknown, representativeValue?: 
   };
 }
 
-function dedupeSymbolicFamilyBranches(branches: SymbolicFamilyBranch[]) {
+export function dedupeSymbolicFamilyBranches(branches: SymbolicFamilyBranch[]) {
   const seen = new Set<string>();
   return branches.filter((branch) => {
     if (seen.has(branch.latex)) {
@@ -904,7 +904,7 @@ function appendPeriodicSolveBadges(
   };
 }
 
-function numericAffineCarrier(node: unknown) {
+export function numericAffineCarrier(node: unknown) {
   const normalized = normalizeAst(node);
   if (isBareVariable(normalized)) {
     return {
@@ -959,7 +959,7 @@ function numericAffineCarrier(node: unknown) {
   };
 }
 
-function transformAffineBranches(
+export function transformAffineBranches(
   carrier: ReturnType<typeof numericAffineCarrier>,
   branches: SymbolicFamilyBranch[],
 ): SymbolicFamilyBranch[] {
@@ -979,7 +979,7 @@ function transformAffineBranches(
   });
 }
 
-function matchParameterizedPowerCarrier(node: unknown) {
+export function matchParameterizedPowerCarrier(node: unknown) {
   const normalized = normalizeAst(node);
   if (!isNodeArray(normalized) || normalized[0] !== 'Power' || normalized.length !== 3) {
     return null;
@@ -1054,7 +1054,7 @@ function matchParameterizedRationalPowerCarrier(node: unknown) {
   };
 }
 
-function matchQuadraticCarrier(node: unknown) {
+export function matchQuadraticCarrier(node: unknown) {
   const normalized = normalizeAst(node);
   const polynomial = parseExactPolynomial(normalized, 'x', 2);
   if (!polynomial) {
@@ -1091,7 +1091,7 @@ function supportsShiftedCarrierClosure(node: unknown) {
   return Boolean(matchQuadraticCarrier(node));
 }
 
-function matchShiftedSupportedCarrier(node: unknown) {
+export function matchShiftedSupportedCarrier(node: unknown) {
   const normalized = normalizeAst(node);
   if (isNodeArray(normalized) && normalized[0] === 'Negate' && normalized.length === 2) {
     const inner = normalizeAst(normalized[1]);
@@ -1185,7 +1185,7 @@ function nthRootRepresentativeValue(value: number, degree: number) {
   return Math.sign(value) * Math.pow(Math.abs(value), 1 / degree);
 }
 
-function buildParameterizedPowerBranches(
+export function buildParameterizedPowerBranches(
   carrier: NonNullable<ReturnType<typeof matchParameterizedPowerCarrier>>,
   branches: SymbolicFamilyBranch[],
 ) {
@@ -1317,7 +1317,7 @@ function buildParameterizedRationalPowerBranches(
   };
 }
 
-function buildShiftedCarrierBranches(
+export function buildShiftedCarrierBranches(
   carrier: NonNullable<ReturnType<typeof matchShiftedSupportedCarrier>>,
   branches: SymbolicFamilyBranch[],
 ) {
@@ -1332,7 +1332,7 @@ function buildShiftedCarrierBranches(
   });
 }
 
-function buildQuadraticBranches(
+export function buildQuadraticBranches(
   carrier: NonNullable<ReturnType<typeof matchQuadraticCarrier>>,
   branches: SymbolicFamilyBranch[],
 ) {

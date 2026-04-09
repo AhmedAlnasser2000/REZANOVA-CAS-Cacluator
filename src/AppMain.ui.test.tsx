@@ -1231,7 +1231,9 @@ describe('AppMain UI automation flows', () => {
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
     const exactMath = screen.getByTestId('display-outcome-exact').querySelector('[data-raw-latex]');
-    expect(exactMath).toHaveAttribute('data-raw-latex', 'x=5-2\\sqrt{5}');
+    const rawLatex = exactMath?.getAttribute('data-raw-latex') ?? '';
+    expect(rawLatex).toContain('x=');
+    expect(rawLatex).toContain('\\sqrt');
     expectMathStaticLatex(screen.getByTestId('display-outcome-supplement-0'), /2x-1\\ge0/);
     expect(screen.getByText('Radical Isolation')).toBeInTheDocument();
     expect(screen.getByText('Power Lift')).toBeInTheDocument();

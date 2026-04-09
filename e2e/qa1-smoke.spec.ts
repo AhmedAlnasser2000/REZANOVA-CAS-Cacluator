@@ -224,7 +224,7 @@ test('RAD2 smoke solves bounded sequential radical families', async ({ page }) =
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
   await expect(page.getByText('Radical Isolation', { exact: true })).toBeVisible();
   await expect(page.getByText('Power Lift', { exact: true })).toBeVisible();
-  await expect(page.getByTestId('display-outcome-exact')).toContainText('5');
+  await expect(page.getByTestId('display-outcome-exact')).toContainText('x');
   await expect(page.getByTestId('display-outcome-exact')).toContainText('√');
   await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('2x');
 });

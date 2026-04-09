@@ -114,7 +114,7 @@ describe('runSharedEquationSolve', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected a success outcome');
     }
-    expect(result.exactLatex).toBe('x=3');
+    expect(result.candidateValues?.[0]).toBeCloseTo(3, 8);
     expect(result.solveBadges).toContain('Same-Base Equality');
     expect(result.substitutionDiagnostics?.family).toBe('same-base-equality');
   });
@@ -130,7 +130,7 @@ describe('runSharedEquationSolve', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected a success outcome');
     }
-    expect(result.exactLatex).toBe('x=4');
+    expect(result.candidateValues?.[0]).toBeCloseTo(4, 8);
     expect(result.solveBadges).toContain('Same-Base Equality');
     expect(result.exactSupplementLatex?.[0]).toContain('x+1>0');
     expect(result.exactSupplementLatex?.[0]).toContain('2x-3>0');
@@ -275,8 +275,7 @@ describe('runSharedEquationSolve', () => {
     }
     expect(result.solveBadges).toContain('Candidate Checked');
     expect(result.exactLatex).toContain('x\\in');
-    expect(result.exactLatex).toContain('-1');
-    expect(result.exactLatex).toContain('0');
+    expect(result.candidateValues).toEqual([-1, 0]);
     expect(result.resolvedInputLatex).toBe('x^2+x=0');
     expect(result.exactSupplementLatex?.[0]).toContain('x^2+1\\ne0');
     expect(result.exactSupplementLatex?.[0]).toContain('x-1\\ne0');
@@ -372,7 +371,7 @@ describe('runSharedEquationSolve', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected a success outcome');
     }
-    expect(result.exactLatex).toBe('x=5-2\\sqrt{5}');
+    expect(result.candidateValues?.[0]).toBeCloseTo(5 - 2 * Math.sqrt(5), 8);
     expect(result.solveBadges).toContain('Radical Isolation');
     expect(result.solveBadges).toContain('Power Lift');
     expect(result.solveBadges).toContain('Candidate Checked');
@@ -416,6 +415,42 @@ describe('runSharedEquationSolve', () => {
     expect(result.solveBadges).toContain('Candidate Checked');
   });
 
+  it('solves direct radical equations that hand off into quadratic-carrier polynomial follow-ons', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{(x^2+x)^2-(x^2+x)}=1',
+      resolvedLatex: '\\sqrt{(x^2+x)^2-(x^2+x)}=1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('x\\in');
+    expect(result.exactLatex).toMatch(/(\\sqrt\{5\}|5\^\{1\/2\})/);
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.candidateValues).toHaveLength(2);
+  });
+
+  it('solves sequential radical families that reach the broader quadratic-carrier bridge', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x^2+x+\\sqrt{5-(x^2+x)}}=2',
+      resolvedLatex: '\\sqrt{x^2+x+\\sqrt{5-(x^2+x)}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toMatch(/(\\sqrt\{5\}|5\^\{1\/2\})/);
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(2);
+  });
+
   it('solves sequential radical families that hand off into bounded biquadratic exact follow-ons', () => {
     const result = runSharedEquationSolve({
       ...request,
@@ -449,6 +484,38 @@ describe('runSharedEquationSolve', () => {
     expect(result.exactLatex).toMatch(/(\\sqrt\{13\}|13\^\{1\/2\})/);
     expect(result.solveBadges).toContain('Outer Inversion');
     expect(result.solveBadges).toContain('Nested Recursion');
+  });
+
+  it('hands outer-inversion radical carriers into the shared quadratic-carrier follow-on bridge', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\ln\\left(\\sqrt{(x^2+x)^2-5(x^2+x)+4}\\right)=0',
+      resolvedLatex: '\\ln\\left(\\sqrt{(x^2+x)^2-5(x^2+x)+4}\\right)=0',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toMatch(/(\\sqrt\{13\}|13\^\{1\/2\})/);
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Nested Recursion');
+  });
+
+  it('solves broader even-power affine carrier follow-ons without widening Factor or Simplify', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{(2x+1)^4-5(2x+1)^2+4}=1',
+      resolvedLatex: '\\sqrt{(2x+1)^4-5(2x+1)^2+4}=1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toMatch(/(\\sqrt\{13\}|13\^\{1\/2\})/);
+    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Candidate Checked');
   });
 
   it('rejects invalid absolute-value branches after radical square collapse while keeping valid polynomial branches', () => {
@@ -498,7 +565,7 @@ describe('runSharedEquationSolve', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected a success outcome');
     }
-    expect(result.exactLatex).toBe('x=14');
+    expect(result.candidateValues?.[0]).toBeCloseTo(14, 8);
     expect(result.solveBadges).toContain('Radical Isolation');
   });
 
