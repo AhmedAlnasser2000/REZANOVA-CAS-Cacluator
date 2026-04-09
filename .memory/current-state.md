@@ -33,6 +33,14 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `ARCH2` as the static runtime-host promotion milestone:
+  - added `src/lib/kernel/runtime-hosts.ts` so the internal kernel layer now has explicit owning runtime hosts for `expression-runtime`, `equation-runtime`, and metadata-only `table-runtime`
+  - extended `src/lib/kernel/capabilities.ts` so each public capability now points to a real owning host instead of only naming a broad execution seam
+  - promoted the guarded Equation attempt ladder in `src/lib/equation/guarded/run.ts` into one static descriptor-backed stage host with stable ids, preserved stage order, and terminal `direct-symbolic` ownership inside the host rather than as a post-host fallback
+  - promoted `runExpressionAction()` in `src/lib/math-engine.ts` into a static internal action host for `evaluate`, `simplify`, `factor`, `expand`, and internal shared `solve`, while keeping preparation and result-shaping phases outside the action descriptors
+  - kept `table.build` metadata-linked only, preserved the public capability list exactly as shipped in `ARCH1`, and kept internal expression `solve` non-public in capability metadata
+- Regression checks:
+  - `npm run test:gate`
 - Completed `ARCH1` as the parity-safe pillars-and-kernel-contracts milestone:
   - narrowed `src/types/calculator/runtime-types.ts` into focused execution, solver, display, and mode contract files while preserving stable compatibility barrels through `src/types/calculator.ts` and `runtime-types.ts`
   - added `src/lib/kernel/capabilities.ts` as the internal-only kernel capability registry for the six real execution seams (`expression.evaluate`, `expression.simplify`, `expression.factor`, `expression.expand`, `equation.solve`, `table.build`)
@@ -154,6 +162,12 @@
   - `npm run test:gate`
 
 ## Recent Verified Context
+- `ARCH2` static runtime hosts is now verified:
+  - `src/lib/kernel/runtime-hosts.ts` now defines the internal runtime-host descriptors for `expression-runtime`, `equation-runtime`, and metadata-only `table-runtime`
+  - `src/lib/kernel/capabilities.ts` now binds each capability to an owning host, while preserving the public capability surface from `ARCH1`
+  - `src/lib/equation/guarded/run.ts` now exposes a static descriptor list for the guarded solve stages and executes the existing ARCH1 staged helper through that stable host, with `direct-symbolic` remaining the terminal stage inside the host
+  - `src/lib/math-engine.ts` now exposes a static internal action host for expression actions, reusing the existing ARCH1 preparation helpers and keeping internal shared `solve` non-public in capability metadata
+  - focused registry/host coverage plus the full repo gate are green
 - `ARCH1` pillars-and-kernel-contracts is now verified:
   - runtime/kernel-adjacent contracts are split narrowly across `src/types/calculator/{mode,execution,display,solver}-types.ts` while `src/types/calculator.ts` and `src/types/calculator/runtime-types.ts` remain compatibility barrels
   - `src/lib/kernel/capabilities.ts` is the new internal-only capability registry for the six real execution seams, intentionally separate from keyboard/domain capability gating
@@ -412,19 +426,23 @@
 
 ## Next Recommended Task
 - The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, `POLY1`-`POLY2`, and `RAD1`-`RAD2` radical lane are now shipped.
+- `ARCH1` and `ARCH2` are now both shipped and regression-verified:
+  - ownership boundaries and runtime seams are clearer
+  - Equation and Calculate now have real static internal hosts
+  - the next architecture step should be chosen deliberately instead of extending the host layer ad hoc
 - Strongest current architecture recommendation before more composition breadth:
   1. the polynomial/radical foundation lane now extends through `POLY-RAD1`
-  2. the architecture discussion captured from the external kernel pack and repo-grounded review now makes `ARCH1 — Pillars and Kernel Contracts` a serious near-term candidate, not just a vague future idea
+  2. the architecture discussion captured from the external kernel pack and repo-grounded review now extends through `ARCH2 — Static Runtime Hosts`, so the next choice is between a deeper host/runtime milestone and returning to algebra/composition from a cleaner base
   3. next preferred decision:
      - choose deliberately between:
-       - `ARCH1` kernel contracts / pillar boundaries / internal extension seams
+       - `ARCH3` or later runtime-host / job / profile evolution
        - a dedicated bounded abs milestone
        - broader composition
        - a deeper bounded algebraic-follow-on expansion
 - Reason:
-  - `POLY1`/`POLY2`, `RAD1`/`RAD2`, and `POLY-RAD1` now provide shared polynomial/radical substrates plus the bounded bridge between them, so the next clean move should be chosen deliberately instead of defaulting to more feature-local composition special cases
-  - continuing directly into `COMP11` without deciding that next substrate boundary would risk reintroducing algebra duplication inside composition
-  - the same shared-core logic now applies one level higher: recent repo review suggests runtime/orchestration boundaries are ready for a kernel-contract pass, but a full plugin/microkernel platform would still be premature
+  - `POLY1`/`POLY2`, `RAD1`/`RAD2`, and `POLY-RAD1` now provide shared polynomial/radical substrates plus the bounded bridge between them, while `ARCH1`/`ARCH2` now provide cleaner runtime seams and static host ownership for Equation and Calculate
+  - continuing directly into `COMP11` without deciding the next substrate boundary would risk reintroducing feature-local algebra or runtime logic instead of building on the new shared cores and hosts
+  - a full plugin/microkernel platform is still premature, but the next move can now deliberately choose between more algebra value and a deeper internal runtime platform step
 
 ## Recent Verified Context
 - Rust numeric ODE evaluation no longer depends on `meval` / `nom v1`:

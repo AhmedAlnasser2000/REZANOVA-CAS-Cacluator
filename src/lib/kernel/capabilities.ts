@@ -1,4 +1,5 @@
 import type { CalculateAction, EquationAction } from '../../types/calculator';
+import type { KernelRuntimeHostId } from './runtime-hosts';
 
 export type KernelCapabilityId =
   | 'expression.evaluate'
@@ -11,6 +12,7 @@ export type KernelCapabilityId =
 export type KernelCapabilityDescriptor = {
   id: KernelCapabilityId;
   category: 'expression' | 'equation' | 'table';
+  hostId: KernelRuntimeHostId;
   entrypoint:
     | 'runExpressionAction'
     | 'runEquationMode'
@@ -22,36 +24,42 @@ const KERNEL_CAPABILITIES: Record<KernelCapabilityId, KernelCapabilityDescriptor
   'expression.evaluate': {
     id: 'expression.evaluate',
     category: 'expression',
+    hostId: 'expression-runtime',
     entrypoint: 'runExpressionAction',
     description: 'Evaluate a Calculate expression through the shared expression runtime.',
   },
   'expression.simplify': {
     id: 'expression.simplify',
     category: 'expression',
+    hostId: 'expression-runtime',
     entrypoint: 'runExpressionAction',
     description: 'Simplify a Calculate expression through the shared expression runtime.',
   },
   'expression.factor': {
     id: 'expression.factor',
     category: 'expression',
+    hostId: 'expression-runtime',
     entrypoint: 'runExpressionAction',
     description: 'Factor a Calculate expression through the shared expression runtime.',
   },
   'expression.expand': {
     id: 'expression.expand',
     category: 'expression',
+    hostId: 'expression-runtime',
     entrypoint: 'runExpressionAction',
     description: 'Expand a Calculate expression through the shared expression runtime.',
   },
   'equation.solve': {
     id: 'equation.solve',
     category: 'equation',
+    hostId: 'equation-runtime',
     entrypoint: 'runEquationMode',
     description: 'Solve an Equation workflow through the guarded equation runtime.',
   },
   'table.build': {
     id: 'table.build',
     category: 'table',
+    hostId: 'table-runtime',
     entrypoint: 'buildTable',
     description: 'Build a numeric table through the shared table runtime.',
   },

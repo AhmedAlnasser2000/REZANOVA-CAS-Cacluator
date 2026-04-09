@@ -1,1 +1,4 @@
-export { runGuardedEquationSolve } from './guarded/run';
+export {
+  listGuardedEquationStageDescriptors,
+  runGuardedEquationSolve,
+} from './guarded/run';

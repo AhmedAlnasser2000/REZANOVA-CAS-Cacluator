@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runGuardedEquationSolve } from './guarded-solve';
+import { listGuardedEquationStageDescriptors, runGuardedEquationSolve } from './guarded-solve';
 
 describe('runGuardedEquationSolve', () => {
   const request = {
@@ -9,6 +9,19 @@ describe('runGuardedEquationSolve', () => {
     outputStyle: 'both' as const,
     ansLatex: '0',
   };
+
+  it('keeps the guarded equation stage host order stable with direct symbolic as the terminal stage', () => {
+    expect(listGuardedEquationStageDescriptors().map((stage) => stage.id)).toEqual([
+      'numeric-interval',
+      'bounded-polynomial',
+      'algebra-transform',
+      'composition',
+      'direct-trig',
+      'rewrite-trig',
+      'substitution',
+      'direct-symbolic',
+    ]);
+  });
 
   it('solves supported symbolic substitution families', () => {
     const result = runGuardedEquationSolve({
@@ -248,6 +261,27 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Numeric Interval');
     expect(result.solveBadges).toContain('Candidate Checked');
     expect(result.approxText).toContain('0.739');
+  });
+
+  it('prefers earlier guarded host stages over later polynomial fallback stages', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: 'x^2-1=0',
+      resolvedLatex: 'x^2-1=0',
+      numericInterval: {
+        start: '0',
+        end: '2',
+        subdivisions: 256,
+      },
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected guarded numeric-stage success');
+    }
+    expect(result.solveBadges).toContain('Numeric Interval');
+    expect(result.approxText).toContain('1');
   });
 
   it('respects the selected angle unit in Equation numeric interval solving', () => {

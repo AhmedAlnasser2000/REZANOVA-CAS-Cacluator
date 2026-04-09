@@ -5,6 +5,7 @@ import {
   getTableBuildCapability,
   listKernelCapabilities,
 } from './capabilities';
+import { listKernelRuntimeHosts } from './runtime-hosts';
 
 describe('kernel capability registry', () => {
   it('lists only the bounded execution seams in ARCH1', () => {
@@ -34,8 +35,23 @@ describe('kernel capability registry', () => {
     expect(getTableBuildCapability()).toEqual({
       id: 'table.build',
       category: 'table',
+      hostId: 'table-runtime',
       entrypoint: 'buildTable',
       description: 'Build a numeric table through the shared table runtime.',
     });
+  });
+
+  it('links each capability to the owning static runtime host', () => {
+    expect(getKernelCapabilityDescriptor('expression.evaluate').hostId).toBe('expression-runtime');
+    expect(getKernelCapabilityDescriptor('equation.solve').hostId).toBe('equation-runtime');
+    expect(getKernelCapabilityDescriptor('table.build').hostId).toBe('table-runtime');
+  });
+
+  it('lists the static runtime hosts without widening into jobs or plugins', () => {
+    expect(listKernelRuntimeHosts().map((entry) => entry.id)).toEqual([
+      'expression-runtime',
+      'equation-runtime',
+      'table-runtime',
+    ]);
   });
 });

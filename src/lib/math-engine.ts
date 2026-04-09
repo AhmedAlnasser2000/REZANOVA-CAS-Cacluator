@@ -311,6 +311,23 @@ type PreparedExpressionRuntime =
       response: EvaluateResponse;
     };
 
+type PreparedExpressionRequestReady = Extract<PreparedExpressionRequest, { kind: 'ready' }>;
+type PreparedExpressionRuntimeReady = Extract<PreparedExpressionRuntime, { kind: 'ready' }>;
+
+type ExpressionActionContext = {
+  request: EvaluateRequest;
+  action: SymbolicAction;
+  preparedRequest: PreparedExpressionRequestReady;
+  preparedRuntime: PreparedExpressionRuntimeReady;
+};
+
+export type ExpressionActionDescriptor = {
+  id: SymbolicAction;
+  label: string;
+  execute: (context: ExpressionActionContext) => EvaluateResponse;
+  publicCapabilityId?: 'expression.evaluate' | 'expression.simplify' | 'expression.factor' | 'expression.expand';
+};
+
 function prepareExpressionRequest(
   request: EvaluateRequest,
   action: SymbolicAction,
@@ -410,39 +427,29 @@ function prepareExpressionRuntime(
   };
 }
 
-export function runExpressionAction(
-  request: EvaluateRequest,
-  action: SymbolicAction,
+function executePreparedExpressionAction(
+  context: ExpressionActionContext,
 ): EvaluateResponse {
-  const preparedRequest = prepareExpressionRequest(request, action);
-  if (preparedRequest.kind === 'done') {
-    return preparedRequest.response;
-  }
+  const { request, action, preparedRequest, preparedRuntime } = context;
+  const { expr, sourceLatex, warnings } = preparedRuntime;
 
-  try {
-    const preparedRuntime = prepareExpressionRuntime(request, action, preparedRequest.rawLatex);
-    if (preparedRuntime.kind === 'done') {
-      return preparedRuntime.response;
-    }
-    const { expr, sourceLatex, warnings } = preparedRuntime;
-
-    const radical =
-      action === 'simplify' || action === 'factor'
-        ? normalizeExactRadicalNode(expr.json, action)
-        : action === 'expand'
-          ? normalizeExactRadicalNode(exactExpression(expr, action).json, 'expand')
-          : null;
-
-    const radicalExpr = radical
-      ? (ce.box(radical.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike)
-      : expr;
-    const radicalSupplementLatex = radical?.exactSupplementLatex ?? [];
-
-    const rational =
-      action === 'simplify' || action === 'factor'
-        ? normalizeExactRationalNode(radicalExpr.json, action)
+  const radical =
+    action === 'simplify' || action === 'factor'
+      ? normalizeExactRadicalNode(expr.json, action)
+      : action === 'expand'
+        ? normalizeExactRadicalNode(exactExpression(expr, action).json, 'expand')
         : null;
-    if (rational) {
+
+  const radicalExpr = radical
+    ? (ce.box(radical.normalizedNode as Parameters<typeof ce.box>[0]) as BoxedLike)
+    : expr;
+  const radicalSupplementLatex = radical?.exactSupplementLatex ?? [];
+
+  const rational =
+    action === 'simplify' || action === 'factor'
+      ? normalizeExactRationalNode(radicalExpr.json, action)
+      : null;
+  if (rational) {
       const powerLog =
         action === 'simplify'
           ? normalizeExactPowerLogNode(rational.normalizedNode, 'simplify')
@@ -815,6 +822,79 @@ export function runExpressionAction(
           ? 'symbolic-engine'
           : undefined,
     };
+}
+
+const EXPRESSION_ACTION_DESCRIPTORS: ExpressionActionDescriptor[] = [
+  {
+    id: 'evaluate',
+    label: 'Evaluate',
+    publicCapabilityId: 'expression.evaluate',
+    execute: executePreparedExpressionAction,
+  },
+  {
+    id: 'simplify',
+    label: 'Simplify',
+    publicCapabilityId: 'expression.simplify',
+    execute: executePreparedExpressionAction,
+  },
+  {
+    id: 'factor',
+    label: 'Factor',
+    publicCapabilityId: 'expression.factor',
+    execute: executePreparedExpressionAction,
+  },
+  {
+    id: 'expand',
+    label: 'Expand',
+    publicCapabilityId: 'expression.expand',
+    execute: executePreparedExpressionAction,
+  },
+  {
+    id: 'solve',
+    label: 'Solve',
+    execute: executePreparedExpressionAction,
+  },
+];
+
+export function listExpressionActionDescriptors(): ExpressionActionDescriptor[] {
+  return EXPRESSION_ACTION_DESCRIPTORS;
+}
+
+function runExpressionActionHost(
+  context: ExpressionActionContext,
+): EvaluateResponse {
+  const descriptor = EXPRESSION_ACTION_DESCRIPTORS.find((entry) => entry.id === context.action);
+  if (!descriptor) {
+    return {
+      warnings: [],
+      error: 'Expression action is not supported by the shared runtime host.',
+    };
+  }
+
+  return descriptor.execute(context);
+}
+
+export function runExpressionAction(
+  request: EvaluateRequest,
+  action: SymbolicAction,
+): EvaluateResponse {
+  const preparedRequest = prepareExpressionRequest(request, action);
+  if (preparedRequest.kind === 'done') {
+    return preparedRequest.response;
+  }
+
+  try {
+    const preparedRuntime = prepareExpressionRuntime(request, action, preparedRequest.rawLatex);
+    if (preparedRuntime.kind === 'done') {
+      return preparedRuntime.response;
+    }
+
+    return runExpressionActionHost({
+      request,
+      action,
+      preparedRequest,
+      preparedRuntime,
+    });
   } catch {
     return {
       warnings: [],

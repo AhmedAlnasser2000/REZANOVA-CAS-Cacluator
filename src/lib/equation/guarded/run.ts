@@ -410,17 +410,145 @@ function runBoundedPolynomialSolve(request: GuardedSolveRequest): DisplayOutcome
   }
 }
 
-type GuardedStageAttempt = () => DisplayOutcome | null | undefined;
+export type GuardedEquationStageId =
+  | 'numeric-interval'
+  | 'bounded-polynomial'
+  | 'algebra-transform'
+  | 'composition'
+  | 'direct-trig'
+  | 'rewrite-trig'
+  | 'substitution'
+  | 'direct-symbolic';
+
+type SymbolicSolveResult = ReturnType<typeof runExpressionAction>;
+
+type GuardedEquationStageContext = {
+  preparedRequest: GuardedSolveRequest;
+  originalResolvedLatex: string;
+  depth: number;
+  trail: Set<string>;
+  getSymbolic: () => SymbolicSolveResult;
+};
+
+export type GuardedEquationStageDescriptor = {
+  id: GuardedEquationStageId;
+  label: string;
+  execute: (context: GuardedEquationStageContext) => DisplayOutcome | null | undefined;
+  canRecurse?: boolean;
+};
+
+function runDirectSymbolicStage(
+  context: GuardedEquationStageContext,
+): DisplayOutcome {
+  const { preparedRequest } = context;
+
+  if (shouldSkipDirectSymbolicSolve(preparedRequest.resolvedLatex)) {
+    return errorOutcome(
+      'Solve',
+      UNSUPPORTED_FAMILY_ERROR,
+    );
+  }
+
+  const symbolic = context.getSymbolic();
+  if (!symbolic.error && symbolic.exactLatex && !hasNonFiniteRawSolutions(symbolic)) {
+    const validated = validateDirectSymbolicOutcome(preparedRequest, symbolic);
+    return validated ?? successOutcome(
+      'Solve',
+      symbolic.exactLatex,
+      symbolic.approxText,
+      symbolic.warnings,
+    );
+  }
+
+  return errorOutcome(
+    'Solve',
+    UNSUPPORTED_FAMILY_ERROR,
+    symbolic.warnings,
+  );
+}
+
+const GUARDED_EQUATION_STAGE_DESCRIPTORS: GuardedEquationStageDescriptor[] = [
+  {
+    id: 'numeric-interval',
+    label: 'Numeric Interval',
+    execute: ({ preparedRequest }) => (
+      preparedRequest.numericInterval ? numericIntervalSolve(preparedRequest) : null
+    ),
+  },
+  {
+    id: 'bounded-polynomial',
+    label: 'Bounded Polynomial',
+    execute: ({ preparedRequest }) => runBoundedPolynomialSolve(preparedRequest),
+  },
+  {
+    id: 'algebra-transform',
+    label: 'Algebra Transform',
+    canRecurse: true,
+    execute: ({ preparedRequest, depth, trail }) => algebraTransformSolve(
+      preparedRequest,
+      depth,
+      trail,
+      MAX_RECURSION_DEPTH,
+      runGuardedEquationSolve,
+    ),
+  },
+  {
+    id: 'composition',
+    label: 'Composition',
+    canRecurse: true,
+    execute: ({ preparedRequest, depth, trail }) => compositionSolve(
+      preparedRequest,
+      depth,
+      trail,
+      MAX_RECURSION_DEPTH,
+      runGuardedEquationSolve,
+    ),
+  },
+  {
+    id: 'direct-trig',
+    label: 'Direct Trig',
+    execute: ({ preparedRequest }) => directTrigSolve(preparedRequest),
+  },
+  {
+    id: 'rewrite-trig',
+    label: 'Rewrite Trig',
+    execute: ({ preparedRequest }) => rewriteTrigSolve(preparedRequest),
+  },
+  {
+    id: 'substitution',
+    label: 'Substitution',
+    canRecurse: true,
+    execute: ({ preparedRequest, depth, trail }) => substitutionSolve(
+      preparedRequest,
+      depth,
+      trail,
+      MAX_RECURSION_DEPTH,
+      runGuardedEquationSolve,
+    ),
+  },
+  {
+    id: 'direct-symbolic',
+    label: 'Direct Symbolic',
+    execute: runDirectSymbolicStage,
+  },
+];
+
+export function listGuardedEquationStageDescriptors(): GuardedEquationStageDescriptor[] {
+  return GUARDED_EQUATION_STAGE_DESCRIPTORS;
+}
 
 function runGuardedStageSequence(
-  attempts: GuardedStageAttempt[],
-  originalResolvedLatex: string,
-  preparedRequest: GuardedSolveRequest,
+  descriptors: GuardedEquationStageDescriptor[],
+  context: GuardedEquationStageContext,
 ): DisplayOutcome | null {
-  for (const attempt of attempts) {
-    const outcome = attempt();
+  for (const descriptor of descriptors) {
+    const outcome = descriptor.execute(context);
     if (outcome) {
-      return attachAlgebraMetadata(outcome, originalResolvedLatex, preparedRequest);
+      return attachAlgebraMetadata(
+        outcome,
+        context.originalResolvedLatex,
+        context.preparedRequest,
+      );
     }
   }
 
@@ -475,63 +603,26 @@ function runGuardedEquationSolve(
   }
 
   const stagedOutcome = runGuardedStageSequence(
-    [
-      () => preparedRequest.numericInterval ? numericIntervalSolve(preparedRequest) : null,
-      () => runBoundedPolynomialSolve(preparedRequest),
-      () => algebraTransformSolve(
-        preparedRequest,
-        depth,
-        trail,
-        MAX_RECURSION_DEPTH,
-        runGuardedEquationSolve,
-      ),
-      () => compositionSolve(
-        preparedRequest,
-        depth,
-        trail,
-        MAX_RECURSION_DEPTH,
-        runGuardedEquationSolve,
-      ),
-      () => directTrigSolve(preparedRequest),
-      () => rewriteTrigSolve(preparedRequest),
-      () => substitutionSolve(
-        preparedRequest,
-        depth,
-        trail,
-        MAX_RECURSION_DEPTH,
-        runGuardedEquationSolve,
-      ),
-    ],
-    request.resolvedLatex,
-    preparedRequest,
+    GUARDED_EQUATION_STAGE_DESCRIPTORS,
+    {
+      preparedRequest,
+      originalResolvedLatex: request.resolvedLatex,
+      depth,
+      trail,
+      getSymbolic,
+    },
   );
   if (stagedOutcome) {
     return stagedOutcome;
   }
-
-  if (shouldSkipDirectSymbolicSolve(preparedRequest.resolvedLatex)) {
-    return attachAlgebraMetadata(errorOutcome(
+  return attachAlgebraMetadata(
+    errorOutcome(
       'Solve',
       UNSUPPORTED_FAMILY_ERROR,
-    ), request.resolvedLatex, preparedRequest);
-  }
-
-  const symbolic = getSymbolic();
-  if (!symbolic.error && symbolic.exactLatex && !hasNonFiniteRawSolutions(symbolic)) {
-    const validated = validateDirectSymbolicOutcome(preparedRequest, symbolic);
-    return attachAlgebraMetadata(validated ?? successOutcome(
-      'Solve',
-      symbolic.exactLatex,
-      symbolic.approxText,
-      symbolic.warnings,
-    ), request.resolvedLatex, preparedRequest);
-  }
-
-  return attachAlgebraMetadata(errorOutcome(
-    'Solve',
-    UNSUPPORTED_FAMILY_ERROR,
-    symbolic.warnings,
-  ), request.resolvedLatex, preparedRequest);
+    ),
+    request.resolvedLatex,
+    preparedRequest,
+  );
 }
 
 export { runGuardedEquationSolve };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { runExpressionAction } from './math-engine'
+import { listExpressionActionDescriptors, runExpressionAction } from './math-engine'
 
 const request = {
   mode: 'calculate' as const,
@@ -26,6 +26,40 @@ describe('runExpressionAction', () => {
     expect(evaluated.error).toBeUndefined()
     expect(evaluated.exactLatex).not.toBe(solved.exactLatex)
     expect(evaluated.approxText ?? '').not.toContain('x ~=')
+  })
+
+  it('keeps solve internal to the expression host while exposing only the four public expression capabilities', () => {
+    expect(listExpressionActionDescriptors()).toEqual([
+      {
+        id: 'evaluate',
+        label: 'Evaluate',
+        publicCapabilityId: 'expression.evaluate',
+        execute: expect.any(Function),
+      },
+      {
+        id: 'simplify',
+        label: 'Simplify',
+        publicCapabilityId: 'expression.simplify',
+        execute: expect.any(Function),
+      },
+      {
+        id: 'factor',
+        label: 'Factor',
+        publicCapabilityId: 'expression.factor',
+        execute: expect.any(Function),
+      },
+      {
+        id: 'expand',
+        label: 'Expand',
+        publicCapabilityId: 'expression.expand',
+        execute: expect.any(Function),
+      },
+      {
+        id: 'solve',
+        label: 'Solve',
+        execute: expect.any(Function),
+      },
+    ])
   })
 
   it('falls back to symbolic common-factor extraction', () => {
