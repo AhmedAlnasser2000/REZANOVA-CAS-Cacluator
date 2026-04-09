@@ -51,6 +51,7 @@ describe('calculator runtime contract exports', () => {
       maxCompositionInversionDepth: 2,
       maxPeriodicReductionDepth: 2,
       maxRadicalTransformSteps: 2,
+      maxRepeatedClearingSteps: 1,
     };
     const runtimeProfile: RuntimeExecutionProfile = {
       id: 'default',

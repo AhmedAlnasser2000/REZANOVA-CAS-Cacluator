@@ -158,7 +158,9 @@ function formatAcceptedApproximations(values: number[]) {
 
 function shouldAttemptPolynomialCarrierFollowOn(request: GuardedSolveRequest) {
   return (request.radicalTransformDepth ?? 0) > 0
-    || (request.compositionInversionDepth ?? 0) > 0;
+    || (request.compositionInversionDepth ?? 0) > 0
+    || (request.repeatedClearingDepth ?? 0) > 0
+    || (request.polynomialCarrierHints?.length ?? 0) > 0;
 }
 
 function matchAcceptedSolvedRoots(
@@ -431,7 +433,7 @@ function runBoundedPolynomialSolve(request: GuardedSolveRequest): DisplayOutcome
     }
 
     const carrierAttempt = shouldAttemptPolynomialCarrierFollowOn(request)
-      ? solveBoundedPolynomialCarrierEquationAst(parsed)
+      ? solveBoundedPolynomialCarrierEquationAst(parsed, request.polynomialCarrierHints)
       : { kind: 'none' as const };
 
     if (carrierAttempt.kind === 'solved') {

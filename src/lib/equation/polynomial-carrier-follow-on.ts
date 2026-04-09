@@ -1,4 +1,4 @@
-import { ComputeEngine } from '@cortex-js/compute-engine';
+import { ComputeEngine, expand } from '@cortex-js/compute-engine';
 import {
   addExactPolynomials,
   addExactScalars,
@@ -170,10 +170,26 @@ function refineRootAgainstZeroForm(zeroFormNode: unknown, initialValue: number) 
 }
 
 function expandNode(node: unknown) {
+  let current = normalizeAst(node);
+
+  for (let iteration = 0; iteration < 4; iteration += 1) {
+    try {
+      const expanded = normalizeAst(
+        (expand(ce.box(current as Parameters<typeof ce.box>[0]) as never) as { json: unknown }).json,
+      );
+      if (termKey(expanded) === termKey(current)) {
+        break;
+      }
+      current = expanded;
+    } catch {
+      break;
+    }
+  }
+
   try {
-    return normalizeAst(ce.box(node as Parameters<typeof ce.box>[0]).simplify().json);
+    return normalizeAst(ce.box(current as Parameters<typeof ce.box>[0]).simplify().json);
   } catch {
-    return normalizeAst(node);
+    return current;
   }
 }
 
@@ -308,8 +324,25 @@ function buildNormalizedQuadraticCarrierDescriptorFromPolynomial(node: unknown):
   };
 }
 
-function collectSupportedCarrierDescriptors(node: unknown) {
+function buildPreferredCarrierDescriptor(node: unknown): SupportedCarrierDescriptor | null {
+  const normalized = normalizeAst(node);
+  return buildSupportedCarrierDescriptor(normalized)
+    ?? buildNormalizedQuadraticCarrierDescriptorFromPolynomial(normalized);
+}
+
+function collectSupportedCarrierDescriptors(node: unknown, preferredCarrierNodes: unknown[] = []) {
   const descriptors = new Map<string, SupportedCarrierDescriptor>();
+
+  for (const preferredNode of preferredCarrierNodes) {
+    const descriptor = buildPreferredCarrierDescriptor(preferredNode);
+    if (!descriptor) {
+      continue;
+    }
+    descriptors.set(termKey(descriptor.node), {
+      ...descriptor,
+      rank: descriptor.rank + 10,
+    });
+  }
 
   const visit = (current: unknown) => {
     const normalized = normalizeAst(current);
@@ -696,6 +729,7 @@ function attemptSupportedCarrier(
 
 export function solveBoundedPolynomialCarrierEquationAst(
   node: unknown,
+  preferredCarrierNodes: unknown[] = [],
 ): PolynomialCarrierSolveAttempt {
   const normalized = normalizeAst(node);
   const zeroFormNode =
@@ -703,7 +737,7 @@ export function solveBoundedPolynomialCarrierEquationAst(
       ? normalizeAst(['Subtract', normalized[1], normalized[2]])
       : normalized;
 
-  const descriptors = collectSupportedCarrierDescriptors(zeroFormNode);
+  const descriptors = collectSupportedCarrierDescriptors(zeroFormNode, preferredCarrierNodes);
   let sawRecognized = false;
   let sawEmpty = false;
 

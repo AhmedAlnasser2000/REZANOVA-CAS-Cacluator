@@ -23,6 +23,7 @@ describe('runtime execution profiles', () => {
       maxCompositionInversionDepth: 2,
       maxPeriodicReductionDepth: 2,
       maxRadicalTransformSteps: 2,
+      maxRepeatedClearingSteps: 1,
     });
   });
 

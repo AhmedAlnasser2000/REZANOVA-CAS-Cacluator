@@ -757,8 +757,8 @@ describe('AppMain UI automation flows', () => {
     await user.click(screen.getByTestId('soft-action-solve'));
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
-    expect(screen.getByText('Outer Inversion')).toBeInTheDocument();
-    expect(screen.getByText('Nested Recursion')).toBeInTheDocument();
+    expect(screen.getByText('Radical Isolation')).toBeInTheDocument();
+    expect(screen.getByText('Root Isolation')).toBeInTheDocument();
     expect(screen.getByText('Power Lift')).toBeInTheDocument();
     expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/26/);
     expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/28/);
@@ -1248,8 +1248,8 @@ describe('AppMain UI automation flows', () => {
 
     await waitFor(() => expect(screen.getByTestId('display-outcome-success')).toBeInTheDocument());
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), /\\sqrt\{13\}/);
-    expect(screen.getByText('Outer Inversion')).toBeInTheDocument();
-    expect(screen.getByText('Nested Recursion')).toBeInTheDocument();
+    expect(screen.getByText('Radical Isolation')).toBeInTheDocument();
+    expect(screen.getByText('Power Lift')).toBeInTheDocument();
   });
 
   it('renders POLY-RAD1 direct radical simplification wins without switching simplify into factor mode', async () => {

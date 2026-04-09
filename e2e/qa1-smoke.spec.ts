@@ -257,7 +257,8 @@ test('POLY-RAD1 smoke renders algebraic biquadratic roots after a bounded radica
   await page.getByTestId('soft-action-solve').click();
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
-  await expect(page.getByText('Outer Inversion', { exact: true })).toBeVisible();
+  await expect(page.getByText('Radical Isolation', { exact: true })).toBeVisible();
+  await expect(page.getByText('Power Lift', { exact: true })).toBeVisible();
   await expect(page.getByTestId('display-outcome-exact')).toContainText('√13');
 });
 
@@ -581,8 +582,8 @@ test('COMP2 smoke hands bounded inversions into PRL/algebra solve families', asy
   await page.getByTestId('soft-action-solve').click();
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
-  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Outer Inversion' })).toBeVisible();
-  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Nested Recursion' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Radical Isolation' })).toBeVisible();
+  await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Root Isolation' })).toBeVisible();
   await expect(page.locator('.result-badges .equation-origin-badge', { hasText: 'Power Lift' })).toBeVisible();
   await expect(page.getByTestId('display-outcome-exact')).toContainText(/26/);
   await expect(page.getByTestId('display-outcome-exact')).toContainText(/28/);

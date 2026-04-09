@@ -33,6 +33,16 @@ describe('normalizeExactRadicalLatex', () => {
     expect(stripFences(rationalSquare?.normalizedLatex)).toContain('2');
   });
 
+  it('denests bounded constant nested square roots in simplify mode', () => {
+    const simplePlus = normalizeExactRadicalLatex('\\sqrt{3+2\\sqrt{2}}', 'simplify');
+    const twoTermPlus = normalizeExactRadicalLatex('\\sqrt{5+2\\sqrt{6}}', 'simplify');
+    const minusCase = normalizeExactRadicalLatex('\\sqrt{3-2\\sqrt{2}}', 'simplify');
+
+    expect(stripFences(simplePlus?.normalizedLatex)).toBe('1+\\sqrt{2}');
+    expect(stripFences(twoTermPlus?.normalizedLatex)).toBe('\\sqrt{2}+\\sqrt{3}');
+    expect(stripFences(minusCase?.normalizedLatex)).toBe('\\sqrt{2}-1');
+  });
+
   it('rationalizes numeric square-root binomial denominators', () => {
     const result = normalizeExactRadicalLatex('\\frac{1}{1+\\sqrt{2}}', 'simplify');
 
@@ -105,5 +115,13 @@ describe('normalizeExactRadicalLatex', () => {
     const result = normalizeExactRadicalLatex('\\sqrt{x^2+2x+1}', 'equation');
 
     expect(result).toBeNull();
+  });
+
+  it('keeps variable nested radicals conservative in simplify mode', () => {
+    const result = normalizeExactRadicalLatex('\\sqrt{x+\\sqrt{x}}', 'simplify');
+
+    expect(result?.changed).toBe(false);
+    expect(result?.normalizedLatex).toBe('\\sqrt{x+\\sqrt{x}}');
+    expect(result?.exactSupplementLatex).toContain('\\text{Conditions: } x\\ge0');
   });
 });

@@ -522,6 +522,24 @@ describe('runExpressionAction', () => {
     expect(rationalized.exactSupplementLatex?.[0]).toContain('x\\ge0')
   })
 
+  it('denests bounded constant nested square roots without widening simplify into variable denesting', () => {
+    const denested = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{5+2\\sqrt{6}}' } },
+      'simplify',
+    )
+    const variableNested = runExpressionAction(
+      { ...request, document: { latex: '\\sqrt{x+\\sqrt{x}}' } },
+      'simplify',
+    )
+
+    expect(denested.error).toBeUndefined()
+    expect(denested.resultOrigin).toBe('symbolic-engine')
+    expect(denested.exactLatex?.replaceAll('\\left', '').replaceAll('\\right', '')).toBe('\\sqrt{2}+\\sqrt{3}')
+
+    expect(variableNested.error).toBeUndefined()
+    expect(variableNested.exactLatex).toBe('\\sqrt{x+\\sqrt{x}}')
+  })
+
   it('normalizes bounded quartic perfect-square radicands without turning simplify into factor', () => {
     const repeatedBiquadratic = runExpressionAction(
       { ...request, document: { latex: '\\sqrt{x^4-10x^2+25}' } },

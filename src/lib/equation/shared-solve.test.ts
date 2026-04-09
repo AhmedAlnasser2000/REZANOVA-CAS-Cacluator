@@ -410,9 +410,8 @@ describe('runSharedEquationSolve', () => {
     }
     expect(result.exactLatex).toContain('\\frac{5}{2}');
     expect(result.exactLatex).toMatch(/(\\sqrt\{13\}|13\^\{1\/2\})/);
-    expect(result.solveBadges).toContain('Outer Inversion');
-    expect(result.solveBadges).toContain('Nested Recursion');
-    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
   });
 
   it('solves direct radical equations that hand off into quadratic-carrier polynomial follow-ons', () => {
@@ -428,7 +427,8 @@ describe('runSharedEquationSolve', () => {
     }
     expect(result.exactLatex).toContain('x\\in');
     expect(result.exactLatex).toMatch(/(\\sqrt\{5\}|5\^\{1\/2\})/);
-    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
     expect(result.solveBadges).toContain('Candidate Checked');
     expect(result.candidateValues).toHaveLength(2);
   });
@@ -514,8 +514,61 @@ describe('runSharedEquationSolve', () => {
       throw new Error('Expected a success outcome');
     }
     expect(result.exactLatex).toMatch(/(\\sqrt\{13\}|13\^\{1\/2\})/);
-    expect(result.solveBadges).toContain('Outer Inversion');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
     expect(result.solveBadges).toContain('Candidate Checked');
+  });
+
+  it('solves bounded repeated-clearing nested square-root families that close after one extra clear', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+\\sqrt{5-x}}=2',
+      resolvedLatex: '\\sqrt{x+\\sqrt{5-x}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a repeated-clearing success outcome');
+    }
+    expect(result.exactLatex).toContain('\\frac{7}{2}-\\frac{\\sqrt{5}}{2}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(1);
+  });
+
+  it('solves bounded repeated-clearing nested carrier families through the shared bounded carrier sink', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x^2+x+\\sqrt{4-(x^2+x)}}=2',
+      resolvedLatex: '\\sqrt{x^2+x+\\sqrt{4-(x^2+x)}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a repeated-clearing carrier success outcome');
+    }
+    expect(result.exactLatex).toContain('\\sqrt{13}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(2);
+  });
+
+  it('rejects extraneous candidates after repeated-clearing nested radical lifting', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+\\sqrt{3-x}}=2',
+      resolvedLatex: '\\sqrt{x+\\sqrt{3-x}}=2',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected a repeated-clearing rejection outcome');
+    }
+    expect(result.error).toContain('No real solutions remain after resolving the bounded carrier roots.');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
   });
 
   it('rejects invalid absolute-value branches after radical square collapse while keeping valid polynomial branches', () => {
@@ -552,6 +605,21 @@ describe('runSharedEquationSolve', () => {
     expect(result.error).toContain('more than two bounded radical transform steps');
     expect(result.solveBadges).toContain('Radical Isolation');
     expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+1\\ge0']);
+  });
+
+  it('stops when a repeated-clearing path would require a second extra bounded clear', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\sqrt{x+\\sqrt{x+\\sqrt{x+\\sqrt{x}}}}=1',
+      resolvedLatex: '\\sqrt{x+\\sqrt{x+\\sqrt{x+\\sqrt{x}}}}=1',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected a bounded repeated-clearing-budget error outcome');
+    }
+    expect(result.error).toContain('more than one extra bounded radical clear');
+    expect(result.solveBadges).toContain('Radical Isolation');
   });
 
   it('solves supported nth-root equations with affine radicands', () => {

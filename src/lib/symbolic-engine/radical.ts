@@ -1,4 +1,4 @@
-import { ComputeEngine } from '@cortex-js/compute-engine';
+import { ComputeEngine, expand } from '@cortex-js/compute-engine';
 import type { SolveDomainConstraint } from '../../types/calculator';
 import type { ExactScalar } from '../polynomial-core';
 import {
@@ -92,6 +92,17 @@ function multiplyScalars(left: ExactScalar, right: ExactScalar): ExactScalar | n
   );
 }
 
+function divideScalars(left: ExactScalar, right: ExactScalar): ExactScalar | null {
+  if (right.numerator === 0) {
+    return null;
+  }
+
+  return normalizeScalar(
+    left.numerator * right.denominator,
+    left.denominator * right.numerator,
+  );
+}
+
 function powerScalar(scalar: ExactScalar, exponent: number): ExactScalar | null {
   if (!Number.isInteger(exponent) || exponent < 0) {
     return null;
@@ -101,6 +112,170 @@ function powerScalar(scalar: ExactScalar, exponent: number): ExactScalar | null 
     scalar.numerator ** exponent,
     scalar.denominator ** exponent,
   );
+}
+
+function subtractScalars(left: ExactScalar, right: ExactScalar): ExactScalar | null {
+  return normalizeScalar(
+    left.numerator * right.denominator - right.numerator * left.denominator,
+    left.denominator * right.denominator,
+  );
+}
+
+function isNonnegativeScalar(scalar: ExactScalar) {
+  return scalar.numerator >= 0;
+}
+
+function readPerfectSquareScalar(node: unknown): ExactScalar | null {
+  const scalar = readExactScalar(node);
+  if (!scalar || !isNonnegativeScalar(scalar)) {
+    return null;
+  }
+
+  const sqrtNumerator = Math.round(Math.sqrt(scalar.numerator));
+  const sqrtDenominator = Math.round(Math.sqrt(scalar.denominator));
+  if (
+    sqrtNumerator * sqrtNumerator !== scalar.numerator
+    || sqrtDenominator * sqrtDenominator !== scalar.denominator
+  ) {
+    return null;
+  }
+
+  return normalizeScalar(sqrtNumerator, sqrtDenominator);
+}
+
+type ConstantNestedRadicalParts = {
+  outerScalar: ExactScalar;
+  innerScalar: ExactScalar;
+  nestedRadicand: ExactScalar;
+};
+
+function parseConstantNestedSquareRootParts(node: unknown): ConstantNestedRadicalParts | null {
+  const normalized = normalizeAst(node);
+  const terms = flattenAdd(normalized);
+  if (terms.length !== 2) {
+    return null;
+  }
+
+  let outerScalar: ExactScalar | null = null;
+  let innerScalar: ExactScalar | null = null;
+  let nestedRadicand: ExactScalar | null = null;
+
+  for (const term of terms) {
+    const scalar = readExactScalar(term);
+    if (scalar) {
+      outerScalar = outerScalar ? addScalars(outerScalar, scalar) : scalar;
+      continue;
+    }
+
+    if (isNodeArray(term) && term[0] === 'Multiply' && term.length === 3) {
+      const leftScalar = readExactScalar(term[1]);
+      const rightSqrtTerm =
+        isNodeArray(term[2]) && term[2][0] === 'Sqrt' && term[2].length === 2
+          ? term[2]
+          : null;
+      const rightRadical = rightSqrtTerm ? readExactScalar(rightSqrtTerm[1]) : null;
+      if (leftScalar && rightRadical && rightSqrtTerm && !expressionHasVariable(rightSqrtTerm[1])) {
+        innerScalar = leftScalar;
+        nestedRadicand = rightRadical;
+        continue;
+      }
+
+      const rightScalar = readExactScalar(term[2]);
+      const leftSqrtTerm =
+        isNodeArray(term[1]) && term[1][0] === 'Sqrt' && term[1].length === 2
+          ? term[1]
+          : null;
+      const leftRadical = leftSqrtTerm ? readExactScalar(leftSqrtTerm[1]) : null;
+      if (rightScalar && leftRadical && leftSqrtTerm && !expressionHasVariable(leftSqrtTerm[1])) {
+        innerScalar = rightScalar;
+        nestedRadicand = leftRadical;
+        continue;
+      }
+    }
+
+    if (isNodeArray(term) && term[0] === 'Sqrt' && term.length === 2 && !expressionHasVariable(term[1])) {
+      innerScalar = { numerator: 1, denominator: 1 };
+      nestedRadicand = readExactScalar(term[1]);
+      continue;
+    }
+
+    return null;
+  }
+
+  if (!outerScalar || !innerScalar || !nestedRadicand) {
+    return null;
+  }
+
+  return {
+    outerScalar,
+    innerScalar,
+    nestedRadicand,
+  };
+}
+
+function tryDenestConstantNestedSquareRoot(
+  node: unknown,
+  mode: RadicalNormalizationMode,
+  variable: string | undefined,
+): unknown | null {
+  if (mode !== 'simplify' || variable !== undefined) {
+    return null;
+  }
+
+  const parts = parseConstantNestedSquareRootParts(node);
+  if (!parts) {
+    return null;
+  }
+
+  const innerSquared = multiplyScalars(parts.innerScalar, parts.innerScalar);
+  if (!innerSquared) {
+    return null;
+  }
+
+  const discriminant = subtractScalars(
+    powerScalar(parts.outerScalar, 2) ?? { numerator: 0, denominator: 1 },
+    multiplyScalars(innerSquared, parts.nestedRadicand) ?? { numerator: 0, denominator: 1 },
+  );
+  if (!discriminant || !isNonnegativeScalar(discriminant)) {
+    return null;
+  }
+
+  const sqrtDiscriminant = readPerfectSquareScalar(buildScalarNode(discriminant));
+  if (!sqrtDiscriminant) {
+    return null;
+  }
+
+  const positivePart = divideScalars(
+    addScalars(parts.outerScalar, sqrtDiscriminant),
+    { numerator: 2, denominator: 1 },
+  );
+  const negativeNumerator = subtractScalars(parts.outerScalar, sqrtDiscriminant);
+  if (!negativeNumerator) {
+    return null;
+  }
+  const negativePart = divideScalars(
+    negativeNumerator,
+    { numerator: 2, denominator: 1 },
+  );
+  if (!positivePart || !negativePart || !isNonnegativeScalar(positivePart) || !isNonnegativeScalar(negativePart)) {
+    return null;
+  }
+
+  const leftPart = normalizeNode(['Sqrt', buildScalarNode(positivePart)], mode, variable).node;
+  const rightPart = normalizeNode(['Sqrt', buildScalarNode(negativePart)], mode, variable).node;
+  const denested =
+    parts.innerScalar.numerator >= 0
+      ? normalizeAst(['Add', leftPart, rightPart])
+      : normalizeAst(['Add', leftPart, ['Negate', rightPart]]);
+  const squared = normalizeAst(
+    (expand(ce.box(['Power', denested, 2] as Parameters<typeof ce.box>[0]) as never) as { json: unknown }).json,
+  );
+  const normalizedOriginal = normalizeAst(node);
+  if (termKey(squared) !== termKey(normalizedOriginal)) {
+    return null;
+  }
+
+  return denested;
 }
 
 function isExactIntegerNode(node: unknown): node is number {
@@ -694,6 +869,15 @@ function normalizeNode(
 
   if (operator === 'Sqrt' && children.length === 1) {
     const childResult = normalizeNode(children[0], mode, variable);
+    const denested = tryDenestConstantNestedSquareRoot(childResult.node, mode, variable);
+    if (denested) {
+      return {
+        node: denested,
+        changed: true,
+        conditionConstraints: childResult.conditionConstraints,
+        rationalized: childResult.rationalized,
+      };
+    }
     const perfectSquare = mode !== 'equation'
       ? recognizePerfectSquareRadicand(childResult.node)
       : null;

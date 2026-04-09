@@ -484,6 +484,23 @@ describe('runEquationMode', () => {
     expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+3\\ge0']);
   });
 
+  it('solves bounded repeated-clearing nested radical families through the guarded equation runtime', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\sqrt{x+\\sqrt{5-x}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a repeated-clearing success outcome');
+    }
+    expect(result.exactLatex).toContain('\\frac{7}{2}-\\frac{\\sqrt{5}}{2}');
+    expect(result.solveBadges).toContain('Radical Isolation');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+  });
+
   it('preprocesses fractional-power and explicit-base-log notation into existing solver families', () => {
     const rootCarrier = runEquationMode({
       ...makeRequest(),

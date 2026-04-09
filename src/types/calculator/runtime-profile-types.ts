@@ -5,6 +5,7 @@ export type EquationExecutionBudget = {
   maxCompositionInversionDepth: number;
   maxPeriodicReductionDepth: number;
   maxRadicalTransformSteps: number;
+  maxRepeatedClearingSteps: number;
 };
 
 export type ExpressionExecutionBudget = {

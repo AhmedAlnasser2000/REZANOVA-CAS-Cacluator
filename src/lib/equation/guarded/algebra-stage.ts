@@ -11,10 +11,12 @@ import {
   type SupportedRationalPower,
 } from '../../radical-core';
 import { parseExactPolynomial } from '../../polynomial-core';
+import { recognizeBoundedPolynomialEquationAst } from '../../polynomial-factor-solve';
 import { normalizeAst } from '../../symbolic-engine/normalize';
 import { boxLatex, isNodeArray, termKey } from '../../symbolic-engine/patterns';
 import { normalizeExactRationalNode } from '../../symbolic-engine/rational';
 import { evaluateRealNumericExpression } from '../../real-numeric-eval';
+import { solveBoundedPolynomialCarrierEquationAst } from '../polynomial-carrier-follow-on';
 import type {
   DisplayOutcome,
   EquationExecutionBudget,
@@ -32,6 +34,7 @@ import { equationStateKey } from './state-key';
 const ce = new ComputeEngine();
 const PLACEHOLDER_SYMBOL = '__calcwiz_r3_u';
 const RADICAL_STEP_BUDGET_ERROR = 'This recognized radical family would require more than two bounded radical transform steps. Use Numeric Solve with an interval in Equation mode.';
+const REPEATED_CLEARING_BUDGET_ERROR = 'This recognized repeated-clearing radical family would require more than one extra bounded radical clear. Use Numeric Solve with an interval in Equation mode.';
 const CONDITION_PREFIX = '\\text{Conditions: } ';
 const EXCLUSION_PREFIX = '\\text{Exclusions: } ';
 
@@ -128,6 +131,8 @@ type AlgebraTransform = {
   solveSummaryText: string;
   unresolvedError: string;
   radicalStepCost?: number;
+  repeatedClearingStepCost?: number;
+  polynomialCarrierHints?: unknown[];
 };
 
 type GuardedSolveRunner = (
@@ -276,12 +281,48 @@ function buildDifferenceNode(left: unknown, right: unknown) {
   return buildSumNode(left, buildNegatedNode(right));
 }
 
+function buildStructuredNegatedNode(node: unknown) {
+  const scalar = readExactScalar(node);
+  if (scalar) {
+    return buildScalarNode(negateScalar(scalar));
+  }
+
+  return ['Negate', node];
+}
+
+function buildStructuredSumNode(left: unknown, right: unknown) {
+  const leftScalar = readExactScalar(left);
+  if (leftScalar && isZeroScalar(leftScalar)) {
+    return right;
+  }
+
+  const rightScalar = readExactScalar(right);
+  if (rightScalar && isZeroScalar(rightScalar)) {
+    return left;
+  }
+
+  return ['Add', left, right];
+}
+
+function buildStructuredDifferenceNode(left: unknown, right: unknown) {
+  return buildStructuredSumNode(left, buildStructuredNegatedNode(right));
+}
+
 function buildProductNode(left: unknown, right: unknown) {
   return simplifyNode(['Multiply', left, right]);
 }
 
 function buildQuotientNode(numerator: unknown, denominator: unknown) {
   return simplifyNode(['Divide', numerator, denominator]);
+}
+
+function buildStructuredQuotientNode(numerator: unknown, denominator: unknown) {
+  const denominatorScalar = readExactScalar(denominator);
+  if (denominatorScalar && denominatorScalar.numerator === denominatorScalar.denominator) {
+    return numerator;
+  }
+
+  return ['Divide', numerator, denominator];
 }
 
 function buildPowerNode(base: unknown, exponent: number) {
@@ -731,6 +772,27 @@ function getRadicalTransformDepth(request: GuardedSolveRequest) {
   return request.radicalTransformDepth ?? 0;
 }
 
+function getRepeatedClearingDepth(request: GuardedSolveRequest) {
+  return request.repeatedClearingDepth ?? 0;
+}
+
+function mergePolynomialCarrierHints(
+  existing: unknown[] = [],
+  next: unknown[] = [],
+) {
+  const merged = new Map<string, unknown>();
+
+  for (const hint of [...existing, ...next]) {
+    const normalized = normalizeAst(hint);
+    const key = termKey(normalized);
+    if (!merged.has(key)) {
+      merged.set(key, normalized);
+    }
+  }
+
+  return [...merged.values()];
+}
+
 function mergeConditionSupplementLatex(
   existing: string[] = [],
   constraints: SolveDomainConstraint[] = [],
@@ -872,6 +934,90 @@ function isSupportedRightSideExpression(node: unknown, variable: string): boolea
   return false;
 }
 
+function countEquationRadicalTargets(
+  leftNode: unknown,
+  rightNode: unknown,
+  variable: string,
+) {
+  return collectRepeatedClearingTargets(leftNode, variable).length + collectRepeatedClearingTargets(rightNode, variable).length;
+}
+
+function isRepeatedClearingSupportedTarget(target: RadicalTarget) {
+  if (target.kind === 'power') {
+    return target.power.denominator === 2 || target.power.denominator % 2 === 1;
+  }
+
+  return target.root.index === 2 || target.root.index % 2 === 1;
+}
+
+function collectRepeatedClearingTargets(node: unknown, variable: string, targets: RadicalTarget[] = []) {
+  const normalized = normalizeAst(node);
+  if (isNodeArray(normalized) && normalized.length > 0) {
+    if (normalized[0] === 'Sqrt' && normalized.length === 2) {
+      targets.push({
+        kind: 'root',
+        targetNode: normalized,
+        root: {
+          node: normalized,
+          radicand: normalized[1],
+          index: 2,
+        },
+      });
+    } else if (normalized[0] === 'Root' && normalized.length === 3) {
+      const index = parseRadicalIndex(normalized[2]);
+      if (index !== null) {
+        targets.push({
+          kind: 'root',
+          targetNode: normalized,
+          root: {
+            node: normalized,
+            radicand: normalized[1],
+            index,
+          },
+        });
+      }
+    } else {
+      const power = matchSupportedRationalPower(normalized, variable);
+      if (power) {
+        targets.push({
+          kind: 'power',
+          targetNode: normalized,
+          power,
+        });
+      }
+    }
+  }
+
+  if (!isNodeArray(normalized) || normalized.length === 0) {
+    return targets;
+  }
+
+  for (const child of normalized.slice(1)) {
+    collectRepeatedClearingTargets(child, variable, targets);
+  }
+
+  return targets;
+}
+
+function buildRepeatedClearingHints(target: RadicalTarget) {
+  if (target.kind === 'power') {
+    return [target.power.base];
+  }
+
+  return [target.root.radicand];
+}
+
+function isRecognizedPolynomialSink(
+  parsedEquation: unknown,
+  carrierHints: unknown[] = [],
+) {
+  if (recognizeBoundedPolynomialEquationAst(parsedEquation, 'x')) {
+    return true;
+  }
+
+  return solveBoundedPolynomialCarrierEquationAst(parsedEquation, carrierHints).kind !== 'none';
+}
+
 function matchRationalTransform(request: GuardedSolveRequest): AlgebraTransform | null {
   const parsed = ce.parse(request.resolvedLatex).json;
   if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
@@ -902,7 +1048,7 @@ function buildIsolatedExpression(
   targetSide: unknown,
   otherSide: unknown,
   targetKey: string,
-): { isolated: unknown } | null {
+): { isolated: unknown; structuredIsolated: unknown } | null {
   const replaced = replaceFirstMatch(targetSide, targetKey, PLACEHOLDER_SYMBOL);
   if (!replaced.replaced) {
     return null;
@@ -914,9 +1060,13 @@ function buildIsolatedExpression(
   }
 
   const numerator = buildDifferenceNode(otherSide, linear.remainder);
+  const structuredNumerator = buildStructuredDifferenceNode(otherSide, linear.remainder);
+  const denominatorNode = buildScalarNode(linear.a);
   const isolated = buildQuotientNode(numerator, buildScalarNode(linear.a));
+  const structuredIsolated = buildStructuredQuotientNode(structuredNumerator, denominatorNode);
   return {
     isolated,
+    structuredIsolated,
   };
 }
 
@@ -924,9 +1074,12 @@ function buildRadicalPowerTransform(
   root: SupportedRadical,
   isolated: unknown,
   extraConstraints: SolveDomainConstraint[] = [],
+  preserveSquareStructure = false,
 ): AlgebraTransform {
   const powered = root.index === 2
-    ? normalizeAst((expand(ce.box(['Power', isolated, 2] as Parameters<typeof ce.box>[0]) as never) as { json: unknown }).json)
+    ? preserveSquareStructure
+      ? normalizeAst(buildPowerNode(isolated, 2))
+      : normalizeAst((expand(ce.box(['Power', isolated, 2] as Parameters<typeof ce.box>[0]) as never) as { json: unknown }).json)
     : buildPowerNode(isolated, root.index);
   const equationLatex = `${boxLatex(root.radicand)}=${boxLatex(powered)}`;
   const domainConstraints = [...extraConstraints];
@@ -987,6 +1140,47 @@ function buildLiftedPowerTransform(
     solveBadges: ['Power Lift'],
     solveSummaryText: 'Isolated a rational power and applied an exact lift',
     unresolvedError: 'This recognized rational-power family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+  };
+}
+
+function buildRepeatedClearingTransform(
+  target: RadicalTarget,
+  structuredIsolated: unknown,
+): AlgebraTransform {
+  if (target.kind === 'power') {
+    const transform = buildLiftedPowerTransform(target.power, structuredIsolated);
+    return {
+      ...transform,
+      radicalStepCost: 0,
+      repeatedClearingStepCost: 1,
+      polynomialCarrierHints: buildRepeatedClearingHints(target),
+    };
+  }
+
+  if (target.kind === 'root') {
+    const transform = buildRadicalPowerTransform(target.root, structuredIsolated, [], true);
+    return {
+      ...transform,
+      radicalStepCost: 0,
+      repeatedClearingStepCost: 1,
+      polynomialCarrierHints: buildRepeatedClearingHints(target),
+    };
+  }
+
+  const radicalExpression = buildQuotientNode(
+    buildScalarNode(target.numeratorScalar),
+    structuredIsolated,
+  );
+  const transform = buildRadicalPowerTransform(target.root, radicalExpression, [{
+    kind: 'nonzero',
+    expressionLatex: boxLatex(structuredIsolated),
+  }], true);
+
+  return {
+    ...transform,
+    radicalStepCost: 0,
+    repeatedClearingStepCost: 1,
+    polynomialCarrierHints: buildRepeatedClearingHints(target),
   };
 }
 
@@ -1096,10 +1290,6 @@ function matchRadicalIsolationTransform(request: GuardedSolveRequest): AlgebraTr
   ];
 
   for (const attempt of attempts) {
-    if (!isSupportedRightSideExpression(attempt.otherSide, variable)) {
-      continue;
-    }
-
     const candidates = collectRadicalTargets(attempt.targetSide, variable).sort((left, right) => {
       const priority = (target: RadicalTarget) => {
         if (target.kind === 'reciprocal-root') {
@@ -1122,9 +1312,31 @@ function matchRadicalIsolationTransform(request: GuardedSolveRequest): AlgebraTr
       if (!isolatedBase) {
         continue;
       }
+      const allowsPolynomialIsolation =
+        (request.repeatedClearingDepth ?? 0) > 0
+        || (request.polynomialCarrierHints?.length ?? 0) > 0;
+      if (
+        !isSupportedRightSideExpression(isolatedBase.isolated, variable)
+        && !isSupportedRightSideExpression(isolatedBase.structuredIsolated, variable)
+        && !(
+          allowsPolynomialIsolation
+          && (
+            parseExactPolynomial(normalizeAst(isolatedBase.isolated), variable, 4)
+            || parseExactPolynomial(normalizeAst(isolatedBase.structuredIsolated), variable, 4)
+          )
+        )
+      ) {
+        continue;
+      }
 
       if (candidate.kind === 'power') {
-        const transform = buildLiftedPowerTransform(candidate.power, isolatedBase.isolated);
+        const useStructuredIsolation =
+          (request.repeatedClearingDepth ?? 0) > 0
+          || (request.polynomialCarrierHints?.length ?? 0) > 0;
+        const transform = buildLiftedPowerTransform(
+          candidate.power,
+          useStructuredIsolation ? isolatedBase.structuredIsolated : isolatedBase.isolated,
+        );
         if (equationStateKey(transform.equationLatex) !== equationStateKey(request.resolvedLatex)) {
           return transform;
         }
@@ -1132,7 +1344,15 @@ function matchRadicalIsolationTransform(request: GuardedSolveRequest): AlgebraTr
       }
 
       if (candidate.kind === 'root') {
-        const transform = buildRadicalPowerTransform(candidate.root, isolatedBase.isolated);
+        const useStructuredIsolation =
+          (request.repeatedClearingDepth ?? 0) > 0
+          || (request.polynomialCarrierHints?.length ?? 0) > 0;
+        const transform = buildRadicalPowerTransform(
+          candidate.root,
+          useStructuredIsolation ? isolatedBase.structuredIsolated : isolatedBase.isolated,
+          [],
+          useStructuredIsolation,
+        );
         if (equationStateKey(transform.equationLatex) !== equationStateKey(request.resolvedLatex)) {
           return transform;
         }
@@ -1180,6 +1400,79 @@ function matchPerfectSquareAbsoluteValueTransform(request: GuardedSolveRequest):
     const transform = buildAbsoluteValueRadicalTransform(target.absNode, attempt.otherSide);
     if (equationStateKey(transform.equationLatex) !== equationStateKey(request.resolvedLatex)) {
       return transform;
+    }
+  }
+
+  return null;
+}
+
+function matchRepeatedClearingTransform(request: GuardedSolveRequest): AlgebraTransform | null {
+  const parsed = ce.parse(request.resolvedLatex).json;
+  if (!isNodeArray(parsed) || parsed[0] !== 'Equal' || parsed.length !== 3) {
+    return null;
+  }
+
+  const leftNode = normalizeAst(parsed[1]);
+  const rightNode = normalizeAst(parsed[2]);
+  const variable = getSolveVariable(leftNode, rightNode);
+  const currentTargetCount = countEquationRadicalTargets(leftNode, rightNode, variable);
+  if (currentTargetCount === 0) {
+    return null;
+  }
+
+  const attempts: Array<{ targetSide: unknown; otherSide: unknown }> = [
+    { targetSide: leftNode, otherSide: rightNode },
+    { targetSide: rightNode, otherSide: leftNode },
+  ];
+
+  for (const attempt of attempts) {
+    const candidates = collectRepeatedClearingTargets(attempt.targetSide, variable)
+      .filter((target) => isRepeatedClearingSupportedTarget(target));
+
+    for (const candidate of candidates) {
+      const isolatedBase = buildIsolatedExpression(
+        attempt.targetSide,
+        attempt.otherSide,
+        termKey(candidate.targetNode),
+      );
+      if (!isolatedBase) {
+        continue;
+      }
+
+      const transform = buildRepeatedClearingTransform(
+        candidate,
+        isolatedBase.structuredIsolated,
+      );
+      if (equationStateKey(transform.equationLatex) === equationStateKey(request.resolvedLatex)) {
+        continue;
+      }
+
+      const transformedParsed = ce.parse(transform.equationLatex).json;
+      if (!isNodeArray(transformedParsed) || transformedParsed[0] !== 'Equal' || transformedParsed.length !== 3) {
+        continue;
+      }
+
+      const nextLeftNode = normalizeAst(transformedParsed[1]);
+      const nextRightNode = normalizeAst(transformedParsed[2]);
+      const nextTargetCount = countEquationRadicalTargets(nextLeftNode, nextRightNode, variable);
+      const carrierHints = mergePolynomialCarrierHints(
+        request.polynomialCarrierHints,
+        transform.polynomialCarrierHints,
+      );
+
+      if (isRecognizedPolynomialSink(transformedParsed, carrierHints)) {
+        return {
+          ...transform,
+          polynomialCarrierHints: carrierHints,
+        };
+      }
+
+      if (nextTargetCount > 0 && nextTargetCount < currentTargetCount) {
+        return {
+          ...transform,
+          polynomialCarrierHints: carrierHints,
+        };
+      }
     }
   }
 
@@ -1382,10 +1675,22 @@ function recurseTransform(
   }
 
   const nextRadicalTransformDepth = getRadicalTransformDepth(request) + (transform.radicalStepCost ?? 0);
+  const nextRepeatedClearingDepth = getRepeatedClearingDepth(request) + (transform.repeatedClearingStepCost ?? 0);
   if (nextRadicalTransformDepth > executionBudget.maxRadicalTransformSteps) {
     return errorOutcome(
       'Solve',
       RADICAL_STEP_BUDGET_ERROR,
+      [],
+      [],
+      transform.solveBadges,
+      transform.solveSummaryText,
+    );
+  }
+
+  if (nextRepeatedClearingDepth > executionBudget.maxRepeatedClearingSteps) {
+    return errorOutcome(
+      'Solve',
+      REPEATED_CLEARING_BUDGET_ERROR,
       [],
       [],
       transform.solveBadges,
@@ -1411,6 +1716,11 @@ function recurseTransform(
         numericInterval: undefined,
         domainConstraints: mergeConstraints(request.domainConstraints, transform.domainConstraints),
         radicalTransformDepth: nextRadicalTransformDepth,
+        repeatedClearingDepth: nextRepeatedClearingDepth,
+        polynomialCarrierHints: mergePolynomialCarrierHints(
+          request.polynomialCarrierHints,
+          transform.polynomialCarrierHints,
+        ),
       },
       depth + 1,
       new Set(trail),
@@ -1528,6 +1838,21 @@ function algebraTransformSolve(
     const recursive = recurseTransform(
       request,
       radicalTransform,
+      depth,
+      trail,
+      executionBudget,
+      runGuardedEquationSolve,
+    );
+    if (recursive) {
+      return recursive;
+    }
+  }
+
+  const repeatedClearingTransform = matchRepeatedClearingTransform(request);
+  if (repeatedClearingTransform) {
+    const recursive = recurseTransform(
+      request,
+      repeatedClearingTransform,
       depth,
       trail,
       executionBudget,

@@ -21,6 +21,7 @@ const DEFAULT_RUNTIME_EXECUTION_PROFILE: RuntimeExecutionProfile = {
       maxCompositionInversionDepth: 2,
       maxPeriodicReductionDepth: 2,
       maxRadicalTransformSteps: 2,
+      maxRepeatedClearingSteps: 1,
     },
     expression: {
       allowEvaluateRealNumericFallback: true,

@@ -200,10 +200,12 @@ export type GuardedSolveRequest = {
   compositionInversionDepth?: number;
   periodicReductionDepth?: number;
   radicalTransformDepth?: number;
+  repeatedClearingDepth?: number;
   angleUnit: AngleUnit;
   outputStyle: OutputStyle;
   ansLatex: string;
   numericInterval?: NumericSolveInterval;
   domainConstraints?: SolveDomainConstraint[];
   exactSupplementLatex?: string[];
+  polynomialCarrierHints?: unknown[];
 };

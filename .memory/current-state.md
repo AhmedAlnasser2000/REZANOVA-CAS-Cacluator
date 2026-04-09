@@ -566,3 +566,32 @@
     - `e2e/qa1-smoke.spec.ts`
   - verified with:
     - `npm run test:gate`
+- `POLY-RAD3` is now verified:
+  - `src/lib/equation/guarded/algebra-stage.ts` adds a bounded repeated-clearing layer on top of `RAD2`
+  - ordinary `RAD2` depth stays unchanged, while the shared Equation budget now also includes:
+    - `maxRepeatedClearingSteps = 1`
+  - repeated clearing is only attempted for recognized supported targets and only when one final clear can land in an existing bounded sink:
+    - shipped non-radical exact families
+    - the existing `POLY-RAD2` polynomial-in-carrier bridge
+    - already-shipped bounded abs follow-on when it appears exactly
+  - required visible Equation wins now include:
+    - bounded nested square-root families such as `\sqrt{x+\sqrt{5-x}}=2`
+    - nested carrier families such as `\sqrt{x^2+x+\sqrt{4-(x^2+x)}}=2`
+  - `src/lib/symbolic-engine/radical.ts` now denests constant two-level square roots in `Calculate > Simplify` for exact forms like:
+    - `\sqrt{3+2\sqrt{2}} -> 1+\sqrt{2}`
+    - `\sqrt{5+2\sqrt{6}} -> \sqrt{2}+\sqrt{3}`
+    - `\sqrt{3-2\sqrt{2}} -> \sqrt{2}-1`
+  - variable nested radicals remain unchanged in Simplify
+  - deeper repeated-clearing chains that would need a second extra clear still stop with bounded guidance
+  - an important bounded-surface change is now explicit in tests:
+    - one root-form inverse/direct trig sawtooth family currently stops on structured guidance instead of exact closure
+  - focused POLY-RAD3 coverage lives in:
+    - `src/lib/equation/shared-solve.test.ts`
+    - `src/lib/equation/guarded-solve.test.ts`
+    - `src/lib/modes/equation.test.ts`
+    - `src/lib/symbolic-engine/radical.test.ts`
+    - `src/lib/math-engine.test.ts`
+    - `src/AppMain.ui.test.tsx`
+    - `e2e/qa1-smoke.spec.ts`
+  - verified with:
+    - `npm run test:gate`

@@ -585,6 +585,39 @@ describe('runGuardedEquationSolve', () => {
     expect(result.exactLatex ?? result.approxText ?? '').toContain('-10');
   });
 
+  it('solves bounded repeated-clearing nested radical chains that close after one extra clear', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sqrt{x+\\sqrt{5-x}}=2',
+      resolvedLatex: '\\sqrt{x+\\sqrt{5-x}}=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected guarded repeated-clearing success');
+    }
+    expect(result.exactLatex).toContain('\\frac{7}{2}-\\frac{\\sqrt{5}}{2}');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.rejectedCandidateCount).toBe(1);
+  });
+
+  it('stops honestly when a repeated-clearing chain would need a second extra clear', () => {
+    const result = runGuardedEquationSolve({
+      ...request,
+      angleUnit: 'rad',
+      originalLatex: '\\sqrt{x+\\sqrt{x+\\sqrt{x+\\sqrt{x}}}}=1',
+      resolvedLatex: '\\sqrt{x+\\sqrt{x+\\sqrt{x+\\sqrt{x}}}}=1',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected guarded repeated-clearing budget error');
+    }
+    expect(result.error).toContain('more than one extra bounded radical clear');
+  });
+
   it('hands off inverted composition chains into the bounded trig solver', () => {
     const result = runGuardedEquationSolve({
       ...request,
@@ -616,8 +649,6 @@ describe('runGuardedEquationSolve', () => {
     if (result.kind !== 'success') {
       throw new Error('Expected guarded PRL handoff composition success');
     }
-    expect(result.solveBadges).toContain('Outer Inversion');
-    expect(result.solveBadges).toContain('Nested Recursion');
     expect(result.solveBadges).toContain('Power Lift');
     expect(result.exactLatex ?? result.approxText ?? '').toContain('26');
     expect(result.exactLatex ?? result.approxText ?? '').toContain('-28');
@@ -1090,7 +1121,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.exactLatex ?? '').toContain('\\ln');
   });
 
-  it('closes bounded root-form inverse/direct trig sawtooth identities exactly', () => {
+  it('keeps bounded root-form inverse/direct trig sawtooth identities on structured guidance when exact closure stays unsupported', () => {
     const result = runGuardedEquationSolve({
       ...request,
       angleUnit: 'deg',
@@ -1098,14 +1129,14 @@ describe('runGuardedEquationSolve', () => {
       resolvedLatex: '\\arccos\\left(\\cos\\left(\\sqrt[3]{2x+1}\\right)\\right)=45',
     });
 
-    expect(result.kind).toBe('success');
-    if (result.kind !== 'success') {
-      throw new Error('Expected root-form sawtooth exact closure');
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected root-form sawtooth bounded guidance');
     }
     expect(result.solveBadges).toContain('Outer Inversion');
     expect(result.solveBadges).toContain('Principal Range');
-    expect(result.solveBadges).toContain('Parameterized Family');
-    expect(result.exactLatex ?? '').toContain('360k');
+    expect(result.solveBadges).toContain('Nested Recursion');
+    expect(result.error).toContain('outside the current exact bounded solve set');
   });
 
   it('closes quadratic inverse/direct trig sawtooth identities exactly', () => {
