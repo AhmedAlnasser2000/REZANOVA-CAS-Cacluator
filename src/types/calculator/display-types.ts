@@ -1,4 +1,5 @@
 import type { ModeId } from './mode-types';
+import type { RuntimeAdvisories } from './runtime-policy-types';
 import type { ResultOrigin, TransferTarget } from './execution-types';
 import type {
   PlannerBadge,
@@ -52,15 +53,6 @@ export type PeriodicFamilyInfo = {
 export type DisplayOutcomeAction =
   | { kind: 'send'; target: TransferTarget; latex: string }
   | { kind: 'load-core-draft'; mode: 'geometry' | 'trigonometry' | 'statistics'; latex: string };
-
-export type EquationNumericSolveAdvisory =
-  | { kind: 'blocked'; reason: 'range-guard' | 'invalid-request' }
-  | { kind: 'manual-only' }
-  | { kind: 'suggest-on-error' };
-
-export type RuntimeAdvisories = {
-  equationNumericSolve?: EquationNumericSolveAdvisory;
-};
 
 export type DisplayOutcome =
   | {

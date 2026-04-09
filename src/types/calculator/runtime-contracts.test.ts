@@ -4,6 +4,7 @@ import type {
   EvaluateRequest,
   GuardedSolveRequest,
   NumericSolveInterval,
+  RuntimeAdvisories,
 } from '../calculator';
 
 describe('calculator runtime contract exports', () => {
@@ -37,9 +38,16 @@ describe('calculator runtime contract exports', () => {
       exactLatex: 'x=1',
       warnings: [],
     };
+    const advisories: RuntimeAdvisories = {
+      stopReason: {
+        kind: 'planner-hard-stop',
+        source: 'planner',
+      },
+    };
 
     expect(evaluateRequest.document.latex).toBe('2+2');
     expect(guardedSolveRequest.numericInterval?.subdivisions).toBe(8);
     expect(outcome.kind).toBe('success');
+    expect(advisories.stopReason?.source).toBe('planner');
   });
 });

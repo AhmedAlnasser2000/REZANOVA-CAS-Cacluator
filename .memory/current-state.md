@@ -33,6 +33,13 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `ARCH4` as the shared runtime-policy and structured stop-reason milestone:
+  - added `src/types/calculator/runtime-policy-types.ts` so the internal contract layer now carries a minimal runtime stop taxonomy (`invalid-request`, `planner-hard-stop`, `range-guard`, `unsupported-family`) plus the existing tiny Equation numeric-solve advisory
+  - added `src/lib/kernel/runtime-policy.ts` so planner-blocked results, Calculate invalid/unsupported cases, and Equation invalid/range-guard/unsupported-family outcomes now classify through one shared internal policy helper instead of mode-local heuristics
+  - rewired `src/lib/modes/calculate.ts` and `src/lib/modes/equation.ts` so runtime advisories now derive from shared policy classification while continuing to flow through the existing `ARCH3` envelope and preserving visible wording, badges, prompts, and panel behavior
+  - kept `PeriodicFamilyInfo.structuredStopReason` untouched, kept `table.build` and other mode runtimes out of scope, and kept all runtime stop metadata internal-only and non-persisted
+- Regression checks:
+  - `npm run test:gate`
 - Completed `ARCH2` as the static runtime-host promotion milestone:
   - added `src/lib/kernel/runtime-hosts.ts` so the internal kernel layer now has explicit owning runtime hosts for `expression-runtime`, `equation-runtime`, and metadata-only `table-runtime`
   - extended `src/lib/kernel/capabilities.ts` so each public capability now points to a real owning host instead of only naming a broad execution seam
@@ -317,6 +324,10 @@
   - CRLF only for Windows-native scripts
 
 ## Current Known Risks
+- `ARCH4` stop reasons are intentionally minimal and internal-only:
+  - they cover only `invalid-request`, `planner-hard-stop`, `range-guard`, and `unsupported-family`
+  - they are intended for runtime/controller ownership, not visible UX or persisted history semantics
+  - broader runtime-policy, budgeting, or profile systems remain deferred
 - `RAD2` is intentionally bounded:
   - radical-specific solve depth is capped at two transform steps total
   - bounded absolute-value solving is allowed only when introduced by an exact supported radical step such as `\sqrt{(u)^2}`
@@ -426,21 +437,21 @@
 
 ## Next Recommended Task
 - The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, `POLY1`-`POLY2`, and `RAD1`-`RAD2` radical lane are now shipped.
-- `ARCH1` and `ARCH2` are now both shipped and regression-verified:
+- `ARCH1` through `ARCH4` are now shipped and regression-verified:
   - ownership boundaries and runtime seams are clearer
-  - Equation and Calculate now have real static internal hosts
-  - the next architecture step should be chosen deliberately instead of extending the host layer ad hoc
+  - Equation and Calculate now have real static internal hosts, shared outcome envelopes, and minimal shared runtime stop policies
+  - the next architecture step should be chosen deliberately instead of extending the host/policy layer ad hoc
 - Strongest current architecture recommendation before more composition breadth:
   1. the polynomial/radical foundation lane now extends through `POLY-RAD1`
-  2. the architecture discussion captured from the external kernel pack and repo-grounded review now extends through `ARCH2 — Static Runtime Hosts`, so the next choice is between a deeper host/runtime milestone and returning to algebra/composition from a cleaner base
+  2. the architecture discussion captured from the external kernel pack and repo-grounded review now extends through `ARCH4 — Shared Runtime Policies and Structured Stop Reasons`, so the next choice is between a deeper runtime-policy milestone and returning to algebra/composition from a cleaner base
   3. next preferred decision:
      - choose deliberately between:
-       - `ARCH3` or later runtime-host / job / profile evolution
+       - `ARCH5` or later runtime-policy / job / profile evolution
        - a dedicated bounded abs milestone
        - broader composition
        - a deeper bounded algebraic-follow-on expansion
 - Reason:
-  - `POLY1`/`POLY2`, `RAD1`/`RAD2`, and `POLY-RAD1` now provide shared polynomial/radical substrates plus the bounded bridge between them, while `ARCH1`/`ARCH2` now provide cleaner runtime seams and static host ownership for Equation and Calculate
+  - `POLY1`/`POLY2`, `RAD1`/`RAD2`, and `POLY-RAD1` now provide shared polynomial/radical substrates plus the bounded bridge between them, while `ARCH1`-`ARCH4` now provide cleaner runtime seams, static host ownership, shared envelopes, and minimal shared stop-policy metadata for Equation and Calculate
   - continuing directly into `COMP11` without deciding the next substrate boundary would risk reintroducing feature-local algebra or runtime logic instead of building on the new shared cores and hosts
   - a full plugin/microkernel platform is still premature, but the next move can now deliberately choose between more algebra value and a deeper internal runtime platform step
 
@@ -492,6 +503,17 @@
   - focused ARCH3 coverage lives in:
     - `src/lib/kernel/runtime-envelope.test.ts`
     - `src/app/logic/runtimeControllers.test.ts`
+    - `src/lib/modes/equation.test.ts`
+  - verified with:
+    - `npm run test:gate`
+- `ARCH4` is now verified:
+  - `src/types/calculator/runtime-policy-types.ts` carries a minimal runtime stop taxonomy for `invalid-request`, `planner-hard-stop`, `range-guard`, and `unsupported-family`, plus the existing tiny Equation numeric-solve advisory
+  - `src/lib/kernel/runtime-policy.ts` now classifies planner-blocked results, Calculate invalid/unsupported cases, and Equation invalid/range-guard/unsupported-family outcomes through one shared internal helper
+  - `src/lib/modes/calculate.ts` and `src/lib/modes/equation.ts` now attach runtime stop reasons and Equation numeric-solve advisories through shared policy classification instead of mode-local heuristics
+  - controller behavior remains advisory-driven and unchanged from `ARCH3`, while the new stop metadata stays internal-only and is not rendered or persisted
+  - focused ARCH4 coverage lives in:
+    - `src/lib/kernel/runtime-policy.test.ts`
+    - `src/lib/modes/calculate.test.ts`
     - `src/lib/modes/equation.test.ts`
   - verified with:
     - `npm run test:gate`

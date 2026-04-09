@@ -56,6 +56,10 @@ describe('runEquationMode', () => {
       throw new Error('Expected an error outcome');
     }
     expect(result.error).toBe('Enter an equation containing x.');
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'planner-hard-stop',
+      source: 'planner',
+    });
     expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
       kind: 'blocked',
       reason: 'invalid-request',
@@ -88,6 +92,10 @@ describe('runEquationMode', () => {
       throw new Error('Expected an error outcome');
     }
     expect(result.error).toBe('This equation is outside the supported symbolic solve families for this milestone.');
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'unsupported-family',
+      source: 'stage',
+    });
     expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
       kind: 'suggest-on-error',
     });
@@ -105,9 +113,34 @@ describe('runEquationMode', () => {
       throw new Error('Expected an error outcome');
     }
     expect(result.error).toContain('only = equations');
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'invalid-request',
+      source: 'host',
+    });
     expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
       kind: 'blocked',
       reason: 'invalid-request',
+    });
+  });
+
+  it('attaches a shared range-guard stop reason when the guarded backend proves impossibility', () => {
+    const result = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\sin\\left(x\\right)=2',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected an error outcome');
+    }
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'range-guard',
+      source: 'stage',
+    });
+    expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
+      kind: 'blocked',
+      reason: 'range-guard',
     });
   });
 
@@ -580,6 +613,14 @@ describe('runEquationMode', () => {
     }
     expect(result.error).toContain('indefinite integral');
     expect(result.plannerBadges).toContain('Hard Stop');
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'planner-hard-stop',
+      source: 'planner',
+    });
+    expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
+      kind: 'blocked',
+      reason: 'invalid-request',
+    });
   });
 
   it('runs explicit equation transforms without auto-solving the transformed equation', () => {

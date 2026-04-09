@@ -4,6 +4,10 @@ import {
   getAlgebraTransformLabel,
   type AlgebraTransformAction,
 } from '../algebra-transform';
+import {
+  classifyCalculateRuntimeAdvisories,
+  classifyPlannerBlockedRuntimeAdvisories,
+} from '../kernel/runtime-policy';
 import { analyzeLatex, isRelationalOperator } from '../math-analysis';
 import { attachRuntimeEnvelope, buildRuntimeOutcome } from '../kernel/runtime-envelope';
 import { planMathExecution } from '../semantic-planner';
@@ -78,6 +82,7 @@ export function runCalculateMode({
         resolvedLatex: planner.canonicalLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyPlannerBlockedRuntimeAdvisories(planner, 'calculate'),
       },
     );
   }
@@ -108,6 +113,7 @@ export function runCalculateMode({
         resolvedLatex: planner.resolvedLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyCalculateRuntimeAdvisories({ invalidRequest: true }),
       },
     );
   }
@@ -125,6 +131,7 @@ export function runCalculateMode({
         resolvedLatex: planner.resolvedLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyCalculateRuntimeAdvisories({ invalidRequest: true }),
       },
     );
   }
@@ -153,6 +160,7 @@ export function runCalculateMode({
       warnings: response.warnings,
       error: response.error,
       resultOrigin: response.resultOrigin,
+      runtimeAdvisories: classifyCalculateRuntimeAdvisories({ error: response.error }),
     }),
     {
       originalLatex: latex,
@@ -195,6 +203,7 @@ export function runCalculateAlgebraTransform({
         resolvedLatex: planner.canonicalLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyPlannerBlockedRuntimeAdvisories(planner, 'calculate'),
       },
     );
   }
@@ -225,6 +234,7 @@ export function runCalculateAlgebraTransform({
         resolvedLatex: planner.resolvedLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyCalculateRuntimeAdvisories({ invalidRequest: true }),
       },
     );
   }
@@ -242,6 +252,7 @@ export function runCalculateAlgebraTransform({
         resolvedLatex: planner.resolvedLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyCalculateRuntimeAdvisories({ invalidRequest: true }),
       },
     );
   }
@@ -260,6 +271,9 @@ export function runCalculateAlgebraTransform({
         resolvedLatex: planner.resolvedLatex,
         plannerBadges: planner.badges,
         plannerBadgeMode: 'replace',
+        runtimeAdvisories: classifyCalculateRuntimeAdvisories({
+          error: 'No explicit algebra transform is available for this expression yet.',
+        }),
       },
     );
   }

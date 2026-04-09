@@ -50,6 +50,10 @@ describe('runCalculateMode', () => {
       throw new Error('Expected an error outcome')
     }
     expect(result.error).toContain('Inequalities')
+    expect(result.runtimeAdvisories?.stopReason).toEqual({
+      kind: 'invalid-request',
+      source: 'host',
+    })
   })
 
   it('runs explicit algebra transforms without changing the broad simplify action', () => {
