@@ -1,5 +1,15 @@
 # POLY1 Completion Report
 
+## Attribution
+- primary_agent: codex
+- primary_agent_model: gpt-5.4
+- contributors:
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.4
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.4
+- attribution_basis: historical-user-confirmed
+
 - Status: verified
 - Scope:
   - added `src/lib/polynomial-core.ts` as the shared exact one-variable polynomial substrate

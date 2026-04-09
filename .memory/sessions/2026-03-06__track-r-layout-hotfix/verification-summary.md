@@ -1,5 +1,15 @@
 # Verification Summary
 
+## Attribution
+- primary_agent: codex
+- primary_agent_model: gpt-5.3-codex
+- contributors:
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.4
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.3-codex
+- attribution_basis: historical-user-confirmed
+
 ## Runtime Reproduction
 - Reproduced the broken layout in a live browser run after the user report.
 - Confirmed the fix visually after the patch: workspace content is visible again outside the display shell.

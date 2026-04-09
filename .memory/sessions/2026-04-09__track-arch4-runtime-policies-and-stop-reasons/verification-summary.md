@@ -1,5 +1,15 @@
 # ARCH4 Verification Summary
 
+## Attribution
+- primary_agent: codex
+- primary_agent_model: gpt-5.4
+- contributors:
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.4
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.4
+- attribution_basis: historical-user-confirmed
+
 - Date: `2026-04-09`
 - Milestone: `ARCH4 — Shared Runtime Policies and Structured Stop Reasons`
 - Result: pass

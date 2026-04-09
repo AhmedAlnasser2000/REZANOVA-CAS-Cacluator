@@ -23,3 +23,5 @@
 - Explicit approval is required before commit and before push.
 - Worktrees and extra branches are exceptions for isolation, not the default operating model.
 - Wrong-branch recovery should use a patch artifact, not human memory.
+- `AGENTS.md` is the authoritative cross-agent workflow and governance file for this repo.
+- Durable memory attribution must follow `.memory/PROTOCOL.md`, and compatibility stubs must defer to `AGENTS.md`.

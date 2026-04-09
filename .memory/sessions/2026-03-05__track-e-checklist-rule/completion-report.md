@@ -1,5 +1,15 @@
 # Completion Report
 
+## Attribution
+- primary_agent: codex
+- primary_agent_model: gpt-5.3-codex
+- contributors:
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.4
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.3-codex
+- attribution_basis: historical-user-confirmed
+
 ## Task Goal
 - Add a user-facing manual verification checklist for current Track E scope and make it a permanent workflow rule before starting the next roadmap track.
 

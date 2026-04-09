@@ -1,5 +1,10 @@
 # Decisions
 
+## Historical Attribution
+- primary_agent: codex
+- ownership_model_rule: before `2026-03-12` use `gpt-5.3-codex`; on or after `2026-03-12` use `gpt-5.4`
+- attribution_basis: historical-user-confirmed
+
 - 2026-03-02: Primary stack is `Rust + Tauri + React + TypeScript`.
 - 2026-03-02: User-facing math input and rendering must prefer textbook notation through MathLive.
 - 2026-03-02: Symbolic algebra for v1 is handled in the TypeScript adapter with Compute Engine.
@@ -118,6 +123,7 @@
 - 2026-04-04: The next major Equation-solver roadmap candidate after `PRL4`/`NP1` is bounded composition and nested-function solving, starting with safe outer-function inversion plus range/image impossibility checks before any broader multi-layer search.
 - 2026-04-04: Selected angle mode now applies to direct numeric trig input in `Calculate` even when the numeric argument contains `\pi`; `sin(\pi/2)` is treated as radians only in `RAD`, not silently preserved across `DEG` and `GRAD`.
 - 2026-04-04: `COMP1` is Equation-first and one-layer only: Calcwiz now solves bounded `f(g(x))=c` families through safe outer inversion or image-aware trig reasoning with at most one guarded recursive handoff, and recognized trig compositions outside that bounded symbolic depth must stop with explicit numeric guidance instead of generic unsupported-family messaging.
+- 2026-04-09: Calcwiz now treats `AGENTS.md` as the authoritative cross-agent workflow file, requires durable memory attribution through `.memory/PROTOCOL.md`, validates that protocol with `npm run test:memory-protocol`, and backfills historical ownership as `codex` with the user-approved model split at `2026-03-12`.
 - 2026-04-04: `COMP2` keeps composition Equation-first and real-domain-only, but promotes nesting to an explicit policy: at most two successful outer inversions per solve attempt, followed by honest handoff into already-shipped bounded trig/PRL/algebra families or explicit numeric guidance when the remaining branch set is periodic, infinite, or outside supported exact scope.
 - 2026-04-04: `COMP3` upgrades bounded trig follow-on from guidance-only to symbolic periodic families when the remaining carrier can still finish through bounded exact handoff; Equation now surfaces unit-aware family formulas, representative branches, and interval suggestions, while nonlinear-in-`k` carriers still stop honestly with structured periodic guidance.
 - 2026-04-04: Explicit Equation numeric interval solving is now authoritative when a numeric interval is supplied: it runs before later symbolic-family stops, and all direct trig evaluation, residual checks, and candidate validation in that path must honor the selected angle unit (`rad`, `deg`, or `grad`).

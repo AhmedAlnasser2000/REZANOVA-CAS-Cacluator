@@ -7,14 +7,15 @@
 
 ## Read Order
 1. `AGENTS.md`
-2. `.memory/INDEX.md`
-3. `.memory/current-state.md`
-4. `.memory/world-canon.md`
-5. `.memory/decisions.md`
-6. `.memory/open-questions.md`
-7. Most recent relevant folder under `.memory/sessions/`
-8. Most recent relevant daily journal under `.memory/journal/`
-9. `docs/app_summary_latest.md`
+2. `.memory/PROTOCOL.md`
+3. `.memory/INDEX.md`
+4. `.memory/current-state.md`
+5. `.memory/world-canon.md`
+6. `.memory/decisions.md`
+7. `.memory/open-questions.md`
+8. Most recent relevant folder under `.memory/sessions/`
+9. Most recent relevant daily journal under `.memory/journal/`
+10. `docs/app_summary_latest.md`
 
 ## Canonical Durable Files
 - `.memory/current-state.md`: short operational snapshot of where the project stands now.
@@ -47,6 +48,7 @@
 - [Current State](current-state.md)
 - [World Canon](world-canon.md)
 - [Decisions](decisions.md)
+- [Approvals](approvals.md)
 - [Open Questions](open-questions.md)
 - [Journal README](journal/README.md)
 - [Sessions README](sessions/README.md)

@@ -5,6 +5,7 @@
 - Commit after each meaningful verified gate.
 - Keep explicit approval before `git commit` and before `git push`.
 - Use `.task_tmp/<task-id>/` when work spans multiple gates, needs manual UI verification, or is likely to take more than one commit.
+- `AGENTS.md` is the authoritative policy file for this workflow. This doc is the detailed operating contract, not a competing rulebook.
 
 ## Gate Types
 - `backend`
@@ -23,6 +24,18 @@
   - `fail`
   - `blocked`
 - Commit only after a meaningful gate closes successfully.
+- Every gate summary must state whether it is `backend` or `ui`.
+- Every completed task or gate summary must list which durable memory files were updated.
+- If one agent hands work to another, record the handoff in the active session dossier before the next agent continues implementation.
+
+## Agent Attribution
+- Durable memory must follow `.memory/PROTOCOL.md`.
+- Session dossiers, journal entries, and current-state updates must record:
+  - milestone ownership via `primary_agent`
+  - the agent/model that recorded the memory
+  - the agent/model that verified the gate
+- Commit metadata belongs in session `commit-log.md` and other commit-recording artifacts only when a commit actually exists.
+- `CLAUDE.md` and `GEMINI.md` are compatibility stubs only; `AGENTS.md` remains authoritative.
 
 ## Temporary Task Tracking
 - Use `.task_tmp/<task-id>/` for:

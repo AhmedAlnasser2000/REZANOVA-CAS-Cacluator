@@ -6,6 +6,7 @@
   - `completion-report.md`
   - `commit-log.md`
   - `verification-summary.md`
+- Each dossier file should start with an `## Attribution` block that follows `.memory/PROTOCOL.md`.
 - Use sessions for task-specific detail that would clutter the daily journal.
 - Keep the journal and sessions together:
   - journal = chronological stream

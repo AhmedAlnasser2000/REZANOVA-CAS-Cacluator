@@ -1,5 +1,15 @@
 # RAD2 Verification Summary
 
+## Attribution
+- primary_agent: codex
+- primary_agent_model: gpt-5.4
+- contributors:
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.4
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.4
+- attribution_basis: historical-user-confirmed
+
 - Focused checks:
   - `npm run test:unit -- src/lib/equation/shared-solve.test.ts src/lib/modes/equation.test.ts src/lib/symbolic-engine/radical.test.ts src/lib/math-engine.test.ts`
   - `npm run test:ui -- --run src/AppMain.ui.test.tsx`

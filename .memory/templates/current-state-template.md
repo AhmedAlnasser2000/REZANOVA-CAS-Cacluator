@@ -5,6 +5,10 @@
 - Active branch context:
 - Workflow default:
 
+## Agent Ownership
+- Historical ownership rule:
+- Most recent milestone owner:
+
 ## Current Product Phase
 - 
 

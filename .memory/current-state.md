@@ -5,6 +5,12 @@
 - Active branch context: `main` with local milestone commits and no upstream configured yet in this workspace.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 
+## Agent Ownership
+- `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
+- Historical ownership rule: all durable work currently in repo history is user-confirmed as `primary_agent: codex`.
+- Historical model split: before `2026-03-12` use `primary_agent_model: gpt-5.3-codex`; on or after `2026-03-12` use `primary_agent_model: gpt-5.4`.
+- Historical attribution backfill was recorded on `2026-04-09` by `codex` using `gpt-5.4`.
+
 ## Current Product Phase
 - Post harmonization pass for the three guided cores:
   - Geometry
@@ -33,6 +39,16 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed the agent-governance and memory-attribution protocol pass:
+  - updated `AGENTS.md`, `docs/workflow/commit-first-gates.md`, `.memory/PROTOCOL.md`, and compatibility stubs so Calcwiz now has one authoritative cross-agent rule stack plus a documented read order and handoff contract
+  - added `tools/validate-memory-protocol.mjs` and `npm run test:memory-protocol`, and wired the validator into `npm run test:gate`
+  - backfilled all existing session dossiers and journal files with durable attribution metadata using the user-approved historical Codex ownership rule and the `2026-03-12` model split
+  - added `.memory/approvals.md` for governance-level approvals and updated `.memory/current-state.md`, `.memory/decisions.md`, and the active session dossier to record the protocol adoption
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.4`
+- Regression checks:
+  - `npm run test:memory-protocol`
+  - `npm run test:gate`
 - Completed `POLY-RAD4` as the shared condition/exclusion intelligence and trust-polish milestone:
   - added `src/types/calculator/exact-supplement-types.ts`, `src/lib/exact-supplements.ts`, and `src/lib/equation/candidate-rejection.ts` so shared algebra outputs now have one internal supplement model plus a small rejected-candidate taxonomy instead of stage-local string assembly
   - rewired `src/lib/math-engine.ts`, `src/lib/algebra-transform.ts`, `src/lib/equation/guarded/run.ts`, `src/lib/equation/composition-stage.ts`, `src/lib/equation/guarded/algebra-stage.ts`, `src/lib/equation/guarded/substitution-stage.ts`, `src/lib/equation/guarded/merge.ts`, and `src/lib/equation/polynomial-carrier-follow-on.ts` to merge supplements through the shared helper and to derive candidate-rejection wording from structured classification
