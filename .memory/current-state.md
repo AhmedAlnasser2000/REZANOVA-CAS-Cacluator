@@ -20,6 +20,7 @@
 - Post workflow and memory infrastructure overhaul to Memory V2.
 - Track `R` decomposition sweep is closed and regression-verified.
 - Post second shared algebra-core extraction for transform and branch handling.
+- Post `COMP12B` reduced-carrier composition readback/guidance polish.
 - Post `COMP12A` cross-lane reduced-carrier composition closure.
 - Post `COMP11` deep periodic and sawtooth closure over reduced polynomial carriers.
 
@@ -50,6 +51,20 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `COMP12B` as the reduced-carrier composition readback, guidance, and result-surface polish milestone:
+  - polished `src/lib/equation/composition-stage.ts` so admitted reduced-carrier periodic and sawtooth exact wins now emit one canonical exact summary style instead of reading like fallback or layered stop messaging
+  - kept explicit `x` closure preferred, kept the `COMP12A` exact/guided boundary unchanged, and refined guided composition explanations so mixed reduced carriers, continuation-boundary stops, higher-degree reduced-polynomial stops, multi-parameter boundaries, and depth-cap stops read as distinct blockers
+  - updated `src/AppMain.tsx` so periodic-family result cards now separate exact reduced-carrier context from structured stop-reason messaging, while preserving the existing section ordering and badge/result-card structure
+  - improved composition-aware guidance handoff for guided reduced-carrier families without changing the numeric interval-search algorithm or widening the exact carrier surface
+  - added/updated focused regression coverage in `src/lib/equation/guarded-solve.test.ts`, `src/lib/modes/equation.test.ts`, and `src/AppMain.ui.test.tsx`, and verified cleanly with a full `npm run test:gate`
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.4`
+- Regression checks:
+  - `npm run test:unit -- src/lib/equation/guarded-solve.test.ts src/lib/modes/equation.test.ts src/lib/equation/numeric-interval-solve.test.ts`
+  - `npm run test:ui -- src/AppMain.ui.test.tsx`
+  - `npm run lint -- src/lib/equation/composition-stage.ts src/AppMain.tsx src/lib/equation/guarded-solve.test.ts src/lib/modes/equation.test.ts src/AppMain.ui.test.tsx`
+  - `npm run test:memory-protocol`
+  - `npm run test:gate`
 - Completed `COMP12A` as the cross-lane reduced-carrier composition closure milestone:
   - widened `src/lib/equation/composition-stage.ts` so direct periodic and inverse/direct trig sawtooth families can now finish exactly over admitted bounded single-family carriers beyond reduced polynomials, including shifted radical carriers, shifted rational-power carriers, abs-backed carriers, and selected shifted logarithmic carriers
   - kept explicit `x` closure preferred by placing the new reduced-carrier matcher after the existing affine/power/quadratic/log/exponential continuation paths, so already-shipped explicit solves like `\sin(\ln(x+1))=\frac{1}{2}` still solve back to `x` instead of regressing to reduced-carrier output

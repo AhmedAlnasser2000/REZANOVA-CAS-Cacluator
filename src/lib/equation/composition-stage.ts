@@ -1738,6 +1738,69 @@ function matchReducedSingleFamilyPeriodicCarrier(node: unknown): ReducedSingleFa
   return null;
 }
 
+function isMixedReducedCarrier(node: unknown) {
+  const normalized = normalizeAst(node);
+  if (!isNodeArray(normalized) || normalized.length < 3 || typeof normalized[0] !== 'string') {
+    return false;
+  }
+
+  if (!['Add', 'Subtract', 'Multiply', 'Divide'].includes(normalized[0])) {
+    return false;
+  }
+
+  const variableDependentOperands = normalized
+    .slice(1)
+    .filter((operand) => dependsOnVariable(normalizeAst(operand), 'x'));
+  return variableDependentOperands.length > 1;
+}
+
+function classifyReducedCarrierGuidance(node: unknown) {
+  const normalized = normalizeAst(node);
+  const carrierLatex = boxLatex(normalized);
+  const higherDegreePolynomial = parseExactPolynomial(normalized, 'x', 8);
+  if (higherDegreePolynomial) {
+    const degree = exactPolynomialDegree(higherDegreePolynomial);
+    if (degree > 4) {
+      return {
+        error: `This recognized periodic family reduces to the polynomial carrier ${carrierLatex}, but the current exact reduced-carrier surface only closes bounded polynomial carriers through degree 4. Use Numeric Solve with one of the suggested intervals.`,
+        summaryText: `Reduced-carrier boundary: ${carrierLatex} exceeds the current bounded reduced-polynomial degree-4 surface.`,
+      };
+    }
+  }
+
+  if (isMixedReducedCarrier(normalized)) {
+    return {
+      error: `This recognized periodic family reduces to the mixed carrier ${carrierLatex}, but exact reduced-carrier closure currently supports one admitted carrier family at a time. Use Numeric Solve with one of the suggested intervals.`,
+      summaryText: `Reduced-carrier boundary: ${carrierLatex} mixes multiple variable-dependent carrier families, so this milestone stops before mixed reduced-carrier closure.`,
+    };
+  }
+
+  return {
+    error: `This recognized periodic family reduces to ${carrierLatex}, but the remaining continuation leaves the current bounded exact sink set. Use Numeric Solve with one of the suggested intervals.`,
+    summaryText: `Continuation boundary: continuing from ${carrierLatex} would leave the current bounded exact sink set.`,
+  };
+}
+
+function refineSingleFamilyContinuationGuidance(
+  result: PeriodicFamilySolveResult,
+  outerCarrierNode: unknown,
+  familyLabel: string,
+): PeriodicFamilySolveResult {
+  if (result.kind !== 'guided' || result.family.structuredStopReason) {
+    return result;
+  }
+
+  const outerLatex = boxLatex(normalizeAst(outerCarrierNode));
+  const summaryPrefix = `Continuation boundary: ${outerLatex} is a recognized ${familyLabel} carrier, but finishing its downstream continuation would leave the current bounded exact sink set.`;
+  return {
+    ...result,
+    error: `This recognized ${familyLabel} periodic family reduces through ${outerLatex}, but the remaining continuation leaves the current bounded exact sink set. Use Numeric Solve with one of the suggested intervals.`,
+    summaryText: result.summaryText
+      ? `${summaryPrefix} ${result.summaryText}`
+      : summaryPrefix,
+  };
+}
+
 function buildReducedCarrierExactFamily(
   carrierNode: unknown,
   branches: SymbolicFamilyBranch[],
@@ -1748,6 +1811,22 @@ function buildReducedCarrierExactFamily(
     branchesLatex: branches.map((branch) => branch.latex),
     reducedCarrierLatex,
   });
+}
+
+function isReducedCarrierExactFamily(family: PeriodicFamilyInfo) {
+  return Boolean(
+    family.reducedCarrierLatex
+    && family.reducedCarrierLatex === family.carrierLatex
+    && family.carrierLatex !== 'x',
+  );
+}
+
+function isSawtoothPeriodicFamily(family: PeriodicFamilyInfo) {
+  return Boolean(family.principalRangeLatex || (family.piecewiseBranches?.length ?? 0) > 0);
+}
+
+function buildReducedCarrierSawtoothSummary(equationLatex: string, family: PeriodicFamilyInfo) {
+  return `Exact reduced-carrier sawtooth family: ${equationLatex} closes over ${family.carrierLatex}.`;
 }
 
 function buildTrigPeriodNode(kind: 'sin' | 'cos' | 'tan', angleUnit: AngleUnit): unknown {
@@ -3034,40 +3113,52 @@ function resolveCarrierPeriodicFamily(
   }
 
   if (isNodeArray(normalized) && normalized[0] === 'Ln' && normalized.length === 2) {
-    return resolveCarrierPeriodicFamily(
-      normalized[1],
-      transformLnFamilyBranches(branches),
-      angleUnit,
-      mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
-      supplementLatex,
-      periodicNestingDepth,
-      executionBudget,
+    return refineSingleFamilyContinuationGuidance(
+      resolveCarrierPeriodicFamily(
+        normalized[1],
+        transformLnFamilyBranches(branches),
+        angleUnit,
+        mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
+        supplementLatex,
+        periodicNestingDepth,
+        executionBudget,
+      ),
+      normalized,
+      'logarithmic',
     );
   }
 
   if (isNodeArray(normalized) && normalized[0] === 'Log' && normalized.length === 2) {
-    return resolveCarrierPeriodicFamily(
-      normalized[1],
-      transformLogFamilyBranches(branches, 10),
-      angleUnit,
-      mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
-      supplementLatex,
-      periodicNestingDepth,
-      executionBudget,
+    return refineSingleFamilyContinuationGuidance(
+      resolveCarrierPeriodicFamily(
+        normalized[1],
+        transformLogFamilyBranches(branches, 10),
+        angleUnit,
+        mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
+        supplementLatex,
+        periodicNestingDepth,
+        executionBudget,
+      ),
+      normalized,
+      'logarithmic',
     );
   }
 
   if (isNodeArray(normalized) && normalized[0] === 'Log' && normalized.length === 3) {
     const base = parseNumericTarget(normalized[2]);
     if (base && base.value > 0 && Math.abs(base.value - 1) > EPSILON) {
-      return resolveCarrierPeriodicFamily(
-        normalized[1],
-        transformLogFamilyBranches(branches, normalized[2]),
-        angleUnit,
-        mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
-        supplementLatex,
-        periodicNestingDepth,
-        executionBudget,
+      return refineSingleFamilyContinuationGuidance(
+        resolveCarrierPeriodicFamily(
+          normalized[1],
+          transformLogFamilyBranches(branches, normalized[2]),
+          angleUnit,
+          mergeConstraints(constraints, [{ kind: 'positive', expressionLatex: boxLatex(normalized[1]) }]),
+          supplementLatex,
+          periodicNestingDepth,
+          executionBudget,
+        ),
+        normalized,
+        'logarithmic',
       );
     }
   }
@@ -3081,16 +3172,20 @@ function resolveCarrierPeriodicFamily(
       && dependsOnVariable(normalized[2], 'x')
       && !dependsOnVariable(normalized[1], 'x')
     ) {
-      return resolveCarrierPeriodicFamily(
-        normalized[2],
-        transformExponentialFamilyBranches(branches, normalized[1]),
-        angleUnit,
-        constraints,
-        buildPeriodicBranchConditionSupplement(
-          branches.map((branch) => `${branch.latex}>0`),
+      return refineSingleFamilyContinuationGuidance(
+        resolveCarrierPeriodicFamily(
+          normalized[2],
+          transformExponentialFamilyBranches(branches, normalized[1]),
+          angleUnit,
+          constraints,
+          buildPeriodicBranchConditionSupplement(
+            branches.map((branch) => `${branch.latex}>0`),
+          ),
+          periodicNestingDepth,
+          executionBudget,
         ),
-        periodicNestingDepth,
-        executionBudget,
+        normalized,
+        'exponential',
       );
     }
   }
@@ -3107,13 +3202,14 @@ function resolveCarrierPeriodicFamily(
   }
 
   const family = buildPeriodicFamilyInfo(boxLatex(normalized), branches, constraints, angleUnit, normalized);
+  const unresolvedGuidance = classifyReducedCarrierGuidance(normalized);
   return {
     kind: 'guided',
     family: appendDiscoveredFamilies(family, [periodicFamilyToExactLatex(family)]),
-    error: 'This recognized periodic family still requires parameterized nonlinear or currently unsupported exact solving. Use Numeric Solve with one of the suggested intervals.',
+    error: unresolvedGuidance.error,
     domainConstraints: constraints,
     supplementLatex: supplementLatex.length > 0 ? supplementLatex : undefined,
-    summaryText: '',
+    summaryText: unresolvedGuidance.summaryText,
   };
 }
 
@@ -3186,9 +3282,13 @@ function solveTrigPeriodicFamily(
       reducedCarrierLatex: reducedCarrierLatex ?? resolved.family.reducedCarrierLatex,
     },
     summaryText: summaryPrefix
-      ? resolved.summaryText
-        ? `${summaryPrefix} ${resolved.summaryText}`
-        : summaryPrefix
+      ? resolved.kind === 'solved'
+        && summaryPrefix.startsWith('Sawtooth closure:')
+        && isReducedCarrierExactFamily(resolved.family)
+          ? `Exact reduced-carrier sawtooth family: ${boxLatex(normalizeAst(node))}=${target.latex} closes over ${resolved.family.carrierLatex}.`
+          : resolved.summaryText
+            ? `${summaryPrefix} ${resolved.summaryText}`
+            : summaryPrefix
       : resolved.summaryText,
     solveBadges: dedupe([...(resolved.solveBadges ?? []), ...(solveBadges ?? [])]),
   };
@@ -3224,6 +3324,22 @@ function buildPeriodicSolveSummary(
   periodic: PeriodicFamilySolveResult,
   verb: 'yields' | 'reduces to',
 ) {
+  if (periodic.kind === 'solved' && isReducedCarrierExactFamily(periodic.family)) {
+    const sawtoothReducedCarrier =
+      isSawtoothPeriodicFamily(periodic.family)
+      || periodic.summaryText.startsWith('Sawtooth closure:');
+    const familyKind = sawtoothReducedCarrier ? 'sawtooth' : 'periodic';
+    const base = `Exact reduced-carrier ${familyKind} family: ${expressionLatex}=${targetLatex} closes over ${periodic.family.carrierLatex}.`;
+    const trailingSummary = periodic.summaryText.startsWith('Sawtooth closure:')
+      ? ''
+      : periodic.summaryText;
+    return periodic.summaryText
+      ? trailingSummary
+        ? `${base} ${trailingSummary}`
+        : base
+      : base;
+  }
+
   const base = `Periodic family: ${expressionLatex}=${targetLatex} ${verb} ${periodicFamilyToExactLatex(periodic.family)}.`;
   return periodic.summaryText
     ? `${base} ${periodic.summaryText}`
@@ -3348,9 +3464,26 @@ function recurseComposition(
       { constraints: domainConstraints, source: 'transform' },
     );
     const detailSections = mergeDetailSections(merged.detailSections, extraDetailSections);
+    const mergedPeriodicFamily = mergePeriodicFamilyExtras(merged.periodicFamily, periodicFamilyExtras);
+    if (
+      mergedPeriodicFamily
+      && isReducedCarrierExactFamily(mergedPeriodicFamily)
+      && (mergedPeriodicFamily.piecewiseBranches?.length ?? 0) > 0
+      && periodicFamilyExtras?.piecewiseBranches?.length
+    ) {
+      return {
+        ...merged,
+        periodicFamily: mergedPeriodicFamily,
+        exactSupplementLatex: supplements.length > 0 ? supplements : undefined,
+        detailSections: detailSections.length > 0 ? detailSections : undefined,
+        solveBadges: dedupe<SolveBadge>([...(merged.solveBadges ?? []), ...effectiveBadges]),
+        solveSummaryText: buildReducedCarrierSawtoothSummary(request.resolvedLatex, mergedPeriodicFamily),
+      };
+    }
+
     return appendSolveMetadata({
       ...merged,
-      periodicFamily: mergePeriodicFamilyExtras(merged.periodicFamily, periodicFamilyExtras),
+      periodicFamily: mergedPeriodicFamily,
       exactSupplementLatex: supplements.length > 0 ? supplements : undefined,
       detailSections: detailSections.length > 0 ? detailSections : undefined,
     }, effectiveBadges, summaryText);

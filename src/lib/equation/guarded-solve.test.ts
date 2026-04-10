@@ -900,6 +900,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Periodic Family');
     expect(result.exactLatex ?? '').toContain('\\sqrt{x+1}-2');
     expect(result.periodicFamily?.reducedCarrierLatex ?? '').toContain('\\sqrt{x+1}-2');
+    expect(result.solveSummaryText ?? '').toContain('Exact reduced-carrier periodic family');
   });
 
   it('returns exact reduced-carrier periodic families for abs-backed carriers like sin(|x-1|)=1/2', () => {
@@ -917,6 +918,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Periodic Family');
     expect(result.exactLatex ?? '').toContain('\\vert x-1\\vert');
     expect(result.periodicFamily?.reducedCarrierLatex ?? '').toContain('\\vert x-1\\vert');
+    expect(result.solveSummaryText ?? '').toContain('Exact reduced-carrier periodic family');
   });
 
   it('returns exact reduced-carrier periodic families for shifted rational-power carriers like sin(x^(1/3)-1)=1/2', () => {
@@ -951,6 +953,7 @@ describe('runGuardedEquationSolve', () => {
     expect(result.solveBadges).toContain('Periodic Family');
     expect(result.exactLatex ?? '').toContain('\\ln(x+1)-2');
     expect(result.periodicFamily?.reducedCarrierLatex ?? '').toContain('\\ln(x+1)-2');
+    expect(result.solveSummaryText ?? '').toContain('Exact reduced-carrier periodic family');
   });
 
   it('still prefers explicit x closure when sin(ln(x+1))=1/2 can be solved back to x exactly', () => {
@@ -1460,8 +1463,10 @@ describe('runGuardedEquationSolve', () => {
       throw new Error('Expected mixed-carrier bounded guidance');
     }
     expect(result.solveBadges).toContain('Periodic Family');
-    expect(result.error).toContain('currently unsupported exact solving');
+    expect(result.error).toContain('mixed carrier');
+    expect(result.error).toContain('one admitted carrier family at a time');
     expect(result.exactLatex ?? '').toContain('\\sqrt{x+1}');
+    expect(result.solveSummaryText ?? '').toContain('Reduced-carrier boundary');
   });
 
   it('keeps mixed single-family continuations honest when sawtooth reduction leaves the shipped exact sink set', () => {
@@ -1478,7 +1483,8 @@ describe('runGuardedEquationSolve', () => {
     }
     expect(result.solveBadges).toContain('Outer Inversion');
     expect(result.solveBadges).toContain('Principal Range');
-    expect(result.error).toContain('currently unsupported exact solving');
+    expect(result.error).toContain('leaves the current bounded exact sink set');
+    expect(result.solveSummaryText ?? '').toContain('Continuation boundary');
     expect(result.periodicFamily?.piecewiseBranches?.length ?? 0).toBeGreaterThan(0);
   });
 
@@ -1532,6 +1538,8 @@ describe('runGuardedEquationSolve', () => {
     }
     expect(result.solveBadges).toContain('Principal Range');
     expect(result.periodicFamily?.reducedCarrierLatex).toContain('x^5+x');
+    expect(result.error).toContain('degree 4');
+    expect(result.solveSummaryText ?? '').toContain('degree-4 surface');
   });
 
   it('still stops when a composition would exceed the three-step inversion cap', () => {

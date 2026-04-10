@@ -1023,6 +1023,7 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByTestId('display-outcome-periodic-family')).toHaveTextContent(/tan\(x\)/i);
     expect(screen.getByTestId('display-outcome-periodic-discovered-families')).toHaveTextContent(/cos/i);
     expect(screen.getByTestId('display-outcome-periodic-discovered-families')).toHaveTextContent(/tan/i);
+    expect(screen.getByTestId('display-outcome-periodic-stop-reason')).toHaveTextContent(/multiple independent periodic parameters/i);
   });
 
   it('renders COMP6 reciprocal trig rewrites as symbolic periodic families', async () => {
@@ -1042,7 +1043,8 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByText('Periodic Family')).toBeInTheDocument();
     expect(screen.getByText('Reciprocal Rewrite')).toBeInTheDocument();
     expect(screen.getByTestId('display-outcome-exact')).toHaveTextContent(/180k/);
-    expect(screen.getByTestId('display-outcome-periodic-structured-stop')).toHaveTextContent(/Reduced carrier/i);
+    expect(screen.getByTestId('display-outcome-periodic-reduced-carrier')).toHaveTextContent(/Reduced carrier/i);
+    expect(screen.queryByTestId('display-outcome-periodic-stop-reason')).not.toBeInTheDocument();
   });
 
   it('renders COMP6 reciprocal trig range failures with rewrite provenance', async () => {
@@ -1203,6 +1205,8 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getByText('Periodic Family')).toBeInTheDocument();
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), /\\sqrt\{x\+1\}-2/);
     expectMathStaticLatex(screen.getByTestId('display-outcome-periodic-family'), /\\sqrt\{x\+1\}-2/);
+    expect(screen.getByTestId('display-outcome-periodic-reduced-carrier')).toHaveTextContent(/Reduced carrier/i);
+    expect(screen.queryByTestId('display-outcome-periodic-stop-reason')).not.toBeInTheDocument();
   });
 
   it('returns reduced-carrier exact sawtooth families for abs-backed carriers after COMP12A', async () => {
@@ -1222,6 +1226,29 @@ describe('AppMain UI automation flows', () => {
     expect(screen.getAllByText('Principal Range').length).toBeGreaterThan(0);
     expectMathStaticLatex(screen.getByTestId('display-outcome-exact'), /\\vert x-1\\vert/);
     expect(screen.getByTestId('display-outcome-periodic-piecewise')).toHaveTextContent(/arcsin/);
+    expect(screen.getByTestId('display-outcome-periodic-reduced-carrier')).toHaveTextContent(/Reduced carrier/i);
+    expect(screen.queryByTestId('display-outcome-periodic-stop-reason')).not.toBeInTheDocument();
+  });
+
+  it('keeps mixed reduced-carrier composition guidance readable after COMP12B', async () => {
+    const { user } = await renderAppMain();
+
+    await user.click(screen.getByTestId('settings-toggle'));
+    await screen.findByTestId('settings-panel');
+    await user.click(screen.getByTestId('settings-angle-unit-rad'));
+    await user.click(screen.getByTestId('settings-toggle'));
+    await waitFor(() => expect(screen.queryByTestId('settings-panel')).not.toBeInTheDocument());
+
+    await openEquationSymbolic(user);
+    setMathFieldLatex('main-editor', '\\sin\\left(\\sqrt{x+1}+x^{\\frac{1}{3}}\\right)=\\frac{1}{2}');
+    await user.click(screen.getByTestId('soft-action-solve'));
+
+    await waitFor(() => expect(screen.getByTestId('display-outcome-error')).toBeInTheDocument());
+    expect(screen.getByTestId('display-outcome-error')).toHaveTextContent(/mixed carrier/i);
+    expect(screen.getByTestId('display-outcome-solve-summary')).toHaveTextContent(/Reduced-carrier boundary/i);
+    expect(screen.getByTestId('display-outcome-periodic-representatives')).toBeInTheDocument();
+    expect(screen.queryByTestId('display-outcome-periodic-reduced-carrier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('display-outcome-periodic-stop-reason')).not.toBeInTheDocument();
   });
 
   it('shows the new PRL3 Equation transforms without auto-solving the rewritten equation', async () => {

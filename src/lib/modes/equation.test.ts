@@ -291,6 +291,7 @@ describe('runEquationMode', () => {
     expect(result.exactLatex ?? '').toContain('\\sqrt{x+1}-2');
     expect(result.periodicFamily?.reducedCarrierLatex ?? '').toContain('\\sqrt{x+1}-2');
     expect(result.periodicFamily?.piecewiseBranches?.length ?? 0).toBeGreaterThan(1);
+    expect(result.solveSummaryText ?? '').toContain('Exact reduced-carrier sawtooth family');
   });
 
   it('keeps explicit-x composition closure when sin(ln(x+1))=1/2 can still solve back to x', () => {
@@ -306,6 +307,7 @@ describe('runEquationMode', () => {
     }
     expect(result.periodicFamily?.carrierLatex).toBe('x');
     expect(result.exactLatex ?? '').not.toContain('\\ln\\left(x+1\\right)');
+    expect(result.solveSummaryText ?? '').not.toContain('Exact reduced-carrier');
   });
 
   it('solves linear 2x2 systems', () => {

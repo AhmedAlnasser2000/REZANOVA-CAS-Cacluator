@@ -328,6 +328,7 @@ import {
   type NumericIvpState,
   type PartialDerivativeWorkbenchState,
   type PoissonState,
+  type PeriodicFamilyInfo,
   type RegressionState,
   type RightTriangleState,
   type SineRuleState,
@@ -365,6 +366,29 @@ const SIDE_SURFACE_MIN_SLACK = SIDE_SURFACE_WIDTH + SIDE_SURFACE_GAP;
 
 type SideSurface = 'none' | 'settings' | 'history';
 type SideSurfacePresentation = 'outboard' | 'overlay';
+
+function getPeriodicStopReasonText(reason: PeriodicFamilyInfo['structuredStopReason'] | undefined) {
+  if (!reason) {
+    return '';
+  }
+
+  if (reason === 'second-periodic-parameter') {
+    return 'Exact closure stops here because the next bounded reduction would introduce a second independent periodic parameter.';
+  }
+  if (reason === 'multi-parameter-periodic-family') {
+    return 'Exact closure stops here because the remaining nested periodic family would require multiple independent periodic parameters.';
+  }
+  if (reason === 'periodic-depth-cap') {
+    return 'Exact closure stops here because this bounded milestone stops after three periodic reduction steps.';
+  }
+  if (reason === 'unmerged-periodic-branches') {
+    return 'Exact closure stops here because the remaining bounded periodic branches could not be merged into one exact family.';
+  }
+  if (reason === 'outside-principal-range') {
+    return 'Exact closure stops here because the remaining branches fall outside the usable principal range.';
+  }
+  return 'Exact closure stops here because finishing the remaining sawtooth branches would require broader principal-range pruning than this milestone allows.';
+}
 
 export default function App() {
   const showModeTabs = import.meta.env.DEV && import.meta.env.VITE_SHOW_MODE_TABS === '1';
@@ -8516,7 +8540,7 @@ export default function App() {
             && currentMode !== 'guide'
             && (displayOutcome?.kind === 'success' || displayOutcome?.kind === 'error')
             && displayOutcome.solveSummaryText ? (
-              <div className="result-summary-block">
+              <div className="result-summary-block" data-testid="display-outcome-solve-summary">
                 <div className="result-summary-label">Solve note</div>
                 <NotationText
                   className="result-approx result-summary-text"
@@ -8740,36 +8764,23 @@ export default function App() {
                     </div>
                   </div>
                 ) : null}
-                {displayOutcome.periodicFamily.reducedCarrierLatex || displayOutcome.periodicFamily.structuredStopReason ? (
-                  <div className="result-summary-block" data-testid="display-outcome-periodic-structured-stop">
-                    <div className="result-summary-label">Reduction Notes</div>
-                    <div className="result-detail-lines">
-                      {displayOutcome.periodicFamily.reducedCarrierLatex ? (
-                        <MathStatic
-                          className="result-math result-math-supplement"
-                          latex={`\\text{Reduced carrier: } ${displayOutcome.periodicFamily.reducedCarrierLatex}`}
-                          displayPrefs={symbolicDisplayPrefs}
-                        />
-                      ) : null}
-                      {displayOutcome.periodicFamily.structuredStopReason ? (
-                        <NotationText
-                          className="result-detail-line result-summary-text"
-                          text={
-                            displayOutcome.periodicFamily.structuredStopReason === 'second-periodic-parameter'
-                              ? 'Exact closure stops here because the next reduction would require a second independent periodic parameter.'
-                              : displayOutcome.periodicFamily.structuredStopReason === 'multi-parameter-periodic-family'
-                                ? 'Exact closure stops here because the remaining nested periodic reduction would require multiple independent periodic parameters.'
-                                : displayOutcome.periodicFamily.structuredStopReason === 'periodic-depth-cap'
-                                  ? 'Exact closure stops here because this bounded milestone only allows two periodic reduction steps.'
-                                  : displayOutcome.periodicFamily.structuredStopReason === 'unmerged-periodic-branches'
-                                    ? 'Exact closure stops here because the remaining bounded periodic branches could not be merged into a single exact family.'
-                                    : displayOutcome.periodicFamily.structuredStopReason === 'outside-principal-range'
-                                      ? 'Exact closure stops here because the remaining branches fall outside the usable principal range.'
-                                      : 'Exact closure stops here because finishing the identity would require broader sawtooth-style reduction than this bounded milestone allows.'
-                          }
-                        />
-                      ) : null}
-                    </div>
+                {displayOutcome.periodicFamily.reducedCarrierLatex ? (
+                  <div className="result-summary-block" data-testid="display-outcome-periodic-reduced-carrier">
+                    <div className="result-summary-label">Reduced Carrier</div>
+                    <MathStatic
+                      className="result-math result-math-supplement"
+                      latex={`\\text{Reduced carrier: } ${displayOutcome.periodicFamily.reducedCarrierLatex}`}
+                      displayPrefs={symbolicDisplayPrefs}
+                    />
+                  </div>
+                ) : null}
+                {displayOutcome.periodicFamily.structuredStopReason ? (
+                  <div className="result-summary-block" data-testid="display-outcome-periodic-stop-reason">
+                    <div className="result-summary-label">Exact Closure Boundary</div>
+                    <NotationText
+                      className="result-detail-line result-summary-text"
+                      text={getPeriodicStopReasonText(displayOutcome.periodicFamily.structuredStopReason)}
+                    />
                   </div>
                 ) : null}
                 {displayOutcome.periodicFamily.suggestedIntervals?.length ? (
