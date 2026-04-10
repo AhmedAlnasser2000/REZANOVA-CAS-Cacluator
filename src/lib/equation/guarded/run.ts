@@ -375,12 +375,25 @@ function validateDirectSymbolicOutcome(
     || !numericSolutions
     || !rawSolutionLatex
     || numericSolutions.length === 0
-    || numericSolutions.some((value) => value === null)
   ) {
     return null;
   }
 
-  const finiteSolutions = numericSolutions.filter((value): value is number => value !== null);
+  const numericPairs = rawSolutionLatex.flatMap((latex, index) => {
+    const value = numericSolutions[index];
+    return value === null ? [] : [{ latex, value }];
+  });
+  const finiteSolutions = numericPairs.map((entry) => entry.value);
+  if (finiteSolutions.length === 0) {
+    return errorOutcome(
+      'Solve',
+      'No real solutions remain after resolving the bounded transformed branches.',
+      symbolic.warnings,
+      [],
+      ['Candidate Checked'],
+    );
+  }
+
   const validation = validateCandidateRoots(
     request.validationLatex ?? request.resolvedLatex,
     finiteSolutions,
@@ -406,13 +419,13 @@ function validateDirectSymbolicOutcome(
   const acceptedLatex: string[] = [];
   const acceptedValues: number[] = [];
   for (const acceptedValue of validation.accepted) {
-    const matchIndex = finiteSolutions.findIndex((value, index) =>
-      Math.abs(value - acceptedValue) <= NUMERIC_MATCH_TOLERANCE
-      && !acceptedValues.some((usedValue) => Math.abs(usedValue - value) <= NUMERIC_MATCH_TOLERANCE)
-      && !acceptedLatex.includes(rawSolutionLatex[index]));
+    const matchIndex = numericPairs.findIndex((entry) =>
+      Math.abs(entry.value - acceptedValue) <= NUMERIC_MATCH_TOLERANCE
+      && !acceptedValues.some((usedValue) => Math.abs(usedValue - entry.value) <= NUMERIC_MATCH_TOLERANCE)
+      && !acceptedLatex.includes(entry.latex));
     if (matchIndex >= 0) {
-      acceptedValues.push(finiteSolutions[matchIndex]);
-      acceptedLatex.push(rawSolutionLatex[matchIndex]);
+      acceptedValues.push(numericPairs[matchIndex].value);
+      acceptedLatex.push(numericPairs[matchIndex].latex);
     }
   }
 

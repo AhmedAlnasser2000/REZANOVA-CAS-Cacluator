@@ -153,6 +153,21 @@ describe('runNumericIntervalSolve', () => {
     expect(result.error).toContain('x+1=\\frac{-x}{2}-\\frac{3}{2}');
   });
 
+  it('adds stronger-carrier abs guidance for recognized unresolved polynomial families', () => {
+    const result = runNumericIntervalSolve('\\left|x^2+1\\right|+1=e^x', {
+      start: '3',
+      end: '5',
+      subdivisions: 256,
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected numeric solve error');
+    }
+    expect(result.error).toContain('stronger absolute-value carrier family');
+    expect(result.error).toContain('x^2+1=\\exponentialE^{x}-1');
+  });
+
   it('flags intervals whose recognized abs magnitude stays negative', () => {
     const result = runNumericIntervalSolve('\\left|x+1\\right|=-x-10', {
       start: '0',

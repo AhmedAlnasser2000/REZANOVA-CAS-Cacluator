@@ -501,6 +501,103 @@ describe('runSharedEquationSolve', () => {
     expect(result.solveBadges).toContain('Candidate Checked');
   });
 
+  it('solves stronger polynomial-carrier |u|=c families through the existing bounded branch model', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\left|x^2+x-2\\right|=3',
+      resolvedLatex: '\\left|x^2+x-2\\right|=3',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('x\\in');
+    expect(result.exactLatex).toMatch(/(\\sqrt\{21\}|21\^\{1\/2\})/);
+    expect(result.solveBadges).toContain('Candidate Checked');
+    expect(result.candidateValues).toHaveLength(2);
+  });
+
+  it('keeps stronger wrapped polynomial-carrier abs families real-only after branch validation', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '2\\left|x^2-1\\right|+1=7',
+      resolvedLatex: '2\\left|x^2-1\\right|+1=7',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('-2');
+    expect(result.exactLatex).toContain('2');
+    expect(result.exactLatex).not.toContain('\\imaginaryI');
+    expect(result.approxText).toBe('x ~= -2, 2');
+  });
+
+  it('solves stronger radical-carrier abs families through bounded branch reuse', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\left|\\sqrt{x+1}-2\\right|=1',
+      resolvedLatex: '\\left|\\sqrt{x+1}-2\\right|=1',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('0');
+    expect(result.exactLatex).toContain('8');
+    expect(result.solveBadges).toContain('Power Lift');
+    expect(result.exactSupplementLatex).toEqual(['\\text{Conditions: } x+1\\ge0']);
+  });
+
+  it('solves stronger rational-power-carrier abs families through bounded branch reuse', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\left|x^{\\frac{1}{3}}-1\\right|=2',
+      resolvedLatex: '\\left|x^{\\frac{1}{3}}-1\\right|=2',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('27');
+    expect(result.exactLatex).toContain('-1');
+    expect(result.solveBadges).toContain('Power Lift');
+  });
+
+  it('solves stronger |u|=|v| carrier families when both branches stay inside bounded sinks', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\left|x^2-1\\right|=\\left|x+1\\right|',
+      resolvedLatex: '\\left|x^2-1\\right|=\\left|x+1\\right|',
+    });
+
+    expect(result.kind).toBe('success');
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(result.exactLatex).toContain('-1');
+    expect(result.exactLatex).toContain('0');
+    expect(result.exactLatex).toContain('2');
+  });
+
+  it('keeps stronger |u|=|v| carrier families honest when a branch leaves the bounded sink set', () => {
+    const result = runSharedEquationSolve({
+      ...request,
+      originalLatex: '\\left|x^2+1\\right|=\\left|e^x\\right|',
+      resolvedLatex: '\\left|x^2+1\\right|=\\left|e^x\\right|',
+    });
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected an error outcome');
+    }
+    expect(result.error).toContain('stronger absolute-value carrier family is outside the current exact bounded solve set');
+  });
+
   it('solves bounded radical equations that polynomialize into algebraic biquadratic follow-ons', () => {
     const result = runSharedEquationSolve({
       ...request,

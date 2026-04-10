@@ -188,7 +188,7 @@ describe('runEquationMode', () => {
     if (result.kind !== 'error') {
       throw new Error('Expected an error outcome');
     }
-    expect(result.error).toContain('absolute-value family is outside the current exact bounded solve set');
+    expect(result.error).toContain('stronger absolute-value carrier family is outside the current exact bounded solve set');
     expect(result.runtimeAdvisories?.stopReason).toEqual({
       kind: 'unsupported-family',
       source: 'host',
@@ -196,6 +196,44 @@ describe('runEquationMode', () => {
     expect(result.runtimeAdvisories?.equationNumericSolve).toEqual({
       kind: 'suggest-on-error',
     });
+  });
+
+  it('solves stronger polynomial, radical, and rational-power abs carriers through the shared symbolic backend', () => {
+    const polynomial = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\left|x^2+x-2\\right|=3',
+    });
+    const radical = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\left|\\sqrt{x+1}-2\\right|=1',
+    });
+    const rationalPower = runEquationMode({
+      ...makeRequest(),
+      equationScreen: 'symbolic',
+      equationLatex: '\\left|x^{\\frac{1}{3}}-1\\right|=2',
+    });
+
+    expect(polynomial.kind).toBe('success');
+    if (polynomial.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(polynomial.exactLatex).toMatch(/(\\sqrt\{21\}|21\^\{1\/2\})/);
+
+    expect(radical.kind).toBe('success');
+    if (radical.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(radical.exactLatex).toContain('8');
+    expect(radical.exactLatex).toContain('0');
+
+    expect(rationalPower.kind).toBe('success');
+    if (rationalPower.kind !== 'success') {
+      throw new Error('Expected a success outcome');
+    }
+    expect(rationalPower.exactLatex).toContain('27');
+    expect(rationalPower.exactLatex).toContain('-1');
   });
 
   it('solves linear 2x2 systems', () => {

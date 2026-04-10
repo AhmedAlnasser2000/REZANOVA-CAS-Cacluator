@@ -17,7 +17,7 @@ import {
   recognizePerfectSquareRadicand,
 } from './radical-core';
 import { createTwoBranchSet } from './algebra/branch-core';
-import { parseExactPolynomial } from './polynomial-core';
+import { exactPolynomialDegree, parseExactPolynomial } from './polynomial-core';
 import { evaluateLatexAt } from './equation/domain-guards';
 import { normalizeAst } from './symbolic-engine/normalize';
 import { boxLatex, isNodeArray, termKey } from './symbolic-engine/patterns';
@@ -25,6 +25,14 @@ import { boxLatex, isNodeArray, termKey } from './symbolic-engine/patterns';
 const ce = new ComputeEngine();
 const ABS_NUMERIC_EPSILON = 1e-8;
 const ABS_PLACEHOLDER_SYMBOL = '__calcwiz_abs_u';
+
+type AbsoluteValueExpressionSupportKind =
+  | 'constant'
+  | 'affine'
+  | 'polynomial'
+  | 'radical'
+  | 'rational-power'
+  | 'generic-expression';
 
 function simplifyNode(node: unknown) {
   return normalizeAst(ce.box(node as Parameters<typeof ce.box>[0]).simplify().json);
@@ -476,27 +484,65 @@ export function buildAbsoluteValueNonnegativeConstraint(expression: unknown): So
   };
 }
 
-export function isSupportedAbsoluteValueExpression(node: unknown, variable: string): boolean {
+function classifyAbsoluteValueExpressionSupport(
+  node: unknown,
+  variable: string,
+): AbsoluteValueExpressionSupportKind | null {
   const normalized = normalizeAst(node);
 
   if (containsAbsoluteValue(normalized)) {
-    return false;
+    return null;
   }
 
-  if (
-    readExactScalar(normalized)
-    || parseExactPolynomial(normalized, variable, 4)
-    || matchSupportedRadical(normalized, variable)
-    || matchSupportedRationalPower(normalized, variable)
-  ) {
+  if (readExactScalar(normalized) || !expressionHasVariable(normalized)) {
+    return 'constant';
+  }
+
+  const polynomial = parseExactPolynomial(normalized, variable, 4);
+  if (polynomial) {
+    return exactPolynomialDegree(polynomial) <= 1 ? 'affine' : 'polynomial';
+  }
+
+  if (matchSupportedRadical(normalized, variable)) {
+    return 'radical';
+  }
+
+  if (matchSupportedRationalPower(normalized, variable)) {
+    return 'rational-power';
+  }
+
+  return detectSingleVariable(normalized) === variable ? 'generic-expression' : null;
+}
+
+function isStrongerAbsoluteValueCarrierKind(kind: AbsoluteValueExpressionSupportKind | null) {
+  return kind === 'polynomial' || kind === 'radical' || kind === 'rational-power';
+}
+
+function isStrongerAbsoluteValueFamily(family: AbsoluteValueEquationFamily) {
+  const targetKind = classifyAbsoluteValueExpressionSupport(family.target.base, family.variable);
+  const comparisonKind = classifyAbsoluteValueExpressionSupport(
+    family.comparisonTarget?.base ?? family.comparisonNode,
+    family.variable,
+  );
+  return isStrongerAbsoluteValueCarrierKind(targetKind) || isStrongerAbsoluteValueCarrierKind(comparisonKind);
+}
+
+function buildAbsoluteValueFamilyLabel(family: AbsoluteValueEquationFamily) {
+  return isStrongerAbsoluteValueFamily(family)
+    ? 'stronger absolute-value carrier family'
+    : 'absolute-value family';
+}
+
+export function buildAbsoluteValueUnresolvedError(family: AbsoluteValueEquationFamily) {
+  return `This recognized ${buildAbsoluteValueFamilyLabel(family)} is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.`;
+}
+
+export function isSupportedAbsoluteValueExpression(node: unknown, variable: string): boolean {
+  if (classifyAbsoluteValueExpressionSupport(node, variable)) {
     return true;
   }
 
-  if (!expressionHasVariable(normalized)) {
-    return true;
-  }
-
-  return detectSingleVariable(normalized) === variable;
+  return false;
 }
 
 export function matchAbsoluteValueTarget(node: unknown, variable: string): AbsoluteValueTargetDescriptor | null {
@@ -888,25 +934,35 @@ function sampleFiniteValues(
   return values;
 }
 
-function branchHasPotential(
+type AbsoluteValueBranchPotential = {
+  branchEquation: string;
+  potential: boolean;
+  finiteSampleCount: number;
+};
+
+function analyzeAbsoluteValueBranchPotential(
   equationLatex: string,
   start: number,
   end: number,
   subdivisions: number,
   angleUnit: AngleUnit,
-) {
+) : AbsoluteValueBranchPotential {
   const samples = sampleFiniteValues(`(${equationLatex.split('=')[0]})-(${equationLatex.split('=').slice(1).join('=')})`, start, end, subdivisions, angleUnit);
-  if (samples.some((value) => Math.abs(value) <= ABS_NUMERIC_EPSILON)) {
-    return true;
-  }
+  const nearZeroHit = samples.some((value) => Math.abs(value) <= ABS_NUMERIC_EPSILON);
+  let signChange = false;
 
   for (let index = 1; index < samples.length; index += 1) {
     if (samples[index - 1] * samples[index] < 0) {
-      return true;
+      signChange = true;
+      break;
     }
   }
 
-  return false;
+  return {
+    branchEquation: equationLatex,
+    potential: nearZeroHit || signChange,
+    finiteSampleCount: samples.length,
+  };
 }
 
 export function buildAbsoluteValueNumericGuidance(
@@ -921,6 +977,8 @@ export function buildAbsoluteValueNumericGuidance(
     return null;
   }
 
+  const familyLabel = buildAbsoluteValueFamilyLabel(family);
+
   if (family.kind !== 'abs-equals-abs') {
     const comparisonValues = sampleFiniteValues(
       boxLatex(family.comparisonNode),
@@ -931,27 +989,32 @@ export function buildAbsoluteValueNumericGuidance(
     );
 
     if (comparisonValues.length > 0 && comparisonValues.every((value) => value < -ABS_NUMERIC_EPSILON)) {
-      return `This recognized absolute-value family requires ${boxLatex(family.comparisonNode)}\\ge0, but it stays negative across the chosen interval.`;
+      return `This recognized ${familyLabel} requires ${boxLatex(family.comparisonNode)}\\ge0, but it stays negative across the chosen interval.`;
     }
   }
 
-  const branchPotentials = family.branchEquations.map((branchEquation) => ({
-    branchEquation,
-    potential: branchHasPotential(branchEquation, start, end, Math.min(subdivisions, 48), angleUnit),
-  }));
+  const branchPotentials = family.branchEquations.map((branchEquation) =>
+    analyzeAbsoluteValueBranchPotential(branchEquation, start, end, Math.min(subdivisions, 48), angleUnit));
   const activeBranches = branchPotentials.filter((entry) => entry.potential);
+  const domainBlockedBranches = branchPotentials.filter((entry) => entry.finiteSampleCount === 0);
 
   if (family.branchEquations.length === 1) {
-    return `This recognized absolute-value family reduces to the single branch ${family.branchEquations[0]}. Shift the interval toward that branch if you want numeric confirmation.`;
+    return `This recognized ${familyLabel} reduces to the single branch ${family.branchEquations[0]}. Shift the interval toward that branch if you want numeric confirmation.`;
   }
 
   if (activeBranches.length === 0) {
-    return `This recognized absolute-value family splits into ${family.branchEquations.join(' and ')}, but the chosen interval does not sample a sign change or near-zero hit on either branch.`;
+    const domainText = domainBlockedBranches.length > 0
+      ? ' One or more branches leave the real-domain carrier range across the chosen interval.'
+      : '';
+    return `This recognized ${familyLabel} splits into ${family.branchEquations.join(' and ')}, but the chosen interval does not sample a sign change or near-zero hit on either branch.${domainText}`;
   }
 
   if (activeBranches.length === 1) {
-    return `This recognized absolute-value family splits into ${family.branchEquations.join(' and ')}; the chosen interval only samples the ${activeBranches[0].branchEquation} branch.`;
+    const domainText = domainBlockedBranches.some((entry) => entry.branchEquation !== activeBranches[0].branchEquation)
+      ? ' The other branch leaves the real-domain carrier range over this interval.'
+      : '';
+    return `This recognized ${familyLabel} splits into ${family.branchEquations.join(' and ')}; the chosen interval only samples the ${activeBranches[0].branchEquation} branch.${domainText}`;
   }
 
-  return `This recognized absolute-value family splits into ${family.branchEquations.join(' and ')}. Try isolating one branch with a narrower interval or shifting the interval center.`;
+  return `This recognized ${familyLabel} splits into ${family.branchEquations.join(' and ')}. Try isolating one branch with a narrower interval or shifting the interval center.`;
 }

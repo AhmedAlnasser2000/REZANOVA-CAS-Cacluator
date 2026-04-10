@@ -68,4 +68,17 @@ describe('abs-core', () => {
     expect(guidance).toContain('absolute-value family splits into');
     expect(guidance).toContain('x+1=\\frac{-x}{2}-\\frac{3}{2}');
   });
+
+  it('labels stronger-carrier unresolved families in numeric guidance', () => {
+    const guidance = buildAbsoluteValueNumericGuidance(
+      '\\left|x^2+1\\right|+1=e^x',
+      3,
+      5,
+      64,
+      'rad',
+    );
+
+    expect(guidance).toContain('stronger absolute-value carrier family');
+    expect(guidance).toContain('x^2+1=\\exponentialE^{x}-1');
+  });
 });

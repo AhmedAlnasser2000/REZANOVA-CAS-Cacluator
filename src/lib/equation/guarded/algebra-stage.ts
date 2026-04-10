@@ -2,6 +2,7 @@ import { ComputeEngine, expand } from '@cortex-js/compute-engine';
 import {
   buildAbsoluteValueEquationFamily,
   buildAbsoluteValueNonnegativeConstraint as buildSharedAbsNonnegativeConstraint,
+  buildAbsoluteValueUnresolvedError,
   collectAbsoluteValueTargets as collectSharedAbsoluteValueTargets,
   isSupportedAbsoluteValueExpression as isSharedAbsoluteValueExpression,
   matchDirectAbsoluteValueEquationNode,
@@ -1030,7 +1031,7 @@ function buildAbsoluteValueRadicalTransform(
       domainConstraints: family.branchConstraints,
       solveBadges: ['Radical Isolation'],
       solveSummaryText: 'Reduced an exact square-root square into a bounded absolute-value carrier',
-      unresolvedError: 'This recognized absolute-value family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+      unresolvedError: buildAbsoluteValueUnresolvedError(family),
       radicalStepCost: 1,
     };
   }
@@ -1051,7 +1052,7 @@ function buildAbsoluteValueBranchTransform(family: ReturnType<typeof buildAbsolu
     domainConstraints: family.branchConstraints,
     solveBadges: [],
     solveSummaryText: 'Branched a bounded absolute-value family into exact cases',
-    unresolvedError: 'This recognized absolute-value family is outside the current exact bounded solve set. Use Numeric Solve with an interval in Equation mode.',
+    unresolvedError: buildAbsoluteValueUnresolvedError(family),
   };
 }
 

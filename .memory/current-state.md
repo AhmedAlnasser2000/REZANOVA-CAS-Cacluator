@@ -20,6 +20,7 @@
 - Post workflow and memory infrastructure overhaul to Memory V2.
 - Track `R` decomposition sweep is closed and regression-verified.
 - Post second shared algebra-core extraction for transform and branch handling.
+- Post `ABS3` broader bounded absolute-value carrier-closure pass.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -48,6 +49,17 @@
 - Extracted `src/app/*`, `src/styles/app/*`, and decomposition facades under solver/guide/types are in-tree and passing regression.
 
 ## Most Recent Completed Milestone
+- Completed `ABS3` as the broader bounded absolute-value carrier-closure milestone:
+  - kept the shared abs branch model fixed at `u = \pm v` while broadening exact closure to stronger polynomial, radical, rational-power, and stronger `|u|=|v|` carrier families whenever every generated branch still lands in already-shipped bounded sinks
+  - extended `src/lib/abs-core.ts` so stronger unresolved families now identify themselves as stronger absolute-value carrier families in symbolic/numeric guidance instead of reusing the older generic abs-family stop text
+  - tightened `src/lib/equation/guarded/run.ts` so transformed branch solving now filters to real candidate roots during branch validation and no longer leaks complex-only symbolic branch roots into merged exact real-output lines
+  - kept `Calculate > Simplify` narrow and reused the same shared abs/branch infrastructure instead of adding a new solver lane or piecewise engine
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.4`
+- Regression checks:
+  - `npm run test:unit -- src/lib/abs-core.test.ts src/lib/equation/numeric-interval-solve.test.ts src/lib/equation/shared-solve.test.ts src/lib/modes/equation.test.ts`
+  - `npm run lint -- src/lib/abs-core.ts src/lib/abs-core.test.ts src/lib/equation/guarded/algebra-stage.ts src/lib/equation/guarded/run.ts src/lib/equation/numeric-interval-solve.test.ts src/lib/equation/shared-solve.test.ts src/lib/modes/equation.test.ts`
+  - `npm run test:gate`
 - Completed `ARCH6B` as the branch-core extraction without behavior change milestone:
   - added `src/lib/algebra/branch-core.ts` as the shared internal bounded branch/case bookkeeping substrate for normalized branch sets, branch-local constraints, branch-pair adapters, and periodic/principal-range metadata merge behavior
   - rewired `src/lib/abs-core.ts`, `src/lib/equation/composition-stage.ts`, and `src/lib/equation/guarded/merge.ts` so abs-family branch arrays and periodic-family metadata now reuse one internal source of truth instead of stage-local dedupe and merge helpers
@@ -518,6 +530,8 @@
   - jsdom uses a stable MathEditor test stub instead of the full MathLive runtime
 
 ## Pending Verification
+- ABS3 manual checklist artifact:
+  - `.memory/research/TRACK-ABS3-MANUAL-VERIFICATION-CHECKLIST.md`
 - ABS2 manual checklist artifact:
   - `.memory/research/TRACK-ABS2-MANUAL-VERIFICATION-CHECKLIST.md`
 - Optional desktop smoke pass on the current shell wiring for visual parity confidence beyond automated coverage.
@@ -547,7 +561,7 @@
   - `.memory/research/TRACK-PRL4-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, `POLY1`-`POLY2`, `RAD1`-`RAD2`, `POLY-RAD1`-`POLY-RAD6`, and `ABS1`-`ABS2` are now shipped.
+- The `PRL1`-`PRL4` stack, `COMP1`-`COMP10`, `POLY1`-`POLY2`, `RAD1`-`RAD2`, `POLY-RAD1`-`POLY-RAD6`, and `ABS1`-`ABS3` are now shipped.
 - `ARCH1` through `ARCH6B` plus the agent-governance protocol pass are now in place:
   - Equation and Calculate have shared hosts, envelopes, stop policies, and default execution budgets
   - durable memory ownership and handoff rules are now enforced in-repo
@@ -555,15 +569,28 @@
   - further architecture work is no longer the blocker for the algebra lane
 - Next preferred decision:
   1. choose whether to pause architecture again now that both `transform-core` and `branch-core` are extracted
-  2. if product work resumes first, choose whether the next algebra milestone should stay in the abs lane as `ABS3` or return to the composition lane
+  2. if product work resumes first, choose whether the next algebra milestone should stay in the abs lane as `ABS4` or return to the composition lane
   3. keep the abs lane branch-model-stable instead of widening into nested abs, inequalities, or general piecewise search
   4. if architecture work resumes later, prefer a thin algebra registry only if shared-core orchestration pressure becomes real
 - Reason:
   - `ARCH6B` removed duplicated branch-array and periodic/principal-range merge plumbing without changing product behavior, so the next architecture question is whether shared-core extraction should pause until another concrete reuse bottleneck appears
-  - `ABS2` already broadened the abs lane cleanly, so the repo now has a stable base for either one more bounded abs-breadth pass or a deliberate return to the composition lane
+  - `ABS3` now gives the abs lane stronger carrier closure on the same bounded branch model, so the next product question is whether one more bounded abs pass is worthwhile or whether the repo should deliberately return to composition
   - the architecture direction is now more concrete too: one runtime kernel plus reusable algebra cores, not per-engine microkernels unless a later real plugin/runtime need appears
 
 ## Recent Verified Context
+- `ABS3` is now verified:
+  - `src/lib/abs-core.ts` now distinguishes ordinary affine abs families from stronger polynomial/radical/rational-power carrier families for unresolved guidance while keeping the same shared `u=\pm v` branch model and family matcher
+  - `src/lib/equation/guarded/algebra-stage.ts` now reuses family-specific stronger-carrier unresolved messaging for both direct and transform-produced abs families
+  - `src/lib/equation/guarded/run.ts` now validates transformed direct-symbolic branch results against the original equation using real candidate roots only, preventing complex-only branch outputs from leaking into merged exact real-result lines
+  - focused ABS3 regression coverage now lives in:
+    - `src/lib/abs-core.test.ts`
+    - `src/lib/equation/numeric-interval-solve.test.ts`
+    - `src/lib/equation/shared-solve.test.ts`
+    - `src/lib/modes/equation.test.ts`
+  - verified with:
+    - `npm run test:unit -- src/lib/abs-core.test.ts src/lib/equation/numeric-interval-solve.test.ts src/lib/equation/shared-solve.test.ts src/lib/modes/equation.test.ts`
+    - `npm run lint -- src/lib/abs-core.ts src/lib/abs-core.test.ts src/lib/equation/guarded/algebra-stage.ts src/lib/equation/guarded/run.ts src/lib/equation/numeric-interval-solve.test.ts src/lib/equation/shared-solve.test.ts src/lib/modes/equation.test.ts`
+    - `npm run test:gate`
 - `ARCH6B` is now verified:
   - `src/lib/algebra/branch-core.ts` now owns normalized branch-set descriptors, branch-constraint merging, branch-pair adapters, and periodic/principal-range metadata merge helpers for the Equation/abs/rewrite/substitution lane
   - `src/lib/abs-core.ts`, `src/lib/equation/composition-stage.ts`, and `src/lib/equation/guarded/merge.ts` now reuse that core for branch arrays and periodic-family metadata instead of carrying local dedupe/merge logic
