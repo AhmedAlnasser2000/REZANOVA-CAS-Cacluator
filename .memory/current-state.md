@@ -27,6 +27,7 @@
 - Post `COMP11` deep periodic and sawtooth closure over reduced polynomial carriers.
 - Post capture of the Playground/incubation-ladder architecture direction and phased roadmap; this is governance/planning only and no runtime implementation has started yet.
 - Post `PGL1` Playground boundary scaffold with starter experiment records and stable-code import fencing.
+- Post `PGL2` canonical Playground experiment records with shared checklists, lightweight YAML companion manifests, a records index, and one seeded symbolic-search starter experiment.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -58,7 +59,8 @@
   - Playground may depend on stable kernel/cores/orchestrators/contracts, but stable product code must never depend on Playground
   - successful experiments must graduate by extraction into stable architecture rather than by direct reuse
   - `PGL1` now establishes the first concrete repo boundary with a top-level `playground/` tree, starter records/templates, and ESLint enforcement that blocks stable `src/` code from importing Playground
-  - `PGL2` is still reserved for any richer manifest/record workflow and should not be silently absorbed into `PGL1`
+  - `PGL2` now makes the record system canonical with Markdown-as-source-of-truth, tiny YAML companion manifests, promotion/retirement checklist templates, a records index, and a seeded Level 0 symbolic-search experiment
+  - Playground still does not have schema validation, automation, or experiment-execution infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
 - Completed `ABS5B` as the outer-nonperiodic absolute-value readback, guidance, and result-surface polish milestone:

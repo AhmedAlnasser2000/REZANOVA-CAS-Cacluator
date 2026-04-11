@@ -1,7 +1,11 @@
 # Playground Manifests
 
-This folder is reserved for lightweight experiment manifests when an experiment needs a compact machine-readable or index-style companion later.
+This folder holds lightweight companion manifests for Playground experiments.
 
-In `PGL1`, this is only a placeholder boundary so the repo has a clear home for future manifest-style metadata.
+Manifest rules:
+- Markdown records remain authoritative.
+- YAML manifests are companion summaries only.
+- Every real experiment should have both a record and a manifest.
+- Manifests should stay tiny and index-friendly.
 
-Do not introduce schema validation or automation here yet. That belongs to a later incubation milestone if it is truly needed.
+Do not introduce schema validation, automation, or execution infrastructure here yet. That belongs to a later incubation milestone only if it proves necessary.

@@ -8,6 +8,14 @@ Use it for:
 - retirement notes
 - comparisons between experimental approaches
 
-Each experiment should start from the template in `../templates/experiment-record-template.md`.
+Each real experiment should have:
+- one authoritative Markdown record
+- one companion YAML manifest
+- one entry in `INDEX.md`
 
-Keep records lightweight in `PGL1`. This folder is intentionally not a full workflow engine yet.
+Start from:
+- `../templates/experiment-record-template.md`
+- `../templates/promotion-checklist-template.md`
+- `../templates/retirement-checklist-template.md`
+
+Keep records lightweight. This folder is still not a workflow engine, and Markdown remains the source of truth.

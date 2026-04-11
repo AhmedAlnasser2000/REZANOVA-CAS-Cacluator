@@ -1,0 +1,11 @@
+experiment_id: example-id
+title: Example Experiment
+owner: owner-name
+lane_topic: symbolic-search
+current_level: level-0-research
+status: draft
+record_path: playground/records/example-id.md
+started_on: 2026-04-11
+last_reviewed: 2026-04-11
+next_review: 2026-04-18
+candidate_stable_home: none-yet

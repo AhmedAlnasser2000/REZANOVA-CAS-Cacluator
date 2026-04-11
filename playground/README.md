@@ -44,8 +44,17 @@ Levels 4 and 5 do not live here. Once a capability is adopted or mature, it belo
 ## Required experiment metadata
 
 Every meaningful experiment should record:
-- owner
-- current level
+- `experiment_id`
+- `title`
+- `owner`
+- `lane_topic`
+- `current_level`
+- `status`
+- `date_started`
+- `last_reviewed`
+- `next_review`
+- `candidate_stable_home`
+- `companion_manifest`
 - hypothesis
 - in-scope cases
 - out-of-scope cases
@@ -54,7 +63,17 @@ Every meaningful experiment should record:
 - promotion criteria
 - retirement criteria
 
-Use the starter templates in `playground/templates/`.
+Use the canonical templates in `playground/templates/`.
+
+Markdown records are authoritative.
+YAML manifests are companion summaries only and exist for indexing and future lightweight tooling.
+
+Every real experiment should have:
+- a Markdown record
+- a companion YAML manifest
+- an entry in `playground/records/INDEX.md`
+
+Promotion and retirement reviews should use the shared checklist templates.
 
 ## What PGL1 includes
 
@@ -63,7 +82,14 @@ Use the starter templates in `playground/templates/`.
 - starter records/templates
 - import-fence enforcement
 
-`PGL1` intentionally does not include:
+`PGL2` is the first refinement of that starter system. It adds:
+- canonical record metadata
+- a records index
+- shared promotion/retirement checklist templates
+- a seeded symbolic-search starter experiment
+- companion YAML manifests without automation
+
+`PGL1` and `PGL2` intentionally do not include:
 - workflow automation
 - schema validation
 - experiment execution infrastructure
