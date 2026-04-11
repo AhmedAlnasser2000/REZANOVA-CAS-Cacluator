@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { listGuardedEquationStageDescriptors, runGuardedEquationSolve } from './guarded-solve';
+import {
+  listGuardedEquationStageDescriptors,
+  runGuardedEquationSolve,
+  runGuardedEquationSolveWithStageOrder,
+} from './guarded-solve';
 
 describe('runGuardedEquationSolve', () => {
   const request = {
@@ -21,6 +25,94 @@ describe('runGuardedEquationSolve', () => {
       'substitution',
       'direct-symbolic',
     ]);
+  });
+
+  it('replays the baseline stage order without changing the default guarded outcome', () => {
+    const baselineOrder = listGuardedEquationStageDescriptors().map((stage) => stage.id);
+    const direct = runGuardedEquationSolve({
+      ...request,
+      originalLatex: '\\sin\\left(\\ln\\left(x+1\\right)\\right)=\\frac{1}{2}',
+      resolvedLatex: '\\sin\\left(\\ln\\left(x+1\\right)\\right)=\\frac{1}{2}',
+    });
+    const replayed = runGuardedEquationSolveWithStageOrder(
+      {
+        ...request,
+        originalLatex: '\\sin\\left(\\ln\\left(x+1\\right)\\right)=\\frac{1}{2}',
+        resolvedLatex: '\\sin\\left(\\ln\\left(x+1\\right)\\right)=\\frac{1}{2}',
+      },
+      baselineOrder,
+    );
+
+    expect(replayed.outcome).toMatchObject({
+      kind: direct.kind,
+      exactLatex: direct.kind === 'prompt' ? undefined : direct.exactLatex,
+      solveSummaryText: direct.kind === 'prompt' ? undefined : direct.solveSummaryText,
+    });
+    expect(replayed.trace.winningStageId).toBeDefined();
+    expect(replayed.trace.attempts.some((attempt) => attempt.depth === 0 && attempt.returnedOutcome)).toBe(true);
+  });
+
+  it('rejects custom stage orders with missing or duplicate guarded stages', () => {
+    expect(() => runGuardedEquationSolveWithStageOrder(
+      {
+        ...request,
+        originalLatex: '\\sin\\left(x\\right)=\\frac{1}{2}',
+        resolvedLatex: '\\sin\\left(x\\right)=\\frac{1}{2}',
+      },
+      [
+        'numeric-interval',
+        'bounded-polynomial',
+        'composition',
+        'algebra-transform',
+        'substitution',
+        'direct-trig',
+        'rewrite-trig',
+      ],
+    )).toThrow(/exact permutation/i);
+
+    expect(() => runGuardedEquationSolveWithStageOrder(
+      {
+        ...request,
+        originalLatex: '\\sin\\left(x\\right)=\\frac{1}{2}',
+        resolvedLatex: '\\sin\\left(x\\right)=\\frac{1}{2}',
+      },
+      [
+        'numeric-interval',
+        'bounded-polynomial',
+        'composition',
+        'composition',
+        'substitution',
+        'direct-trig',
+        'rewrite-trig',
+        'direct-symbolic',
+      ],
+    )).toThrow(/duplicate/i);
+  });
+
+  it('reuses the chosen custom stage order in recursive solves and records trace depth', () => {
+    const customOrder = [
+      'numeric-interval',
+      'bounded-polynomial',
+      'composition',
+      'algebra-transform',
+      'substitution',
+      'direct-trig',
+      'rewrite-trig',
+      'direct-symbolic',
+    ] as const;
+
+    const replayed = runGuardedEquationSolveWithStageOrder(
+      {
+        ...request,
+        originalLatex: '\\ln\\left(\\sqrt{\\log_{3}\\left((x+1)^2\\right)}\\right)=2',
+        resolvedLatex: '\\ln\\left(\\sqrt{\\log_{3}\\left((x+1)^2\\right)}\\right)=2',
+      },
+      [...customOrder],
+    );
+
+    const depthOneAttempts = replayed.trace.attempts.filter((attempt) => attempt.depth === 1);
+    expect(depthOneAttempts.length).toBeGreaterThan(0);
+    expect(depthOneAttempts[0]?.stageId).toBe(customOrder[0]);
   });
 
   it('solves supported symbolic substitution families', () => {

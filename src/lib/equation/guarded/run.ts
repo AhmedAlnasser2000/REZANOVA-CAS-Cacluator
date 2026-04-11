@@ -593,6 +593,12 @@ export type GuardedEquationStageId =
 
 type SymbolicSolveResult = ReturnType<typeof runExpressionAction>;
 
+type GuardedSolveRunner = (
+  request: GuardedSolveRequest,
+  depth: number,
+  trail: Set<string>,
+) => DisplayOutcome;
+
 type GuardedEquationStageContext = {
   preparedRequest: GuardedSolveRequest;
   originalResolvedLatex: string;
@@ -600,6 +606,7 @@ type GuardedEquationStageContext = {
   trail: Set<string>;
   executionBudget: EquationExecutionBudget;
   getSymbolic: () => SymbolicSolveResult;
+  runner: GuardedSolveRunner;
 };
 
 export type GuardedEquationStageDescriptor = {
@@ -607,6 +614,22 @@ export type GuardedEquationStageDescriptor = {
   label: string;
   execute: (context: GuardedEquationStageContext) => DisplayOutcome | null | undefined;
   canRecurse?: boolean;
+};
+
+export type GuardedEquationStageTraceAttempt = {
+  depth: number;
+  stageId: GuardedEquationStageId;
+  returnedOutcome: boolean;
+};
+
+export type GuardedEquationStageReplayTrace = {
+  attempts: GuardedEquationStageTraceAttempt[];
+  winningStageId?: GuardedEquationStageId;
+};
+
+export type GuardedEquationStageOrderedSolveResult = {
+  outcome: DisplayOutcome;
+  trace: GuardedEquationStageReplayTrace;
 };
 
 function runDirectSymbolicStage(
@@ -656,24 +679,24 @@ const GUARDED_EQUATION_STAGE_DESCRIPTORS: GuardedEquationStageDescriptor[] = [
     id: 'algebra-transform',
     label: 'Algebra Transform',
     canRecurse: true,
-    execute: ({ preparedRequest, depth, trail, executionBudget }) => algebraTransformSolve(
+    execute: ({ preparedRequest, depth, trail, executionBudget, runner }) => algebraTransformSolve(
       preparedRequest,
       depth,
       trail,
       executionBudget,
-      runGuardedEquationSolve,
+      runner,
     ),
   },
   {
     id: 'composition',
     label: 'Composition',
     canRecurse: true,
-    execute: ({ preparedRequest, depth, trail, executionBudget }) => compositionSolve(
+    execute: ({ preparedRequest, depth, trail, executionBudget, runner }) => compositionSolve(
       preparedRequest,
       depth,
       trail,
       executionBudget,
-      runGuardedEquationSolve,
+      runner,
     ),
   },
   {
@@ -690,12 +713,12 @@ const GUARDED_EQUATION_STAGE_DESCRIPTORS: GuardedEquationStageDescriptor[] = [
     id: 'substitution',
     label: 'Substitution',
     canRecurse: true,
-    execute: ({ preparedRequest, depth, trail, executionBudget }) => substitutionSolve(
+    execute: ({ preparedRequest, depth, trail, executionBudget, runner }) => substitutionSolve(
       preparedRequest,
       depth,
       trail,
       executionBudget,
-      runGuardedEquationSolve,
+      runner,
     ),
   },
   {
@@ -709,12 +732,47 @@ export function listGuardedEquationStageDescriptors(): GuardedEquationStageDescr
   return GUARDED_EQUATION_STAGE_DESCRIPTORS;
 }
 
+function validateStageOrder(
+  stageOrder: GuardedEquationStageId[],
+): GuardedEquationStageDescriptor[] {
+  const defaultIds = GUARDED_EQUATION_STAGE_DESCRIPTORS.map((descriptor) => descriptor.id);
+  const seen = new Set<GuardedEquationStageId>();
+  for (const stageId of stageOrder) {
+    if (seen.has(stageId)) {
+      throw new Error(`Duplicate guarded equation stage id in custom order: ${stageId}`);
+    }
+    seen.add(stageId);
+  }
+
+  const missing = defaultIds.filter((stageId) => !seen.has(stageId));
+  const extras = stageOrder.filter((stageId) => !defaultIds.includes(stageId));
+  if (missing.length > 0 || extras.length > 0 || stageOrder.length !== defaultIds.length) {
+    throw new Error(
+      `Custom guarded equation stage order must be an exact permutation of registered stages. Missing: ${missing.join(', ') || 'none'}. Extra: ${extras.join(', ') || 'none'}.`,
+    );
+  }
+
+  return stageOrder.map((stageId) => {
+    const descriptor = GUARDED_EQUATION_STAGE_DESCRIPTORS.find((candidate) => candidate.id === stageId);
+    if (!descriptor) {
+      throw new Error(`Unknown guarded equation stage id in custom order: ${stageId}`);
+    }
+    return descriptor;
+  });
+}
+
 function runGuardedStageSequence(
   descriptors: GuardedEquationStageDescriptor[],
   context: GuardedEquationStageContext,
+  attempts?: GuardedEquationStageTraceAttempt[],
 ): DisplayOutcome | null {
   for (const descriptor of descriptors) {
     const outcome = descriptor.execute(context);
+    attempts?.push({
+      depth: context.depth,
+      stageId: descriptor.id,
+      returnedOutcome: Boolean(outcome),
+    });
     if (outcome) {
       return attachAlgebraMetadata(
         outcome,
@@ -727,10 +785,12 @@ function runGuardedStageSequence(
   return null;
 }
 
-function runGuardedEquationSolve(
+function runGuardedEquationSolveInternal(
   request: GuardedSolveRequest,
-  depth = 0,
-  trail = new Set<string>(),
+  depth: number,
+  trail: Set<string>,
+  descriptors: GuardedEquationStageDescriptor[],
+  attempts?: GuardedEquationStageTraceAttempt[],
 ): DisplayOutcome {
   const executionBudget = getEquationExecutionBudget();
   const preparedRequest = prepareAlgebraSolveRequest(request);
@@ -751,8 +811,15 @@ function runGuardedEquationSolve(
       'solve',
     );
 
-    return symbolicCache;
-  };
+      return symbolicCache;
+    };
+  const runner: GuardedSolveRunner = (nextRequest, nextDepth, nextTrail) => runGuardedEquationSolveInternal(
+    nextRequest,
+    nextDepth,
+    nextTrail,
+    descriptors,
+    attempts,
+  );
   const stateKey = equationStateKey(preparedRequest.resolvedLatex);
   if (trail.has(stateKey)) {
     return attachAlgebraMetadata(errorOutcome(
@@ -776,7 +843,7 @@ function runGuardedEquationSolve(
   }
 
   const stagedOutcome = runGuardedStageSequence(
-    GUARDED_EQUATION_STAGE_DESCRIPTORS,
+    descriptors,
     {
       preparedRequest,
       originalResolvedLatex: request.resolvedLatex,
@@ -784,7 +851,9 @@ function runGuardedEquationSolve(
       trail,
       executionBudget,
       getSymbolic,
+      runner,
     },
+    attempts,
   );
   if (stagedOutcome) {
     return stagedOutcome;
@@ -797,6 +866,42 @@ function runGuardedEquationSolve(
     request.resolvedLatex,
     preparedRequest,
   );
+}
+
+function runGuardedEquationSolve(
+  request: GuardedSolveRequest,
+  depth = 0,
+  trail = new Set<string>(),
+): DisplayOutcome {
+  return runGuardedEquationSolveInternal(
+    request,
+    depth,
+    trail,
+    GUARDED_EQUATION_STAGE_DESCRIPTORS,
+  );
+}
+
+export function runGuardedEquationSolveWithStageOrder(
+  request: GuardedSolveRequest,
+  stageOrder: GuardedEquationStageId[],
+): GuardedEquationStageOrderedSolveResult {
+  const descriptors = validateStageOrder(stageOrder);
+  const attempts: GuardedEquationStageTraceAttempt[] = [];
+  const outcome = runGuardedEquationSolveInternal(
+    request,
+    0,
+    new Set<string>(),
+    descriptors,
+    attempts,
+  );
+  const winningAttempt = attempts.find((attempt) => attempt.depth === 0 && attempt.returnedOutcome);
+  return {
+    outcome,
+    trace: {
+      attempts,
+      winningStageId: winningAttempt?.stageId,
+    },
+  };
 }
 
 export { runGuardedEquationSolve };

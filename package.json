@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "test:memory-protocol": "node --test tools/validate-memory-protocol.test.mjs && node tools/validate-memory-protocol.mjs",
     "test:unit": "vitest run",
+    "test:playground": "vitest run --config vitest.playground.config.ts",
     "test:ui": "vitest run --config vitest.ui.config.ts",
     "preview:test": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "test:e2e": "npm run build && playwright test",

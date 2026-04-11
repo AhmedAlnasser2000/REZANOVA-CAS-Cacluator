@@ -89,6 +89,12 @@ Promotion and retirement reviews should use the shared checklist templates.
 - a seeded symbolic-search starter experiment
 - companion YAML manifests without automation
 
+`PGL3` now adds:
+- a dedicated `npm run test:playground` lab harness
+- a tiny guarded-stage replay seam for non-product experiments
+- a fixed symbolic-search corpus for `sym-search-planner-ordering`
+- experiment evidence written back into the authoritative Playground record
+
 `PGL1` and `PGL2` intentionally do not include:
 - workflow automation
 - schema validation
