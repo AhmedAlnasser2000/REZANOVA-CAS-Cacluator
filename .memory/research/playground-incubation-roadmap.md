@@ -181,10 +181,10 @@ Exit criteria:
 - at least one symbolic-search idea reaches Level 1 or Level 2
 - the experiment produces real evidence, not just intuition
 
-### `PGL4` — Pilot 2: External Compute Lab
+### `PGL4` — External Compute Foundations Lab
 
 Purpose:
-- explore stronger but riskier compute workflows inside the same incubation rules
+- lay the foundations for stronger but riskier compute workflows inside the same incubation rules
 
 Why it should come after `PGL3`:
 - it is one of the strongest Playground candidates
@@ -196,25 +196,32 @@ Why it should come after `PGL3`:
   - job handling
   - determinism
 
+Interpretation:
+- `PGL4` is foundations-only
+- it does not yet include real provider execution
+- it prepares the repo for a later SSH-backed pilot instead of pretending that provider integration is already ready
+
 Candidate scope:
-- SSH-backed symbolic experiments
-- remote heavy-compute prototypes
-- optional off-device job execution
-- trust/fallback comparison notes
+- provider-neutral runner/job/artifact contracts
+- repo-local ignored profile shape for future SSH-backed runners
+- local harness proof over one real existing Playground workload
+- trust/fallback and provenance rules for future remote execution
 
 Deliverables:
-- prototype workflow description
-- trust-boundary notes
-- fallback and failure behavior notes
-- cost/latency observations
+- external-compute record and manifest
+- local harness and workload registry proof
+- checked-in JSON templates for runner profiles and job specs
+- trust-boundary notes and future-provider shape
 
 Out of scope:
 - no production remote-compute subsystem
 - no stable kernel dependency on remote execution
+- no real SSH/provider execution in this milestone
 
 Exit criteria:
 - external compute is understood as an incubation lane rather than an architectural shortcut
-- the repo gains evidence about whether remote compute belongs in Calcwiz's long-term future
+- the repo has a provider-neutral contract and a real local harness proof
+- the next sequencing decision is whether to take a first real SSH/provider pilot, not whether the foundations still need to be invented
 
 ### `PGL5` — Bounded Prototype Contract
 
@@ -318,6 +325,30 @@ Every adoption milestone should end with:
 - “the experiment proved value, then the stable layer absorbed the idea cleanly”
 
 That rule is worth repeating because it is the line that keeps the whole model healthy.
+
+## Post-`PGL` continuation: `PGL-VIS`
+
+The current `PGL` roadmap intentionally stops at incubation proof, bounded prototype contracts, and clean graduation.
+
+It does not assume that Playground becomes calculator-visible during `PGL1` through `PGL6`.
+
+If Calcwiz later wants a visible Playground surface inside the calculator UI, that should begin as a separate follow-on roadmap:
+
+- `PGL-VIS`
+
+Interpretation:
+- `PGL` proves that Playground can stay architecturally subordinate
+- `PGL-VIS` starts only after that proof is strong enough to justify a visible surface
+
+Recommended first visible milestone:
+- internal developer/operator Playground console only
+
+Not recommended as the first visible step:
+- a normal-user-facing Playground mode
+- a visible alternate solver path in ordinary calculator UX
+
+Related follow-on roadmap:
+- `.memory/research/pgl-vis-roadmap.md`
 
 ## Sequencing question after capture
 

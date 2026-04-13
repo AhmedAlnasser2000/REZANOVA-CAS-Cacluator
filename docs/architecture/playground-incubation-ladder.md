@@ -456,6 +456,12 @@ Why it should be second rather than first:
 
 External compute belongs in incubation, but not necessarily as the first proof of the system.
 
+Recommended first move inside that lane:
+- foundations first
+- provider-neutral runner/job/artifact contracts
+- SSH as the expected first future transport
+- a local harness proof before any real provider execution
+
 ---
 
 ## Anti-patterns to avoid
@@ -500,3 +506,22 @@ The Playground idea is good, but only under the right framing:
 - yes as a future-feature laboratory whose successes graduate by extraction
 
 That framing is what makes the idea powerful instead of dangerous.
+
+---
+
+## Calculator-visible Playground is a later, separate decision
+
+This note does not treat calculator-visible Playground UI as part of the core incubation ladder.
+
+If Calcwiz later wants Playground to appear visibly inside the calculator, that should be handled through a separate post-`PGL` roadmap rather than being folded into the current incubation milestones.
+
+Reason:
+- repo/workflow incubation and calculator-visible experimental UI change different trust boundaries
+
+Recommended interpretation:
+- finish proving the incubation model first
+- then decide whether a visible Playground surface is worthwhile
+- if it is, start with an internal developer/operator console before considering any broader user-facing experimental mode
+
+Related roadmap:
+- `.memory/research/pgl-vis-roadmap.md`

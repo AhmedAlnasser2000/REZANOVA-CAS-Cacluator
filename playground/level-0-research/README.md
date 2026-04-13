@@ -7,3 +7,7 @@ Use this level for raw exploration:
 - early notes that may or may not deserve continuation
 
 This level does not promise bounded behavior.
+
+Current active lanes:
+- `symbolic-search/`
+- `external-compute/`

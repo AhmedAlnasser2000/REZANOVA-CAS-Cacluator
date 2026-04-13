@@ -1,0 +1,7 @@
+{
+  "jobId": "sym-search-planner-ordering-local-foundation",
+  "workloadId": "sym-search-planner-ordering",
+  "runnerKind": "local",
+  "profileId": "local-foundations-template",
+  "input": {}
+}

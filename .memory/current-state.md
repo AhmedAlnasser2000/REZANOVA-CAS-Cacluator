@@ -2,7 +2,7 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` with local milestone commits and no upstream configured yet in this workspace.
+- Active branch context: `main` tracking `origin/main` with local milestone commits.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 
 ## Agent Ownership
@@ -29,6 +29,8 @@
 - Post `PGL1` Playground boundary scaffold with starter experiment records and stable-code import fencing.
 - Post `PGL2` canonical Playground experiment records with shared checklists, lightweight YAML companion manifests, a records index, and one seeded symbolic-search starter experiment.
 - Post `PGL3` symbolic-search lab with replayable guarded-stage ordering, a dedicated Playground Vitest harness, and a first real experiment result that keeps `sym-search-planner-ordering` at `level-0-research` because both alternate whole-stage orderings introduced one honesty regression and no exact improvements.
+- Post `PGL4` external compute foundations lab with provider-neutral runner/job/artifact contracts, ignored local SSH-shaped profile support, a local harness over the real symbolic-search workload, and explicit non-executable SSH behavior.
+- Post capture of `PGL-VIS` as a separate post-`PGL` roadmap family for any future calculator-visible Playground surface; visible Playground work is now explicitly sequenced after the core incubation ladder rather than being implied inside `PGL1` through `PGL6`.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -62,9 +64,24 @@
   - `PGL1` now establishes the first concrete repo boundary with a top-level `playground/` tree, starter records/templates, and ESLint enforcement that blocks stable `src/` code from importing Playground
   - `PGL2` now makes the record system canonical with Markdown-as-source-of-truth, tiny YAML companion manifests, promotion/retirement checklist templates, a records index, and a seeded Level 0 symbolic-search experiment
   - `PGL3` now adds a dedicated `npm run test:playground` lab harness plus an export-only guarded-stage replay seam for non-product experimentation, and the first symbolic-search pilot remains active at `level-0-research` after the initial run found no exact improvements and one honesty regression in each alternate ordering
+  - `PGL4` now adds an `external-compute` foundations lane inside Playground with provider-neutral runner/job/artifact contracts, checked-in JSON templates, ignored local `*.local.json` profiles, and a local harness that proves the contract over the real `sym-search-planner-ordering` workload while keeping SSH execution intentionally non-executable
+  - calculator-visible Playground is now explicitly treated as a separate follow-on roadmap family (`PGL-VIS`) that starts only after the core `PGL` ladder is sufficiently complete; it is not part of the current incubation milestones
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `PGL4` as the external-compute foundations Playground milestone:
+  - reinterpreted `PGL4` as a foundations-only external-compute pass rather than an early provider integration milestone
+  - added a new `playground/level-0-research/external-compute/` lane with provider-neutral runner/job/artifact contracts shaped for future SSH-backed remote execution
+  - added checked-in JSON templates plus ignored local profile support so future runner configuration has a repo-native shape without storing credentials, real hostnames, or billing data
+  - extracted the `PGL3` symbolic-search experiment into a reusable non-test runner and registered it as the one real workload used to prove the external-compute harness locally
+  - added a local harness that writes structured artifact manifests and summaries to `.task_tmp/pgl4-external-compute/`, plus explicit `not-implemented` behavior for SSH runners so the foundations lane never attempts network execution
+  - created the active external-compute experiment record `ext-compute-ssh-foundations`, updated the Playground roadmap wording, and added the required `TRACK-PGL3` manual verification checklist before starting the new track
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.4`
+- Regression checks:
+  - `npm run test:playground`
+  - `npx eslint eslint.config.js src playground`
+  - `npm run test:memory-protocol`
 - Completed `PGL3` as the first real symbolic-search Playground lab milestone:
   - added an export-only guarded-stage replay seam in `src/lib/equation/guarded/run.ts` so non-product experiments can replay exact permutations of the guarded solver stage order, validate custom permutations, and collect compact per-depth attempt traces without changing the default runtime solver path
   - added `vitest.playground.config.ts`, `npm run test:playground`, and a dedicated lab under `playground/level-0-research/symbolic-search/` with a fixed 12-case corpus, three planner orderings, and explicit comparison classification rules

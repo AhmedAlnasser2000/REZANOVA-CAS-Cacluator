@@ -1,0 +1,14 @@
+{
+  "profileId": "ssh-foundations-template",
+  "runnerKind": "ssh",
+  "description": "Template profile for future SSH-backed Playground external compute.",
+  "budgets": {
+    "maxRuntimeSeconds": 1800,
+    "maxOutputBytes": 1048576
+  },
+  "ssh": {
+    "hostAlias": "replace-with-your-ssh-config-alias",
+    "remoteWorkspaceRoot": "~/calcwiz-playground",
+    "remoteShell": "bash"
+  }
+}

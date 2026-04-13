@@ -95,6 +95,13 @@ Promotion and retirement reviews should use the shared checklist templates.
 - a fixed symbolic-search corpus for `sym-search-planner-ordering`
 - experiment evidence written back into the authoritative Playground record
 
+`PGL4` now adds:
+- an `external-compute` foundations lane under `level-0-research/`
+- provider-neutral runner/job/artifact contracts shaped for future SSH use
+- a checked-in SSH profile template plus ignored local `*.local.json` profiles
+- a local harness that proves the contract over the real `sym-search-planner-ordering` workload
+- structural SSH validation only; no real remote execution yet
+
 `PGL1` and `PGL2` intentionally do not include:
 - workflow automation
 - schema validation
