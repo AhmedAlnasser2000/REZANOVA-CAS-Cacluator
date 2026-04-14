@@ -27,9 +27,16 @@
 - `npx eslint eslint.config.js src playground`
 - `npm run test:memory-protocol`
 
+## Manual Checks
+- Live operator-side backend gate on `calcwiz-box` completed successfully.
+- Pulled-back local `artifact-manifest.json` recorded `status: completed`.
+- Pulled-back local `parity-report.json` recorded `resultClass: match`.
+
 ## Outcome
 - Passed.
+- Passed again after the post-commit follow-up fix to the remote `npm exec -- vitest` invocation.
+- Passed again after widening the remote SSH entrypoint test timeout to `30_000ms` for live-VM execution.
 
 ## Outstanding Gaps
 - The automated suite verifies the SSH pilot through mocked command execution rather than a live VM run.
-- The manual backend gate for one real remote run on `calcwiz-box` still needs operator-side execution if we want full end-to-end confirmation before commit.
+- The live VM gate is now proven on one user-owned SSH target only; provider/rented-host follow-up remains a later sequencing decision.

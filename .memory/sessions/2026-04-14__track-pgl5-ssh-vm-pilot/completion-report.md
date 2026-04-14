@@ -35,11 +35,19 @@
   - writes a local `parity-report.json`
 - Added a dedicated remote Playground entrypoint plus a skipped-by-default lab test file so normal `test:playground` runs stay stable while the remote path can still be invoked through `vitest`.
 - Promoted the completed foundations record `ext-compute-ssh-foundations`, created the new active pilot record `ext-compute-ssh-vm-pilot`, and added a short symbolic-search reuse note.
+- Applied one follow-up fix after live `calcwiz-box` debugging:
+  - the remote entrypoint invocation now uses `npm exec -- vitest ...` so the target test path is forwarded correctly on the VM
+- Applied a second follow-up fix after live `calcwiz-box` debugging:
+  - the remote SSH entrypoint test now uses a `30_000ms` timeout so the VM can complete the symbolic-search workload without hitting Vitest's default `5_000ms` test limit
 
 ## Verification
 - `npm run test:playground`
 - `npx eslint eslint.config.js src playground`
 - `npm run test:memory-protocol`
+- `npm run test:playground` (post-commit follow-up after the remote `npm exec -- vitest` fix)
+- `npx eslint eslint.config.js src playground` (post-commit follow-up after the remote `npm exec -- vitest` fix)
+- `npm run test:playground` (post-commit follow-up after widening the remote entrypoint timeout to `30_000ms`)
+- `npx eslint eslint.config.js src playground` (post-commit follow-up after widening the remote entrypoint timeout to `30_000ms`)
 
 ## Verification Notes
 - The SSH path is covered in automated tests through mocked `ssh`/`scp` command execution.
@@ -49,7 +57,10 @@
   - pulled-back manifest and summary parsing works
   - parity can classify `match`, `mismatch`, `remote-failed`, and `pullback-failed`
 - The user-owned VM was already proven manually as a reachable SSH target (`calcwiz-box`) and as a valid Playground execution environment.
-- The plan’s live manual backend gate for one real `executeExternalComputeJob(...)` SSH run was not executed from this local automation session.
+- After the initial checkpoint, the live operator-side backend gate was completed successfully on `calcwiz-box`:
+  - remote artifacts were uploaded, executed, and pulled back successfully
+  - local `parity-report.json` recorded `resultClass: match`
+  - local `artifact-manifest.json` recorded `status: completed`
 
 ## Commits
 - Recorded in the current `HEAD` checkpoint for the `PGL5` milestone flow.
@@ -67,3 +78,7 @@
 
 ## Follow-Ups
 - Decide whether the next external-compute incubation step should move to a provider/rented host or stay VM-first for one more bounded operator/refinement pass.
+- Commit the post-`PGL5` live-gate repair checkpoint that fixed:
+  - remote `npm exec -- vitest` argument forwarding
+  - remote `bash -lc` command construction
+  - remote SSH entrypoint timeout budget

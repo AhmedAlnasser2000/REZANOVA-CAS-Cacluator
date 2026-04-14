@@ -10,7 +10,7 @@ const hasRemoteEntrypointEnv = Boolean(
 const describeRemoteEntrypoint = hasRemoteEntrypointEnv ? describe : describe.skip;
 
 describeRemoteEntrypoint('external compute ssh remote entrypoint', () => {
-  it('executes the requested remote workload and writes artifacts', async () => {
+  it('executes the requested remote workload and writes artifacts', { timeout: 30_000 }, async () => {
     const result = await executeRemoteExternalComputeJobEntrypoint();
 
     expect(result.manifest.status).toBe('completed');

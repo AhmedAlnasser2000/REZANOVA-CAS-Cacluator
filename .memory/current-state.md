@@ -84,6 +84,9 @@
   - `npm run test:playground`
   - `npx eslint eslint.config.js src playground`
   - `npm run test:memory-protocol`
+  - live operator-side backend gate on `calcwiz-box`:
+    - pulled-back remote manifest `status: completed`
+    - local parity report `resultClass: match`
 - Completed `PGL4` as the external-compute foundations Playground milestone:
   - reinterpreted `PGL4` as a foundations-only external-compute pass rather than an early provider integration milestone
   - added a new `playground/level-0-research/external-compute/` lane with provider-neutral runner/job/artifact contracts shaped for future SSH-backed remote execution

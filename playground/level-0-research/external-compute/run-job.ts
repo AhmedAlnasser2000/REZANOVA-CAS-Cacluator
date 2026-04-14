@@ -122,8 +122,15 @@ function buildRemoteSshCommand(
 
   return [
     `cd ${quotePosix(runnerProfile.ssh.remoteProjectPath)}`,
-    `${envPrefix} npm exec vitest run --config vitest.playground.config.ts ${quotePosix(REMOTE_SSH_ENTRYPOINT_TEST)}`,
+    `${envPrefix} npm exec -- vitest run --config vitest.playground.config.ts ${quotePosix(REMOTE_SSH_ENTRYPOINT_TEST)}`,
   ].join(' && ');
+}
+
+function buildRemoteShellInvocation(
+  runnerProfile: Extract<ExternalComputeRunnerProfile, { runnerKind: 'ssh' }>,
+  command: string,
+): string {
+  return `${runnerProfile.ssh.remoteShell} -lc ${quotePosix(command)}`;
 }
 
 async function createFailedSshResult(
@@ -262,9 +269,10 @@ export async function executeExternalComputeJob(
   try {
     await commandRunner('ssh', [
       runnerProfile.ssh.hostAlias,
-      runnerProfile.ssh.remoteShell,
-      '-lc',
-      `mkdir -p ${quotePosix(remoteInputDirectory)}`,
+      buildRemoteShellInvocation(
+        runnerProfile,
+        `mkdir -p ${quotePosix(remoteInputDirectory)}`,
+      ),
     ]);
     await commandRunner('scp', [
       localJobSpecPath,
@@ -288,13 +296,14 @@ export async function executeExternalComputeJob(
   try {
     await commandRunner('ssh', [
       runnerProfile.ssh.hostAlias,
-      runnerProfile.ssh.remoteShell,
-      '-lc',
-      buildRemoteSshCommand(
+      buildRemoteShellInvocation(
         runnerProfile,
-        remoteJobSpecPath,
-        remoteRunnerProfilePath,
-        remoteJobDirectory,
+        buildRemoteSshCommand(
+          runnerProfile,
+          remoteJobSpecPath,
+          remoteRunnerProfilePath,
+          remoteJobDirectory,
+        ),
       ),
     ]);
   } catch (error) {
