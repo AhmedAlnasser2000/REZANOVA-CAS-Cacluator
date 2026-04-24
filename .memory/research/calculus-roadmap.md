@@ -8,6 +8,8 @@ Status: near-term roadmap recommendation. Each milestone still needs its own imp
 
 Calcwiz should pause broad algebra expansion and make the shipped algebra work pay off inside calculus.
 
+`CALC-*` milestones are product-calculus milestones. They are not a second algebra roadmap and should not hide algebra-core work inside calculus code.
+
 The calculus lane should be built as a bounded reuse layer over the existing calculator foundations:
 - exact polynomial and factor support
 - powers, roots, logarithms, and exponentials
@@ -34,6 +36,9 @@ Continuing algebra breadth now risks turning bounded exact solving into open-end
 ## Guardrails
 
 - Keep calculus single-variable-first for the near-term lane.
+- Starting after `CALC-CORE1`, every calculus capability milestone must declare the algebra, differentiation, domain, formatting, and result-surface dependencies it relies on before adding behavior.
+- If a needed algebra core is missing, unstable, or too broad for the current bounded surface, stop the calculus milestone and plan the algebra prerequisite first instead of patching around it locally.
+- Do not duplicate algebra recognition inside calculus when a shared core already exists or clearly should exist.
 - Keep indefinite integration symbolic-only; do not add broad numeric fallback for antiderivatives.
 - Do not implement Risch, full Liouville integration, general term rewriting, or open-ended symbolic search in stable code.
 - Do not make calculus depend on Playground.
@@ -41,6 +46,17 @@ Continuing algebra breadth now risks turning bounded exact solving into open-end
 - Keep exact wins explainable by bounded rules, visible provenance, and derivative/check validation where practical.
 - Keep numeric definite integrals and numeric limits clearly labeled as numeric fallback.
 - Reuse existing algebra cores where they already provide bounded recognition or validation.
+
+## Post-`CALC-CORE1` Milestone Contract
+
+After `CALC-CORE1`, each calculus milestone should answer four questions before implementation:
+
+1. What calculus surface is being improved?
+2. Which shipped cores does it depend on?
+3. What exact behavior is allowed, and where does it stop?
+4. If a prerequisite is not ready, is the right next task still calculus, or should work pause for an algebra/core milestone?
+
+This keeps the current roadmap coherent. Differentiation, integration, limits, series, partials, and ODE work remain under the `CALC-*` lane, but each milestone must respect its dependencies. For example, integration strategy work may depend on derivative backchecks and algebraic equivalence; if those checks are not trustworthy enough, the integration milestone should stop and create the prerequisite rather than adding a one-off integration workaround.
 
 ## Milestone Sequence
 
@@ -107,13 +123,44 @@ Recommended verification:
 - lint on touched modules
 - memory protocol check
 
+### `CALC-CORE2` - Dependency Readiness And Strategy-Aware Core
+
+Purpose:
+- make post-`CALC-CORE1` calculus work dependency-gated before new capability ships
+- add internal derivative backchecks for candidate antiderivatives
+- label existing symbolic integration wins by internal strategy without changing visible result origins
+
+Scope:
+- exact antiderivative backcheck first, numeric-confidence spot checks second
+- internal strategy metadata for direct rules, inverse-trig, derivative-ratio, u-substitution, by-parts, affine-linear, and Compute Engine wins
+- dependency matrix for future calculus milestones and algebra/core prerequisites
+- no UI badge, public API, or visible result-origin changes
+
+Out of scope:
+- no new antiderivative families
+- no broad integration strategy selector
+- no LIATE/by-parts expansion
+- no rationalization, partial fractions, or radical substitution implementation
+
+Exit criteria:
+- future calculus milestones know their required substrates before implementation
+- `CALC-COMP1` is either allowed narrowly or paused for an explicit prerequisite
+
+Recommended verification:
+- focused calculus/symbolic unit tests
+- browser smoke for existing calculus surfaces
+- lint on touched calculus modules
+- memory protocol check
+
 ### `CALC-COMP1` - Bounded Substitution Antiderivatives
 
 Purpose:
 - turn the existing substitution-style antiderivative support into a deliberate calculus-composition milestone
 - broaden only through already-safe carriers and derivative-ratio checks
+- act as the first capability milestone after `CALC-CORE2`; if derivative backchecks or algebra carriers are not ready, pause and plan the prerequisite before shipping new antiderivative behavior
 
 Scope:
+- start from the `CALC-CORE2` dependency matrix
 - support bounded `f(u)u'` patterns where `u` belongs to already-recognized carrier families
 - prioritize affine, powers, exponentials, logarithms, simple radicals, and selected absolute-value-safe forms
 - reuse existing derivative logic to verify candidate antiderivatives when practical
@@ -130,10 +177,12 @@ Out of scope:
 - no open-ended trig identity search
 - no arbitrary nested substitution chains
 - no branch-heavy piecewise integration
+- no local calculus-only clone of an algebra helper that should live in a shared algebra core
 
 Exit criteria:
 - common composition antiderivatives feel intentional and validated
 - failures explain the bounded stop rather than sounding like parser failure
+- any blocked dependency is recorded as an algebra/core prerequisite instead of being hidden as a calculus hack
 
 Recommended verification:
 - integration unit tests
@@ -266,10 +315,11 @@ These are intentionally not first in the lane:
 
 1. `CALC-AUDIT0`
 2. `CALC-CORE1`
-3. `CALC-COMP1`
-4. `CALC-COMP2`
-5. `CALC-LIM1`
-6. `CALC-INT1`
-7. `CALC-POLISH1`
+3. `CALC-CORE2`
+4. `CALC-COMP1`, narrowly and only where the dependency matrix is ready
+5. `CALC-COMP2`
+6. `CALC-LIM1`
+7. `CALC-INT1`
+8. `CALC-POLISH1`
 
-The order can change after `CALC-AUDIT0`, but the principle should not: audit first, consolidate only where needed, then ship bounded calculus capability through existing exact algebra foundations.
+The order can change after `CALC-CORE2`, but the principle should not: audit first, consolidate only where needed, then ship bounded calculus capability only through trustworthy existing exact algebra foundations. When a calculus milestone reveals that an algebra or derivative substrate is not ready, pause calculus and address that prerequisite explicitly.

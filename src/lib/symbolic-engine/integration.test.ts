@@ -2,6 +2,45 @@ import { describe, expect, it } from 'vitest'
 import { resolveSymbolicIntegralFromLatex } from './integration'
 
 describe('symbolic-engine integration', () => {
+  it('classifies existing supported strategies without changing outputs', () => {
+    const direct = resolveSymbolicIntegralFromLatex('x^2')
+    const inverseTrig = resolveSymbolicIntegralFromLatex('\\frac{1}{1+x^2}')
+    const derivativeRatio = resolveSymbolicIntegralFromLatex('\\frac{2x+3}{x^2+3x+2}')
+    const substitution = resolveSymbolicIntegralFromLatex('2x\\cos(x^2)')
+    const byParts = resolveSymbolicIntegralFromLatex('xe^x')
+
+    expect(direct.kind).toBe('success')
+    if (direct.kind === 'success') {
+      expect(direct.strategy).toBe('direct-rule')
+      expect(direct.exactLatex).toContain('x^{3}')
+      expect(direct.verification.status).toBe('verified-exact')
+    }
+
+    expect(inverseTrig.kind).toBe('success')
+    if (inverseTrig.kind === 'success') {
+      expect(inverseTrig.strategy).toBe('inverse-trig')
+      expect(inverseTrig.exactLatex).toContain('\\arctan')
+    }
+
+    expect(derivativeRatio.kind).toBe('success')
+    if (derivativeRatio.kind === 'success') {
+      expect(derivativeRatio.strategy).toBe('derivative-ratio')
+      expect(derivativeRatio.exactLatex).toContain('\\ln')
+    }
+
+    expect(substitution.kind).toBe('success')
+    if (substitution.kind === 'success') {
+      expect(substitution.strategy).toBe('u-substitution')
+      expect(substitution.exactLatex).toContain('\\sin')
+    }
+
+    expect(byParts.kind).toBe('success')
+    if (byParts.kind === 'success') {
+      expect(byParts.strategy).toBe('integration-by-parts')
+      expect(byParts.exactLatex).toContain('e^{x}')
+    }
+  })
+
   it('handles supported substitution-friendly forms', () => {
     const first = resolveSymbolicIntegralFromLatex('2x\\cos(x^2)')
     const second = resolveSymbolicIntegralFromLatex('\\frac{1}{2x+1}')
@@ -76,10 +115,13 @@ describe('symbolic-engine integration', () => {
 
   it('fails cleanly on unsupported indefinite integrals', () => {
     const result = resolveSymbolicIntegralFromLatex('\\sqrt{1+x^4}')
+    const substitutionGap = resolveSymbolicIntegralFromLatex('\\sin(x^2)')
 
     expect(result.kind).toBe('error')
     if (result.kind === 'error') {
       expect(result.error).toContain('could not be determined symbolically')
     }
+
+    expect(substitutionGap.kind).toBe('error')
   })
 })

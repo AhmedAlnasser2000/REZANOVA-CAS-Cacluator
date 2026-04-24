@@ -1,4 +1,8 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
+import {
+  backcheckAntiderivative,
+  type AntiderivativeBackcheck,
+} from '../calculus-verification';
 import { resolveAntiderivativeRule } from '../antiderivative-rules';
 import {
   areEquivalentNodes,
@@ -20,16 +24,46 @@ import {
 
 const ce = new ComputeEngine();
 
+export type IntegralStrategy =
+  | 'direct-rule'
+  | 'inverse-trig'
+  | 'derivative-ratio'
+  | 'u-substitution'
+  | 'integration-by-parts'
+  | 'affine-linear'
+  | 'compute-engine';
+
 export type IntegralResolution =
   | {
       kind: 'success';
       exactLatex: string;
       origin: 'rule-based-symbolic';
+      strategy: IntegralStrategy;
+      verification: AntiderivativeBackcheck;
     }
   | {
       kind: 'error';
       error: string;
     };
+
+function symbolicSuccess(
+  node: unknown,
+  variable: string,
+  exactLatex: string,
+  strategy: IntegralStrategy,
+): IntegralResolution {
+  return {
+    kind: 'success',
+    exactLatex,
+    origin: 'rule-based-symbolic',
+    strategy,
+    verification: backcheckAntiderivative({
+      antiderivativeLatex: exactLatex,
+      integrand: node,
+      variable,
+    }),
+  };
+}
 
 function scaleLatex(latex: string, scale: number) {
   if (Math.abs(scale - 1) < 1e-10) {
@@ -661,39 +695,40 @@ function tryPartsRule(node: unknown, variable: string) {
 export function resolveSymbolicIntegralFromAst(node: unknown, variable = 'x'): IntegralResolution {
   const basic = resolveAntiderivativeRule(node, variable);
   if (basic) {
-    return { kind: 'success', exactLatex: basic, origin: 'rule-based-symbolic' };
+    return symbolicSuccess(node, variable, basic, 'direct-rule');
   }
 
   const inverseTrig = inverseTrigIntegral(node, variable);
   if (inverseTrig) {
-    return { kind: 'success', exactLatex: inverseTrig, origin: 'rule-based-symbolic' };
+    return symbolicSuccess(node, variable, inverseTrig, 'inverse-trig');
   }
 
   const derivativeRatio = derivativeRatioIntegral(node, variable);
   if (derivativeRatio) {
-    return { kind: 'success', exactLatex: derivativeRatio, origin: 'rule-based-symbolic' };
+    return symbolicSuccess(node, variable, derivativeRatio, 'derivative-ratio');
   }
 
   const substitution = trySubstitutionRule(node, variable);
   if (substitution) {
-    return { kind: 'success', exactLatex: substitution, origin: 'rule-based-symbolic' };
+    return symbolicSuccess(node, variable, substitution, 'u-substitution');
   }
 
   const byParts = tryPartsRule(node, variable);
   if (byParts) {
-    return { kind: 'success', exactLatex: byParts, origin: 'rule-based-symbolic' };
+    return symbolicSuccess(node, variable, byParts, 'integration-by-parts');
   }
 
   const affine = parseAffine(node, variable);
   if (affine && affine.a !== 0) {
-    return {
-      kind: 'success',
-      exactLatex: divideByNumericCoefficient(
+    return symbolicSuccess(
+      node,
+      variable,
+      divideByNumericCoefficient(
         `${wrapGroupedLatex(affine.latex)}^{2}`,
         2 * affine.a,
       ),
-      origin: 'rule-based-symbolic',
-    };
+      'affine-linear',
+    );
   }
 
   return {

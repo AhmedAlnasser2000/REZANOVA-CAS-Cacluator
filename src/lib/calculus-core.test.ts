@@ -1,5 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { describe, expect, it } from 'vitest';
+import { backcheckAntiderivative } from './calculus-verification';
 import {
   evaluateFiniteLimitFromAst,
   evaluateInfiniteLimitFromAst,
@@ -37,6 +38,8 @@ describe('calculus core', () => {
 
     expect(result.error).toBeUndefined();
     expect(result.resultOrigin).toBe('rule-based-symbolic');
+    expect(result.integrationStrategy).toBe('inverse-trig');
+    expect(result.antiderivativeBackcheck?.status).toMatch(/verified-/);
     expect(result.exactLatex).toContain('\\arctan');
   });
 
@@ -114,5 +117,29 @@ describe('calculus core', () => {
     expect(result.error).toBeUndefined();
     expect(result.exactLatex).toBe('1.5');
     expect(result.resultOrigin).toBe('rule-based-symbolic');
+  });
+
+  it('backchecks antiderivatives with exact proof before numeric confidence', () => {
+    const exact = backcheckAntiderivative({
+      antiderivativeLatex: '\\frac{x^3}{3}',
+      integrand: parse('x^2').json,
+      variable: 'x',
+    });
+    expect(exact.status).toBe('verified-exact');
+
+    const numericConfidence = backcheckAntiderivative({
+      antiderivativeLatex: '\\ln\\left|x\\right|',
+      integrand: parse('\\frac{1}{x}').json,
+      variable: 'x',
+    });
+    expect(numericConfidence.status).toBe('verified-numeric-confidence');
+    expect(numericConfidence.reason).toContain('confidence');
+
+    const mismatch = backcheckAntiderivative({
+      antiderivativeLatex: 'x^3',
+      integrand: parse('x^2').json,
+      variable: 'x',
+    });
+    expect(mismatch.status).toBe('not-verified');
   });
 });

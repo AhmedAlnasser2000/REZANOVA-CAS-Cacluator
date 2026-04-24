@@ -6,7 +6,14 @@ import {
   resolveInfiniteLimitHeuristic,
 } from './limit-heuristics';
 import { getResultGuardError, MAX_RESULT_MAGNITUDE } from './result-guard';
-import { resolveSymbolicIntegralFromAst } from './symbolic-engine/integration';
+import {
+  backcheckAntiderivative,
+  type AntiderivativeBackcheck,
+} from './calculus-verification';
+import {
+  resolveSymbolicIntegralFromAst,
+  type IntegralStrategy,
+} from './symbolic-engine/integration';
 import { resolveFiniteLimitRule } from './symbolic-engine/limits';
 import type {
   LimitDirection,
@@ -25,6 +32,8 @@ export type CalculusCoreEvaluation = {
   warnings: string[];
   error?: string;
   resultOrigin?: ResultOrigin;
+  integrationStrategy?: IntegralStrategy;
+  antiderivativeBackcheck?: AntiderivativeBackcheck;
 };
 
 export type BoxedLike = {
@@ -106,6 +115,8 @@ function resolvedComputeEngineIntegral(
   computed: BoxedLike | undefined,
   unresolvedComputeEngine: boolean,
   origin: ResultOrigin,
+  body: unknown,
+  variable: string,
 ): CalculusCoreEvaluation | undefined {
   if (!computed || unresolvedComputeEngine) {
     return undefined;
@@ -116,6 +127,12 @@ function resolvedComputeEngineIntegral(
     approxText: latexToApproxText((computed.N?.() ?? computed).latex),
     warnings: [],
     resultOrigin: origin,
+    integrationStrategy: 'compute-engine',
+    antiderivativeBackcheck: backcheckAntiderivative({
+      antiderivativeLatex: computed.latex,
+      integrand: body,
+      variable,
+    }),
   };
 }
 
@@ -137,15 +154,23 @@ export function resolveIndefiniteIntegralFromAst(input: {
         : symbolicEngine.exactLatex,
       warnings: [],
       resultOrigin: symbolicEngine.origin,
+      integrationStrategy: symbolicEngine.strategy,
+      antiderivativeBackcheck: symbolicEngine.verification,
     };
   }
 
   const extraRule = input.extraRule?.(input.body, input.variable);
   if (extraRule) {
+    const exactLatex = input.normalizeRuleLatex ? normalizeExactLatex(extraRule) : extraRule;
     return {
-      exactLatex: input.normalizeRuleLatex ? normalizeExactLatex(extraRule) : extraRule,
+      exactLatex,
       warnings: [],
       resultOrigin: 'rule-based-symbolic',
+      antiderivativeBackcheck: backcheckAntiderivative({
+        antiderivativeLatex: exactLatex,
+        integrand: input.body,
+        variable: input.variable,
+      }),
     };
   }
 
@@ -153,6 +178,8 @@ export function resolveIndefiniteIntegralFromAst(input: {
     input.computed,
     input.unresolvedComputeEngine,
     input.computeEngineOrigin,
+    input.body,
+    input.variable,
   );
   if (computed) {
     return computed;

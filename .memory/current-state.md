@@ -2,11 +2,11 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` after the calculus-roadmap commit; current working tree contains `CALC-AUDIT0` and `CALC-CORE1` artifacts awaiting user-approved commit.
+- Active branch context: `main` is aligned with `origin/main` at the committed `CALC-AUDIT0 + CALC-CORE1` checkpoint `62149c4`; current working tree contains `CALC-CORE2` code and memory updates awaiting user-approved commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
-- Near-term product direction is now to pause broad algebra expansion and advance bounded calculus-composition milestones on top of the new shared calculus evaluation boundary.
+- Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -39,7 +39,8 @@
 - Post capture of `PGL-VIS` as a separate post-`PGL` roadmap family for any future calculator-visible Playground surface; visible Playground work is now explicitly sequenced after the core incubation ladder rather than being implied inside `PGL1` through `PGL6`.
 - Post capture of the near-term Calculus roadmap; broad algebra breadth is paused while calculus advances through audit-first, bounded shared-core work.
 - Post `CALC-AUDIT0` calculus status/reuse audit; current Calculus and Advanced Calc surfaces are smoke-covered.
-- Post `CALC-CORE1` shared calculus evaluation boundary; Basic Calculus and Advanced Calc now share integral/limit fallback classification, the Advanced Calc arctan provenance gap is resolved, and the next recommended capability milestone is `CALC-COMP1`.
+- Post `CALC-CORE1` shared calculus evaluation boundary; Basic Calculus and Advanced Calc now share integral/limit fallback classification, the Advanced Calc arctan provenance gap is resolved, and the next calculus capability milestone should begin with explicit algebra/differentiation dependency readiness before shipping new behavior.
+- Post `CALC-CORE2` calculus dependency-readiness gate; existing symbolic integration wins now carry internal strategy/backcheck metadata, and `CALC-COMP1` may proceed only as a narrow derivative-backed substitution/composition milestone.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -81,6 +82,20 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `CALC-CORE2` as the dependency-readiness and strategy-aware calculus core gate:
+  - added an internal antiderivative backcheck boundary with exact comparison before numeric-confidence spot checks
+  - added internal strategy metadata for existing symbolic integration wins without changing public result origins or UI badges
+  - recorded `.memory/research/calc-core2-dependency-matrix.md`
+  - added `.memory/research/TRACK-CALC-CORE2-MANUAL-VERIFICATION-CHECKLIST.md`
+  - locked the next calculus capability candidate to a narrow `CALC-COMP1`; broader integration by parts hardening, rational integration, partial fractions, and radical/rationalizing integration require later prerequisites
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:unit -- src/lib/calculus-core.test.ts src/lib/calculus-workbench.test.ts src/lib/symbolic-engine/differentiation.test.ts src/lib/symbolic-engine/integration.test.ts src/lib/advanced-calc/integrals.test.ts src/lib/advanced-calc/limits.test.ts src/lib/math-engine.test.ts`
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium`
+  - `npm run build`
+  - `npx eslint src/lib/calculus-core.ts src/lib/calculus-verification.ts src/lib/symbolic-engine/differentiation.ts src/lib/symbolic-engine/integration.ts src/lib/symbolic-engine/integration.test.ts src/lib/calculus-core.test.ts`
+  - `npm run test:memory-protocol`
 - Completed `CALC-CORE1` as the shared calculus evaluation boundary before adding new calculus capability:
   - added `src/lib/calculus-core.ts` for shared calculus result DTOs, finite-limit classification, infinite-limit classification, numeric definite-integral fallback, and app-owned-first indefinite-integral resolution
   - routed Basic `Calculate > Calculus` and `Advanced Calc` integral/limit paths through the shared helper layer without adding new antiderivative families or new limit algorithms
@@ -88,7 +103,7 @@
   - aligned Advanced Calc infinite rational-limit heuristic provenance to `rule-based-symbolic`
   - converted the `CALC-AUDIT0` browser `test.fixme` into a passing smoke assertion
   - added `.memory/research/TRACK-CALC-CORE1-MANUAL-VERIFICATION-CHECKLIST.md`
-  - next recommended calculus milestone is `CALC-COMP1`
+  - next recommended calculus capability candidate is `CALC-COMP1`, but it must start with a dependency-readiness gate and stop for algebra/core prerequisites if the substrate is not ready
   - primary_agent: `codex`
   - primary_agent_model: `gpt-5.5`
 - Regression checks:
@@ -744,6 +759,9 @@
   - jsdom uses a stable MathEditor test stub instead of the full MathLive runtime
 
 ## Pending Verification
+- CALC-CORE2 dependency matrix and manual checklist artifacts:
+  - `.memory/research/calc-core2-dependency-matrix.md`
+  - `.memory/research/TRACK-CALC-CORE2-MANUAL-VERIFICATION-CHECKLIST.md`
 - CALC-CORE1 manual checklist artifact:
   - `.memory/research/TRACK-CALC-CORE1-MANUAL-VERIFICATION-CHECKLIST.md`
 - CALC-AUDIT0 manual checklist artifact:
@@ -790,15 +808,18 @@
   - transform handling and bounded branch handling now have shared internal cores behind stable public surfaces
   - further architecture work is no longer the blocker for the calculus lane
 - Next preferred sequence:
-  1. begin bounded calculus-composition capability work with `CALC-COMP1`
-  2. follow with derivative readback, limits, definite-integral trust, and polish slices
-  3. keep broad algebra expansion paused unless a concrete shared-core bug or missing helper blocks calculus reuse
-  4. keep any speculative integration/search algorithms in Playground rather than stable calculus code
+  1. begin narrow `CALC-COMP1` for derivative-backed substitution/composition antiderivatives only where `CALC-CORE2` backcheck and strategy metadata can verify the candidate path
+  2. pause immediately for an algebra/core prerequisite if a candidate needs broader equivalence, rational decomposition, radical/rationalizing substitution, or domain proof beyond the recorded matrix
+  3. after narrow `CALC-COMP1`, follow with derivative readback, limits, definite-integral trust, and polish slices
+  4. keep broad algebra expansion paused unless a concrete shared-core bug or missing helper blocks calculus reuse
+  5. keep any speculative integration/search algorithms in Playground rather than stable calculus code
 - Reason:
   - the recent algebra lanes now provide enough bounded exact substrates for a useful calculus pass
   - continuing composition or abs breadth immediately risks drifting toward open-ended CAS behavior
   - calculus is the best next product lane because it can reuse polynomial, PRL, radical, abs, branch, transform, and composition work in visible derivative, integral, and limit workflows
   - `CALC-CORE1` has removed the immediate result-origin, warning, and fallback-classification drift that blocked safe calculus-composition work
+  - after `CALC-CORE1`, `CALC-*` milestones are product-calculus milestones with declared dependencies; missing or unstable algebra support should stop calculus and become a prerequisite milestone rather than being hidden inside calculus code
+  - `CALC-CORE2` shows substitution/composition can proceed narrowly, while definite-integral trust, partial fractions, rationalization, and radical substitutions remain blocked or deferred until stronger substrates exist
   - the calculus roadmap is now captured in `.memory/research/calculus-roadmap.md`
 
 ## Recent Verified Context
