@@ -45,6 +45,7 @@ describe('advanced calc limits', () => {
       targetKind: 'posInfinity',
     });
     expect(sameDegree.error).toBeUndefined();
+    expect(sameDegree.resultOrigin).toBe('rule-based-symbolic');
     expect(Number(sameDegree.approxText)).toBeCloseTo(1.5, 6);
 
     const toZero = evaluateAdvancedInfiniteLimit({

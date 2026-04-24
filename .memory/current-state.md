@@ -2,11 +2,11 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` aligned with `origin/main` at `77e2e77` after the Linux-first direction commit.
+- Active branch context: `main` after the calculus-roadmap commit; current working tree contains `CALC-AUDIT0` and `CALC-CORE1` artifacts awaiting user-approved commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
-- Near-term product direction is now to pause broad algebra expansion, run a calculus status/reuse audit, and then advance bounded calculus-composition milestones that reuse the shipped algebra cores.
+- Near-term product direction is now to pause broad algebra expansion and advance bounded calculus-composition milestones on top of the new shared calculus evaluation boundary.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -37,7 +37,9 @@
 - Post `PGL5+` SSH VM hardening gate with a checked-in operator entrypoint, preflight checks, bounded retries/timeouts, step-level manifest evidence, provenance capture, and live `calcwiz-box` proof for both success and classified failure paths.
 - Post `PGL5+` sequencing correction: the external-compute lane is parked after proof, not ended; the next Playground work should improve the incubation system and non-remote experiment discipline before any provider-host or broader remote-compute adoption resumes.
 - Post capture of `PGL-VIS` as a separate post-`PGL` roadmap family for any future calculator-visible Playground surface; visible Playground work is now explicitly sequenced after the core incubation ladder rather than being implied inside `PGL1` through `PGL6`.
-- Post capture of the near-term Calculus roadmap; broad algebra breadth is paused while the next recommended product step is `CALC-AUDIT0`, followed by bounded calculus-composition work if the audit confirms the path.
+- Post capture of the near-term Calculus roadmap; broad algebra breadth is paused while calculus advances through audit-first, bounded shared-core work.
+- Post `CALC-AUDIT0` calculus status/reuse audit; current Calculus and Advanced Calc surfaces are smoke-covered.
+- Post `CALC-CORE1` shared calculus evaluation boundary; Basic Calculus and Advanced Calc now share integral/limit fallback classification, the Advanced Calc arctan provenance gap is resolved, and the next recommended capability milestone is `CALC-COMP1`.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -79,6 +81,36 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `CALC-CORE1` as the shared calculus evaluation boundary before adding new calculus capability:
+  - added `src/lib/calculus-core.ts` for shared calculus result DTOs, finite-limit classification, infinite-limit classification, numeric definite-integral fallback, and app-owned-first indefinite-integral resolution
+  - routed Basic `Calculate > Calculus` and `Advanced Calc` integral/limit paths through the shared helper layer without adding new antiderivative families or new limit algorithms
+  - fixed the `CALC-AUDIT0` known provenance gap so Advanced Calc `1/(1+x^2)` indefinite integral returns `arctan` with the visible `Rule-based symbolic` badge
+  - aligned Advanced Calc infinite rational-limit heuristic provenance to `rule-based-symbolic`
+  - converted the `CALC-AUDIT0` browser `test.fixme` into a passing smoke assertion
+  - added `.memory/research/TRACK-CALC-CORE1-MANUAL-VERIFICATION-CHECKLIST.md`
+  - next recommended calculus milestone is `CALC-COMP1`
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:unit -- src/lib/calculus-core.test.ts src/lib/calculus-workbench.test.ts src/lib/advanced-calc/integrals.test.ts src/lib/advanced-calc/limits.test.ts src/lib/advanced-calc/series.test.ts src/lib/advanced-calc/partials.test.ts src/lib/advanced-calc/ode.test.ts src/lib/advanced-calc/navigation.test.ts src/lib/advanced-calc/ui.test.ts src/lib/antiderivative-rules.test.ts src/lib/limit-heuristics.test.ts src/lib/symbolic-engine/integration.test.ts src/lib/symbolic-engine/limits.test.ts src/lib/symbolic-engine/partials.test.ts src/lib/math-engine.test.ts`
+  - `npm run build`
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium`
+  - `npx eslint src/lib/calculus-core.ts src/lib/calculus-core.test.ts src/lib/calculus-eval.ts src/lib/advanced-calc/integrals.ts src/lib/advanced-calc/integrals.test.ts src/lib/advanced-calc/limits.ts src/lib/advanced-calc/limits.test.ts e2e/calc-audit0-smoke.spec.ts e2e/helpers.ts`
+  - `npm run test:memory-protocol`
+- Completed `CALC-AUDIT0` as the full calculus status and reuse audit before new calculus capability work:
+  - added `.memory/research/calc-audit0-status.md` covering basic `Calculus` plus Advanced Calc integrals, limits, series, partials, ODE, and numeric IVP
+  - added `.memory/research/TRACK-CALC-AUDIT0-MANUAL-VERIFICATION-CHECKLIST.md` for operator-readable manual verification
+  - added `e2e/calc-audit0-smoke.spec.ts` and helper-only Playwright support in `e2e/helpers.ts`
+  - confirmed existing calculus coverage is healthy enough to move forward, with the main architecture gap being duplicated result-origin, warning, and numeric-fallback handling across basic and Advanced Calc stacks
+  - recorded one visible known gap: Advanced Calc indefinite integral of `1/(1+x^2)` succeeds with `arctan`, but currently displays generic `Symbolic` provenance instead of the planned `Rule-based symbolic` badge
+  - next recommended calculus milestone is `CALC-CORE1`, then `CALC-COMP1`
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:unit -- src/lib/calculus-workbench.test.ts src/lib/advanced-calc/integrals.test.ts src/lib/advanced-calc/limits.test.ts src/lib/advanced-calc/series.test.ts src/lib/advanced-calc/partials.test.ts src/lib/advanced-calc/ode.test.ts src/lib/advanced-calc/navigation.test.ts src/lib/advanced-calc/ui.test.ts src/lib/antiderivative-rules.test.ts src/lib/limit-heuristics.test.ts src/lib/symbolic-engine/integration.test.ts src/lib/symbolic-engine/limits.test.ts src/lib/symbolic-engine/partials.test.ts`
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium`
+  - `npx eslint e2e/helpers.ts e2e/calc-audit0-smoke.spec.ts`
+  - `npm run test:memory-protocol`
 - Completed `PGL5+` as the SSH VM hardening gate before any adoption decision; the verified result is preserved, but the external-compute lane is now postponed rather than promoted into provider-host expansion:
   - added a checked-in operator entrypoint:
     - `npm run playground:ssh-vm -- --profile <path> --job <path>`
@@ -712,6 +744,10 @@
   - jsdom uses a stable MathEditor test stub instead of the full MathLive runtime
 
 ## Pending Verification
+- CALC-CORE1 manual checklist artifact:
+  - `.memory/research/TRACK-CALC-CORE1-MANUAL-VERIFICATION-CHECKLIST.md`
+- CALC-AUDIT0 manual checklist artifact:
+  - `.memory/research/TRACK-CALC-AUDIT0-MANUAL-VERIFICATION-CHECKLIST.md`
 - COMP11 manual checklist artifact:
   - `.memory/research/TRACK-COMP11-MANUAL-VERIFICATION-CHECKLIST.md`
 - ABS3 manual checklist artifact:
@@ -754,15 +790,15 @@
   - transform handling and bounded branch handling now have shared internal cores behind stable public surfaces
   - further architecture work is no longer the blocker for the calculus lane
 - Next preferred sequence:
-  1. run `CALC-AUDIT0` to verify current calculus and Advanced Calc status, duplication, and reusable algebra-core touchpoints
-  2. if the audit confirms the path, take `CALC-CORE1` only where a shared calculus evaluation boundary removes real duplication
-  3. then begin bounded calculus-composition capability work with `CALC-COMP1`, followed by derivative readback, limits, definite-integral trust, and polish slices
-  4. keep broad algebra expansion paused unless the audit exposes a concrete shared-core bug or missing helper that blocks calculus reuse
-  5. keep any speculative integration/search algorithms in Playground rather than stable calculus code
+  1. begin bounded calculus-composition capability work with `CALC-COMP1`
+  2. follow with derivative readback, limits, definite-integral trust, and polish slices
+  3. keep broad algebra expansion paused unless a concrete shared-core bug or missing helper blocks calculus reuse
+  4. keep any speculative integration/search algorithms in Playground rather than stable calculus code
 - Reason:
   - the recent algebra lanes now provide enough bounded exact substrates for a useful calculus pass
   - continuing composition or abs breadth immediately risks drifting toward open-ended CAS behavior
   - calculus is the best next product lane because it can reuse polynomial, PRL, radical, abs, branch, transform, and composition work in visible derivative, integral, and limit workflows
+  - `CALC-CORE1` has removed the immediate result-origin, warning, and fallback-classification drift that blocked safe calculus-composition work
   - the calculus roadmap is now captured in `.memory/research/calculus-roadmap.md`
 
 ## Recent Verified Context

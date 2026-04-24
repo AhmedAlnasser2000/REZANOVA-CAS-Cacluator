@@ -9,6 +9,7 @@ describe('advanced calc integrals', () => {
   it('handles inverse trig primitives', () => {
     const result = evaluateAdvancedIndefiniteIntegral({ bodyLatex: '\\frac{1}{1+x^2}' });
     expect(result.error).toBeUndefined();
+    expect(result.resultOrigin).toBe('rule-based-symbolic');
     expect(result.exactLatex).toContain('\\arctan');
   });
 

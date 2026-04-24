@@ -13,6 +13,18 @@ export async function setMathFieldLatex(page: Page, latex: string, testId = 'mai
   }, latex);
 }
 
+export async function setVisibleSecondaryMathFieldLatex(page: Page, latex: string, index = 0) {
+  const editor = page.locator('math-field.secondary-mathfield:visible').nth(index);
+  await editor.waitFor();
+  await editor.evaluate((element, nextLatex) => {
+    const field = element as HTMLElement & { setValue: (value: string) => void };
+    field.focus();
+    field.dispatchEvent(new Event('focus', { bubbles: false, composed: true }));
+    field.setValue(nextLatex as string);
+    field.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  }, latex);
+}
+
 export async function getMathFieldLatex(page: Page, testId = 'main-editor') {
   const editor = page.getByTestId(testId);
   await editor.waitFor();
@@ -26,6 +38,30 @@ export async function openLauncherApp(page: Page, categoryLabel: string, appLabe
   await page.getByTestId('keypad-menu').click();
   await page.getByRole('button', { name: new RegExp(categoryLabel, 'i') }).click();
   await page.getByRole('button', { name: new RegExp(appLabel, 'i') }).click();
+}
+
+function exactText(label: string) {
+  return new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+}
+
+async function clickVisibleLauncherEntryByTitle(page: Page, label: string) {
+  await page.locator('button.launcher-entry:visible')
+    .filter({ has: page.locator('strong', { hasText: exactText(label) }) })
+    .click();
+}
+
+export async function openCalculusTool(page: Page, toolLabel: string) {
+  await openLauncherApp(page, 'Calculus', 'Calculus');
+  await clickVisibleLauncherEntryByTitle(page, toolLabel);
+  await expect(page.locator('math-field.secondary-mathfield:visible').first()).toBeVisible();
+}
+
+export async function openAdvancedCalcTool(page: Page, ...toolLabels: string[]) {
+  await openLauncherApp(page, 'Calculus', 'Advanced Calc');
+  for (const toolLabel of toolLabels) {
+    await clickVisibleLauncherEntryByTitle(page, toolLabel);
+  }
+  await expect(page.locator('math-field.secondary-mathfield:visible').first()).toBeVisible();
 }
 
 export async function openEquationSymbolic(page: Page) {

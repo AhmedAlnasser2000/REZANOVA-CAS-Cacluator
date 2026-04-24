@@ -3,9 +3,12 @@ import { integrateAdaptiveSimpson } from '../adaptive-simpson';
 import { formatApproxNumber, latexToApproxText, numberToLatex } from '../format';
 import { getResultGuardError } from '../result-guard';
 import { resolveAntiderivativeRule } from '../antiderivative-rules';
-import { resolveSymbolicIntegralFromAst } from '../symbolic-engine/integration';
+import {
+  evaluateNumericDefiniteIntegralFromAst,
+  resolveIndefiniteIntegralFromAst,
+  type CalculusCoreEvaluation,
+} from '../calculus-core';
 import type {
-  AdvancedCalcResultOrigin,
   AdvancedDefiniteIntegralState,
   AdvancedImproperIntegralState,
   AdvancedIndefiniteIntegralState,
@@ -20,13 +23,7 @@ type BoxedLike = {
   subs: (scope: Record<string, number>) => BoxedLike;
 };
 
-export type AdvancedCalcEvaluation = {
-  exactLatex?: string;
-  approxText?: string;
-  warnings: string[];
-  error?: string;
-  resultOrigin?: AdvancedCalcResultOrigin;
-};
+export type AdvancedCalcEvaluation = CalculusCoreEvaluation;
 
 type PolynomialTerm = {
   degree: number;
@@ -637,35 +634,6 @@ function evaluateAt(body: unknown, value: number) {
   }
 }
 
-function integrateFinite(body: unknown, lower: number, upper: number): AdvancedCalcEvaluation {
-  const result = integrateAdaptiveSimpson((value) => evaluateAt(body, value), lower, upper);
-  if (result.kind === 'unsafe') {
-    return {
-      warnings: [],
-      error: 'The numeric integral became too large or too small to display safely.',
-    };
-  }
-
-  if (result.kind !== 'success') {
-    return {
-      warnings: [],
-      error: 'This definite integral could not be evaluated reliably in Advanced Calc.',
-    };
-  }
-
-  const guardError = getResultGuardError(numberToLatex(result.value), formatApproxNumber(result.value));
-  if (guardError) {
-    return { warnings: [], error: guardError };
-  }
-
-  return {
-    exactLatex: numberToLatex(result.value),
-    approxText: formatApproxNumber(result.value),
-    warnings: ['Symbolic integral unavailable; showing a numeric definite integral.'],
-    resultOrigin: 'numeric-fallback',
-  };
-}
-
 const IMPROPER_EPSILON = 1e-8;
 
 function integrateHalfInfinite(body: unknown, finiteBound: number, direction: 'pos' | 'neg') {
@@ -729,37 +697,16 @@ export function evaluateAdvancedIndefiniteIntegral(
     const parsed = ce.parse(`\\int ${bodyLatex}\\,dx`) as BoxedLike;
     const integrand = ce.parse(bodyLatex) as BoxedLike;
     const exact = parsed.evaluate();
-    if (exact.latex !== parsed.latex && !exact.latex.includes('\\int')) {
-      return {
-        exactLatex: exact.latex,
-        approxText: latexToApproxText((exact.N?.() ?? exact).latex),
-        warnings: [],
-        resultOrigin: 'symbolic',
-      };
-    }
-
-    const symbolicEngine = resolveSymbolicIntegralFromAst(integrand.json, 'x');
-    if (symbolicEngine.kind === 'success') {
-      return {
-        exactLatex: symbolicEngine.exactLatex,
-        warnings: [],
-        resultOrigin: symbolicEngine.origin,
-      };
-    }
-
-    const byRule = advancedIntegralRule(integrand.json, 'x');
-    if (byRule) {
-      return {
-        exactLatex: byRule,
-        warnings: [],
-        resultOrigin: 'rule-based-symbolic',
-      };
-    }
-
-    return {
-      warnings: [],
-      error: 'This antiderivative could not be determined symbolically in Advanced Calc.',
-    };
+    const unresolvedComputeEngine = exact.latex === parsed.latex || exact.latex.includes('\\int');
+    return resolveIndefiniteIntegralFromAst({
+      body: integrand.json,
+      variable: 'x',
+      computed: exact,
+      unresolvedComputeEngine,
+      computeEngineOrigin: 'symbolic',
+      unsupportedError: 'This antiderivative could not be determined symbolically in Advanced Calc.',
+      extraRule: advancedIntegralRule,
+    });
   } catch {
     return {
       warnings: [],
@@ -798,7 +745,13 @@ export function evaluateAdvancedDefiniteIntegral(
       };
     }
 
-    return integrateFinite(integrand.json, lower, upper);
+    return evaluateNumericDefiniteIntegralFromAst({
+      body: integrand.json,
+      variable: 'x',
+      lower,
+      upper,
+      unreliableError: 'This definite integral could not be evaluated reliably in Advanced Calc.',
+    });
   } catch {
     return {
       warnings: [],
