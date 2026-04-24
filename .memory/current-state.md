@@ -2,10 +2,11 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` aligned with `origin/main` at `6036e49` after the `PGL5+` commit.
+- Active branch context: `main` aligned with `origin/main` at `77e2e77` after the Linux-first direction commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
+- Near-term product direction is now to pause broad algebra expansion, run a calculus status/reuse audit, and then advance bounded calculus-composition milestones that reuse the shipped algebra cores.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -36,6 +37,7 @@
 - Post `PGL5+` SSH VM hardening gate with a checked-in operator entrypoint, preflight checks, bounded retries/timeouts, step-level manifest evidence, provenance capture, and live `calcwiz-box` proof for both success and classified failure paths.
 - Post `PGL5+` sequencing correction: the external-compute lane is parked after proof, not ended; the next Playground work should improve the incubation system and non-remote experiment discipline before any provider-host or broader remote-compute adoption resumes.
 - Post capture of `PGL-VIS` as a separate post-`PGL` roadmap family for any future calculator-visible Playground surface; visible Playground work is now explicitly sequenced after the core incubation ladder rather than being implied inside `PGL1` through `PGL6`.
+- Post capture of the near-term Calculus roadmap; broad algebra breadth is paused while the next recommended product step is `CALC-AUDIT0`, followed by bounded calculus-composition work if the audit confirms the path.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -745,23 +747,23 @@
   - `.memory/research/TRACK-PRL4-MANUAL-VERIFICATION-CHECKLIST.md`
 
 ## Next Recommended Task
-- The `PRL1`-`PRL4` stack, `COMP1`-`COMP11`, `POLY1`-`POLY2`, `RAD1`-`RAD2`, `POLY-RAD1`-`POLY-RAD6`, and `ABS1`-`ABS4` are now shipped.
+- The `PRL1`-`PRL4` stack, `COMP1`-`COMP12B`, `POLY1`-`POLY2`, `RAD1`-`RAD2`, `POLY-RAD1`-`POLY-RAD6`, and `ABS1`-`ABS5B` are now shipped.
 - `ARCH1` through `ARCH6B` plus the agent-governance protocol pass are now in place:
   - Equation and Calculate have shared hosts, envelopes, stop policies, and default execution budgets
   - durable memory ownership and handoff rules are now enforced in-repo
   - transform handling and bounded branch handling now have shared internal cores behind stable public surfaces
-  - further architecture work is no longer the blocker for the algebra lane
-- Next preferred decision:
-  1. choose whether to pause architecture again now that both `transform-core` and `branch-core` are extracted
-  2. if product work resumes first, choose whether the next algebra slice should start with `COMP12A` or return to the abs lane with `ABS5A`
-  3. apply the new two-slice milestone rule on heavier math lanes: slice `A` delivers the capability expansion, and slice `B` follows as the immediate polish/trust/readback/guidance pass
-  4. keep either next lane bounded: composition should avoid open-ended multi-parameter periodic search, and abs should avoid widening into nested abs, inequalities, or general piecewise search
-  5. if architecture work resumes later, prefer a thin algebra registry only if shared-core orchestration pressure becomes real
+  - further architecture work is no longer the blocker for the calculus lane
+- Next preferred sequence:
+  1. run `CALC-AUDIT0` to verify current calculus and Advanced Calc status, duplication, and reusable algebra-core touchpoints
+  2. if the audit confirms the path, take `CALC-CORE1` only where a shared calculus evaluation boundary removes real duplication
+  3. then begin bounded calculus-composition capability work with `CALC-COMP1`, followed by derivative readback, limits, definite-integral trust, and polish slices
+  4. keep broad algebra expansion paused unless the audit exposes a concrete shared-core bug or missing helper that blocks calculus reuse
+  5. keep any speculative integration/search algorithms in Playground rather than stable calculus code
 - Reason:
-  - `ARCH6B` removed duplicated branch-array and periodic/principal-range merge plumbing without changing product behavior, so the next architecture question is whether shared-core extraction should pause until another concrete reuse bottleneck appears
-  - `COMP11` now broadens exact composition closure across reduced polynomial carriers, adds one more bounded composition/periodic depth step, and introduces selected exact two-parameter periodic closure, so the next product question is whether to press the composition lane further or to return to the abs lane after the recent `ABS1`-`ABS4` run
-  - the new roadmap rule is to split heavier math milestones into capability slice `A` plus immediate polish slice `B`, which should reduce “polish later” drift while keeping milestone boundaries honest
-  - the architecture direction is now more concrete too: one runtime kernel plus reusable algebra cores, not per-engine microkernels unless a later real plugin/runtime need appears
+  - the recent algebra lanes now provide enough bounded exact substrates for a useful calculus pass
+  - continuing composition or abs breadth immediately risks drifting toward open-ended CAS behavior
+  - calculus is the best next product lane because it can reuse polynomial, PRL, radical, abs, branch, transform, and composition work in visible derivative, integral, and limit workflows
+  - the calculus roadmap is now captured in `.memory/research/calculus-roadmap.md`
 
 ## Recent Verified Context
 - `COMP11` is now verified:
