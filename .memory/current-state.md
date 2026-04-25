@@ -2,7 +2,7 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is ahead of `origin/main` by the committed `CALC-COMP1` checkpoint `656587d`; current working tree contains `CALC-DIFF1` code and memory updates awaiting user-approved commit.
+- Active branch context: `main` is aligned with `origin/main` at the committed `CALC-DIFF1` checkpoint `2113c5f`; working tree is clean.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
