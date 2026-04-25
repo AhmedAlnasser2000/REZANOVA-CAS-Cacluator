@@ -2,7 +2,7 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is aligned with `origin/main` at the committed `CALC-DIFF1` checkpoint `2113c5f`; working tree is clean.
+- Active branch context: `main` is ahead of `origin/main` by the docs refresh checkpoint `6bf33a0`; current working tree contains roadmap-sync memory updates awaiting user-approved commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
@@ -94,7 +94,8 @@
   - preserved reciprocal notation such as `(sin(x))^{-1}` as an algebraic reciprocal rather than silently reinterpreting it as inverse sine
   - kept generic arbitrary inverse-function theorem support deferred
   - added `.memory/research/TRACK-CALC-DIFF1-MANUAL-VERIFICATION-CHECKLIST.md`
-  - next recommended calculus milestone remains undecided; any larger derivative or integration leap should first state the algebra/readback/domain substrate it needs
+  - roadmap sync now treats the old `CALC-COMP2` derivative-structure slot as mostly absorbed by `CALC-DIFF1`
+  - next recommended calculus milestone is `CALC-LIM1`, focused on composition-aware limits and domain honesty
   - primary_agent: `codex`
   - primary_agent_model: `gpt-5.5`
 - Regression checks:
@@ -111,7 +112,7 @@
   - added a typed `calculusStrategy` result surface and visible Basic/Advanced integration strategy badges while keeping `ResultOrigin` values and verification status stable
   - hardened the main Calculate editor path so MathLive empty-bound integral remnants and plain natural-log paste shapes are canonicalized before execution, and free-form indefinite integral results are titled as `Integral` rather than `Numeric`
   - added `.memory/research/TRACK-CALC-COMP1-MANUAL-VERIFICATION-CHECKLIST.md`
-  - next recommended calculus milestone candidate is `CALC-COMP2`, focused on composition-aware differentiation/chain-rule readiness and readback before broader integration families
+  - next recommended calculus milestone candidate was originally `CALC-COMP2`; the 2026-04-25 roadmap sync now treats that derivative-readiness work as mostly absorbed by `CALC-DIFF1`
   - primary_agent: `codex`
   - primary_agent_model: `gpt-5.5`
 - Regression checks:

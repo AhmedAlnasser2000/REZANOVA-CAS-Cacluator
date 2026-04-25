@@ -4,6 +4,12 @@ Date captured: 2026-04-24
 
 Status: near-term roadmap recommendation. Each milestone still needs its own implementation plan and verification gate before it is treated as shipped.
 
+## Roadmap Sync - 2026-04-25
+
+`CALC-DIFF1` was inserted after `CALC-COMP1` to handle the derivative-readiness work that the original `CALC-COMP2` slot described. As shipped, `CALC-DIFF1` covers powered-function notation, nested chain-rule derivatives, general powers, known inverse derivative families, and visible derivative strategy badges.
+
+The old `CALC-COMP2` slot is therefore no longer the next active milestone. Its remaining intent is limited to future derivative readback/domain polish if a later milestone discovers a concrete gap. The next active calculus capability candidate is `CALC-LIM1`.
+
 ## Roadmap Thesis
 
 Calcwiz should pause broad algebra expansion and make the shipped algebra work pay off inside calculus.
@@ -189,7 +195,31 @@ Recommended verification:
 - Advanced Calc indefinite-integral tests
 - derivative-backcheck tests for accepted antiderivatives
 
+### `CALC-DIFF1` - Powered Derivatives And Strategy Badges
+
+Status: completed on 2026-04-25.
+
+Purpose:
+- make derivative readiness explicit before moving to limits
+- strengthen app-owned powered-function differentiation and chain-rule handling
+- add visible derivative strategy badges without exposing proof/check status
+
+Scope shipped:
+- powered-function notation such as `sin^2(x)` and nested forms such as `sin^2(cos^3(x))`
+- variable-exponent function powers such as `cos^{2x}(x)` and `cos^{2x}(sin^x(5))`
+- known inverse trig derivative families, including parser-recognized `sin^{-1}(x)`
+- parser-recognized inverse hyperbolic derivative families
+- shared derivative strategy metadata for Calculate free-form derivatives and guided `Calculus > Derivative`
+
+Still out of scope:
+- generic arbitrary inverse-function theorem support for `f^{-1}`
+- broad trig identity simplification
+- broad derivative proof or step-by-step derivation display
+- general piecewise derivative logic
+
 ### `CALC-COMP2` - Chain-Rule Derivative Structure
+
+Status: mostly absorbed by `CALC-DIFF1`; not the next active milestone.
 
 Purpose:
 - make derivatives over composed expressions more readable and trustworthy
@@ -214,6 +244,7 @@ Out of scope:
 Exit criteria:
 - composed derivatives read like deliberate calculus results
 - abs/radical/log domain-sensitive cases stop or warn honestly
+- only reopen this slot if a specific derivative readback/domain gap blocks a later calculus milestone
 
 Recommended verification:
 - symbolic differentiation unit tests
@@ -317,9 +348,11 @@ These are intentionally not first in the lane:
 2. `CALC-CORE1`
 3. `CALC-CORE2`
 4. `CALC-COMP1`, narrowly and only where the dependency matrix is ready
-5. `CALC-COMP2`
+5. `CALC-DIFF1`
 6. `CALC-LIM1`
 7. `CALC-INT1`
 8. `CALC-POLISH1`
+
+`CALC-COMP2` remains a parked derivative-polish label only. It should not interrupt `CALC-LIM1` unless a specific derivative readback/domain issue blocks limit work.
 
 The order can change after `CALC-CORE2`, but the principle should not: audit first, consolidate only where needed, then ship bounded calculus capability only through trustworthy existing exact algebra foundations. When a calculus milestone reveals that an algebra or derivative substrate is not ready, pause calculus and address that prerequisite explicitly.
