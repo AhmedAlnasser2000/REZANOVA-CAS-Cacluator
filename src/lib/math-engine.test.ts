@@ -744,6 +744,10 @@ describe('runExpressionAction', () => {
       { ...request, document: { latex: '\\int x^2\\sin(x) \\, dx' } },
       'evaluate',
     )
+    const highDegreeParts = runExpressionAction(
+      { ...request, document: { latex: '\\int x^5e^x \\, dx' } },
+      'evaluate',
+    )
     const inverseTrig = runExpressionAction(
       { ...request, document: { latex: '\\int \\frac{1}{\\sqrt{4-x^2}} \\, dx' } },
       'evaluate',
@@ -758,6 +762,10 @@ describe('runExpressionAction', () => {
     expect(['compute-engine', 'rule-based-symbolic']).toContain(parts.resultOrigin)
     expect(parts.exactLatex).toContain('\\cos')
 
+    expect(highDegreeParts.error).toBeUndefined()
+    expect(highDegreeParts.resultOrigin).toBe('rule-based-symbolic')
+    expect(highDegreeParts.exactLatex).toMatch(/e\^\{x\}|\\exponentialE\^\{x\}/)
+
     expect(inverseTrig.error).toBeUndefined()
     expect(['compute-engine', 'rule-based-symbolic']).toContain(inverseTrig.resultOrigin)
     expect(inverseTrig.exactLatex).toContain('\\arcsin')
@@ -770,6 +778,13 @@ describe('runExpressionAction', () => {
     )
 
     expect(result.error).toContain('could not be determined symbolically')
+
+    const substitutionGap = runExpressionAction(
+      { ...request, document: { latex: '\\int \\sin(x^2) \\, dx' } },
+      'evaluate',
+    )
+
+    expect(substitutionGap.error).toContain('could not be determined symbolically')
   })
 
   it('falls back numerically for supported limits', () => {

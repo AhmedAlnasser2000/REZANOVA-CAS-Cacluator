@@ -23,6 +23,8 @@ import {
 } from './patterns';
 
 const ce = new ComputeEngine();
+const BY_PARTS_POLYNOMIAL_DEGREE_CAP = 6;
+const LOG_BY_PARTS_POLYNOMIAL_DEGREE_CAP = 4;
 
 export type IntegralStrategy =
   | 'direct-rule'
@@ -253,7 +255,7 @@ function buildTrigLinearSystem(
   kind: 'sin' | 'cos',
 ) {
   const degree = polynomialDegree(terms);
-  if (degree > 4 || slope === 0) {
+  if (degree > BY_PARTS_POLYNOMIAL_DEGREE_CAP || slope === 0) {
     return undefined;
   }
 
@@ -296,7 +298,7 @@ function solvePolynomialTimesExponential(
   slope: number,
   exponentLatex: string,
 ) {
-  if (slope === 0 || polynomialDegree(terms) > 4) {
+  if (slope === 0 || polynomialDegree(terms) > BY_PARTS_POLYNOMIAL_DEGREE_CAP) {
     return undefined;
   }
 
@@ -336,7 +338,7 @@ function solvePolynomialTimesTrig(
 }
 
 function solvePolynomialTimesLog(terms: PolynomialTerm[], variable: string) {
-  if (polynomialDegree(terms) > 4) {
+  if (polynomialDegree(terms) > LOG_BY_PARTS_POLYNOMIAL_DEGREE_CAP) {
     return undefined;
   }
 

@@ -4,6 +4,7 @@ import {
   evaluateAdvancedImproperIntegral,
   evaluateAdvancedIndefiniteIntegral,
 } from './integrals';
+import { resolveSymbolicIntegralFromLatex } from '../symbolic-engine/integration';
 
 describe('advanced calc integrals', () => {
   it('handles inverse trig primitives', () => {
@@ -27,6 +28,31 @@ describe('advanced calc integrals', () => {
 
     const trigResult = evaluateAdvancedIndefiniteIntegral({ bodyLatex: 'x\\cos(x)' });
     expect(trigResult.error).toBeUndefined();
+
+    const advancedOnlyCapExp = evaluateAdvancedIndefiniteIntegral({ bodyLatex: 'x^5e^x' });
+    expect(advancedOnlyCapExp.error).toBeUndefined();
+    expect(advancedOnlyCapExp.resultOrigin).toBe('rule-based-symbolic');
+    expect(advancedOnlyCapExp.integrationStrategy).toBe('integration-by-parts');
+  });
+
+  it('routes Advanced indefinite integrals through the shared symbolic backend', () => {
+    for (const bodyLatex of [
+      '\\frac{1}{1+x^2}',
+      '\\frac{2x+3}{x^2+3x+2}',
+      '2x\\cos(x^2)',
+      'x^5e^x',
+    ]) {
+      const shared = resolveSymbolicIntegralFromLatex(bodyLatex);
+      const advanced = evaluateAdvancedIndefiniteIntegral({ bodyLatex });
+
+      expect(shared.kind).toBe('success');
+      expect(advanced.error).toBeUndefined();
+      if (shared.kind === 'success') {
+        expect(advanced.exactLatex).toBe(shared.exactLatex);
+        expect(advanced.integrationStrategy).toBe(shared.strategy);
+        expect(advanced.resultOrigin).toBe(shared.origin);
+      }
+    }
   });
 
   it('handles logarithmic derivative forms', () => {

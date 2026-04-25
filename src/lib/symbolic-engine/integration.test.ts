@@ -75,13 +75,22 @@ describe('symbolic-engine integration', () => {
     const trigCase = resolveSymbolicIntegralFromLatex('x\\cos(x)')
     const expQuadratic = resolveSymbolicIntegralFromLatex('x^2e^x')
     const trigQuadratic = resolveSymbolicIntegralFromLatex('x^2\\sin(x)')
+    const expHighDegree = resolveSymbolicIntegralFromLatex('x^5e^x')
+    const trigHighDegree = resolveSymbolicIntegralFromLatex('x^5\\cos(x)')
     const logCase = resolveSymbolicIntegralFromLatex('x\\ln(x)')
 
     expect(expCase.kind).toBe('success')
     expect(trigCase.kind).toBe('success')
     expect(expQuadratic.kind).toBe('success')
     expect(trigQuadratic.kind).toBe('success')
+    expect(expHighDegree.kind).toBe('success')
+    expect(trigHighDegree.kind).toBe('success')
     expect(logCase.kind).toBe('success')
+
+    if (expHighDegree.kind === 'success') {
+      expect(expHighDegree.strategy).toBe('integration-by-parts')
+      expect(expHighDegree.verification.status).toMatch(/verified-/)
+    }
   })
 
   it('handles supported inverse-trig primitives', () => {

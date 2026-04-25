@@ -2,7 +2,7 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is aligned with `origin/main` at the committed `CALC-AUDIT0 + CALC-CORE1` checkpoint `62149c4`; current working tree contains `CALC-CORE2` code and memory updates awaiting user-approved commit.
+- Active branch context: `main` is aligned with `origin/main` at the committed `CALC-CORE2` checkpoint `65a8a7c`; current working tree contains `CALC-CORE3` code and memory updates awaiting user-approved commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
@@ -41,6 +41,7 @@
 - Post `CALC-AUDIT0` calculus status/reuse audit; current Calculus and Advanced Calc surfaces are smoke-covered.
 - Post `CALC-CORE1` shared calculus evaluation boundary; Basic Calculus and Advanced Calc now share integral/limit fallback classification, the Advanced Calc arctan provenance gap is resolved, and the next calculus capability milestone should begin with explicit algebra/differentiation dependency readiness before shipping new behavior.
 - Post `CALC-CORE2` calculus dependency-readiness gate; existing symbolic integration wins now carry internal strategy/backcheck metadata, and `CALC-COMP1` may proceed only as a narrow derivative-backed substitution/composition milestone.
+- Post `CALC-CORE3` backend unification gate; Basic Calculus and Advanced Calc now share the same app-owned symbolic integration backend for shared indefinite-integral behavior, with Advanced-only workflows kept separate.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -82,6 +83,22 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `CALC-CORE3` as the Basic/Advanced calculus backend unification gate before the broader `CALC-COMP1` leap:
+  - removed the Advanced-only indefinite-integral symbolic rule stack and the `extraRule` resolver hook
+  - made Basic Calculus and Advanced Calc share `resolveIndefiniteIntegralFromAst` backed by the shared symbolic integration engine before Compute Engine fallback
+  - preserved the former Advanced polynomial-times-exponential/trig by-parts degree cap by moving that bounded behavior into `src/lib/symbolic-engine/integration.ts`
+  - kept improper integrals, series, partials, ODE, and numeric IVP Advanced-only
+  - added parity coverage proving shared symbolic wins keep strategy metadata, Advanced `1/(1+x^2)` still shows rule-based provenance, and unsupported `sin(x^2)` remains unsupported
+  - added `.memory/research/TRACK-CALC-CORE3-MANUAL-VERIFICATION-CHECKLIST.md`
+  - next recommended calculus milestone remains `CALC-COMP1`, scoped as the narrow derivative-backed substitution/composition leap allowed by `CALC-CORE2`
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:unit -- src/lib/calculus-core.test.ts src/lib/calculus-workbench.test.ts src/lib/symbolic-engine/integration.test.ts src/lib/advanced-calc/integrals.test.ts src/lib/math-engine.test.ts`
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium`
+  - `npx eslint src/lib/calculus-core.ts src/lib/calculus-eval.ts src/lib/symbolic-engine/integration.ts src/lib/symbolic-engine/integration.test.ts src/lib/advanced-calc/integrals.ts src/lib/advanced-calc/integrals.test.ts`
+  - `npm run build`
+  - `npm run test:memory-protocol`
 - Completed `CALC-CORE2` as the dependency-readiness and strategy-aware calculus core gate:
   - added an internal antiderivative backcheck boundary with exact comparison before numeric-confidence spot checks
   - added internal strategy metadata for existing symbolic integration wins without changing public result origins or UI badges

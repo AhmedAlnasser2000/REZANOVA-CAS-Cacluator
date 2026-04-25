@@ -144,7 +144,6 @@ export function resolveIndefiniteIntegralFromAst(input: {
   computeEngineOrigin: ResultOrigin;
   unsupportedError: string;
   normalizeRuleLatex?: boolean;
-  extraRule?: (body: unknown, variable: string) => string | undefined;
 }): CalculusCoreEvaluation {
   const symbolicEngine = resolveSymbolicIntegralFromAst(input.body, input.variable);
   if (symbolicEngine.kind === 'success') {
@@ -156,21 +155,6 @@ export function resolveIndefiniteIntegralFromAst(input: {
       resultOrigin: symbolicEngine.origin,
       integrationStrategy: symbolicEngine.strategy,
       antiderivativeBackcheck: symbolicEngine.verification,
-    };
-  }
-
-  const extraRule = input.extraRule?.(input.body, input.variable);
-  if (extraRule) {
-    const exactLatex = input.normalizeRuleLatex ? normalizeExactLatex(extraRule) : extraRule;
-    return {
-      exactLatex,
-      warnings: [],
-      resultOrigin: 'rule-based-symbolic',
-      antiderivativeBackcheck: backcheckAntiderivative({
-        antiderivativeLatex: exactLatex,
-        integrand: input.body,
-        variable: input.variable,
-      }),
     };
   }
 
