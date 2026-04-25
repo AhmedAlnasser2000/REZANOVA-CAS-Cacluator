@@ -2,11 +2,12 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is aligned with `origin/main` at the committed calculus-roadmap sync checkpoint `ae92d14`; current working tree contains `CALC-LIM1` code and memory updates awaiting user-approved commit.
+- Active branch context: `main` is at the committed `CALC-LIM1` checkpoint `89634aa`; current working tree contains `CALC-LIM2` plus public-memory sanitization updates awaiting user-approved commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
 - Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
+- Public tracked memory should use stable placeholders for exact local paths, private operator names, and local SSH target aliases; exact local mappings belong only in ignored scratchpads.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -34,7 +35,7 @@
 - Post `PGL3` symbolic-search lab with replayable guarded-stage ordering, a dedicated Playground Vitest harness, and a first real experiment result that keeps `sym-search-planner-ordering` at `level-0-research` because both alternate whole-stage orderings introduced one honesty regression and no exact improvements.
 - Post `PGL4` external compute foundations lab with provider-neutral runner/job/artifact contracts, ignored local SSH-shaped profile support, a local harness over the real symbolic-search workload, and explicit non-executable SSH behavior.
 - Post `PGL5` user-owned SSH remote pilot with real `ssh`/`scp` orchestration, pulled-back remote artifacts under `.task_tmp/pgl5-external-compute/`, and a local parity report over the reused symbolic-search workload.
-- Post `PGL5+` SSH VM hardening gate with a checked-in operator entrypoint, preflight checks, bounded retries/timeouts, step-level manifest evidence, provenance capture, and live `calcwiz-box` proof for both success and classified failure paths.
+- Post `PGL5+` SSH VM hardening gate with a checked-in operator entrypoint, preflight checks, bounded retries/timeouts, step-level manifest evidence, provenance capture, and live `<user-ssh-target>` proof for both success and classified failure paths.
 - Post `PGL5+` sequencing correction: the external-compute lane is parked after proof, not ended; the next Playground work should improve the incubation system and non-remote experiment discipline before any provider-host or broader remote-compute adoption resumes.
 - Post capture of `PGL-VIS` as a separate post-`PGL` roadmap family for any future calculator-visible Playground surface; visible Playground work is now explicitly sequenced after the core incubation ladder rather than being implied inside `PGL1` through `PGL6`.
 - Post capture of the near-term Calculus roadmap; broad algebra breadth is paused while calculus advances through audit-first, bounded shared-core work.
@@ -45,6 +46,7 @@
 - Post `CALC-COMP1` bounded composition antiderivative leap; shared Basic/Advanced indefinite integration now supports broader verified `u`-substitution cases and visible integration strategy badges.
 - Post `CALC-DIFF1` derivative leap; Calculate free-form derivatives and guided Calculus derivatives now share derivative strategy metadata, visible derivative badges, powered-function/general-power differentiation, and known inverse-family derivative rules.
 - Post `CALC-LIM1` finite-limit leap; shared Basic/Advanced finite limits now have bounded composition-aware known-form rules and clearer finite-domain one-sided stops.
+- Post `CALC-LIM2` directional-limit leap; typed `0^+` / `0^-` finite targets work across Calculate, Basic Calculus, and Advanced Calc, and trustworthy one-sided divergence can return signed infinity as a successful limit result.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -86,6 +88,25 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `CALC-LIM2` as the directional finite-limit, signed-asymptote, and rational-hole follow-up after `CALC-LIM1`:
+  - added a shared finite-limit target parser for numeric targets plus `0^+`, `0^{+}`, `0^-`, and `0^{-}` forms
+  - routed free-form Calculate limits, guided Basic `Calculus > Limit`, and Advanced Calc finite-target limits through shared target normalization
+  - normalized complete guided target drafts so the stored target stays numeric while the left/right direction is selected explicitly
+  - extended finite-limit results to carry finite numbers or signed infinities without adding new `ResultOrigin` values
+  - returned `\infty` / `-\infty` for trustworthy one-sided divergence such as `1/x` at `0+` / `0-`
+  - preserved two-sided mismatch stops for sign-disagreeing cases such as `1/x` at `0`
+  - kept `ln(x)` at `0+` as `-\infty` while preserving the real-domain stop for `0-`
+  - expanded removable rational-hole coverage through existing rational/factor/cancel substrates, including `(x^3-1)/(x-1)` at `1` and `x^2/x` at `0`
+  - added `.memory/research/TRACK-CALC-LIM2-MANUAL-VERIFICATION-CHECKLIST.md`
+  - next major calculus candidate remains `CALC-INT1` unless a deliberately scoped `CALC-LIM3` is chosen before definite-integral trust work
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:unit -- src/lib/finite-limit-target.test.ts src/lib/symbolic-engine/limits.test.ts src/lib/calculus-core.test.ts src/lib/calculus-workbench.test.ts src/lib/advanced-calc/limits.test.ts src/lib/math-engine.test.ts src/lib/modes/calculate.test.ts`
+  - `npx eslint src/lib/finite-limit-target.ts src/lib/finite-limit-target.test.ts src/lib/symbolic-engine/limits.ts src/lib/symbolic-engine/limits.test.ts src/lib/calculus-core.ts src/lib/calculus-core.test.ts src/lib/calculus-workbench.ts src/lib/calculus-workbench.test.ts src/lib/calculus-eval.ts src/lib/advanced-calc/limits.ts src/lib/advanced-calc/limits.test.ts src/lib/math-engine.ts src/lib/math-engine.test.ts src/lib/modes/calculate.ts src/lib/modes/calculate.test.ts src/app/workspaces/CalculateWorkspace.tsx src/app/workspaces/AdvancedCalculusWorkspace.tsx e2e/calc-audit0-smoke.spec.ts`
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium`
+  - `npm run build`
+  - `npm run test:memory-protocol`
 - Completed `CALC-LIM1` as the composition-aware finite-limit and domain-honesty milestone after `CALC-DIFF1`:
   - extended the shared finite-limit resolver behind both Basic Calculus and Advanced Calc
   - added app-owned rule-based symbolic wins for bounded known forms where `u -> 0`: `sin(u)/u`, `tan(u)/u`, `(1-cos(u))/u^2`, `(e^u-1)/u`, `ln(1+u)/u`, and `(sqrt(1+u)-1)/u`
@@ -213,7 +234,7 @@
     - richer `remoteExecution` metadata
   - strengthened parity reports with explicit compared-field provenance and first-mismatch detail
   - promoted `ext-compute-ssh-vm-pilot`, opened the new `ext-compute-ssh-vm-hardening` record, and added the required `TRACK-PGL5` manual verification checklist before the new track
-  - verified the new live operator flow on `calcwiz-box`:
+  - verified the new live operator flow on `<user-ssh-target>`:
     - one success path returned manifest `status: completed` and parity `resultClass: match`
     - one induced bad-path profile returned `failureClass: preflight-failed`
     - one induced tiny timeout profile returned `failureClass: remote-timeout`
@@ -238,7 +259,7 @@
   - `npm run test:playground`
   - `npx eslint eslint.config.js src playground`
   - `npm run test:memory-protocol`
-  - live operator-side backend gate on `calcwiz-box`:
+  - live operator-side backend gate on `<user-ssh-target>`:
     - pulled-back remote manifest `status: completed`
     - local parity report `resultClass: match`
 - Completed `PGL4` as the external-compute foundations Playground milestone:
@@ -1127,7 +1148,7 @@
     - `e2e/qa1-smoke.spec.ts`
   - verified with:
     - `npm run test:gate`
-- The external ChatGPT Poly-Rad roadmap from `C:\Users\ahmed\Downloads\poly_rad_roadmap.md` is now preserved in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md` as a non-binding lane reference.
+- The external ChatGPT Poly-Rad roadmap from `<local-source>\poly_rad_roadmap.md` is now preserved in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md` as a non-binding lane reference.
 - The intended use of that roadmap is comparison, not obedience:
   - use it to compare external milestone framing against shipped Calcwiz milestones
   - allow drift where the bounded repo implementation suggests a cleaner next step

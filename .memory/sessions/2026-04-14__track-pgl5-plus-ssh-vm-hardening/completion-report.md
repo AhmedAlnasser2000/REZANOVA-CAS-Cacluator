@@ -11,7 +11,7 @@
 - attribution_basis: live
 
 ## Task Goal
-- Implement `PGL5+` as the SSH VM hardening gate before any adoption decision: add a checked-in operator entrypoint, preflight/retry/timeout controls, explicit failure classes, provenance, and a live backend proof on `calcwiz-box`.
+- Implement `PGL5+` as the SSH VM hardening gate before any adoption decision: add a checked-in operator entrypoint, preflight/retry/timeout controls, explicit failure classes, provenance, and a live backend proof on `<user-ssh-target>`.
 
 ## Gate
 - backend
@@ -51,7 +51,7 @@
 - `npx tsc -b --pretty false`
 - `npm run test:memory-protocol`
 - live success path:
-  - `npm run playground:ssh-vm -- --profile playground/level-0-research/external-compute/profiles/calcwiz-box.local.json --job .task_tmp/pgl5-plus/job-success.json`
+  - `npm run playground:ssh-vm -- --profile playground/level-0-research/external-compute/profiles/<user-ssh-target>.local.json --job .task_tmp/pgl5-plus/job-success.json`
 - live failure-path proof:
   - `npm run playground:ssh-vm -- --profile .task_tmp/pgl5-plus/profile-bad-path.json --job .task_tmp/pgl5-plus/job-bad-path.json`
   - `npm run playground:ssh-vm -- --profile .task_tmp/pgl5-plus/profile-timeout.json --job .task_tmp/pgl5-plus/job-timeout.json`
@@ -64,7 +64,7 @@
   - `failureClass: preflight-failed`
 - The tiny-timeout profile classified correctly as:
   - `failureClass: remote-timeout`
-- The live `calcwiz-box` operator flow now no longer depends on a handwritten `.task_tmp` runner script.
+- The live `<user-ssh-target>` operator flow now no longer depends on a handwritten `.task_tmp` runner script.
 
 ## Commits
 - `6036e4986f6256481566db59616d5fd1b9f708d1` — `feat(playground): harden ssh vm pilot gate`

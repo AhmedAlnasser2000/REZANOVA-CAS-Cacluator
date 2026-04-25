@@ -18,16 +18,16 @@ Locked decisions from this planning pass:
 ## Current Baseline
 From the current repo and video review:
 
-- The app uses `MathLive`, but **does not define custom virtual keyboard layouts**. The math field in [MathEditor.tsx](c:/Users/ahmed/Downloads/Cacluator/src/components/MathEditor.tsx) mounts with minimal configuration.
+- The app uses `MathLive`, but **does not define custom virtual keyboard layouts**. The math field in [MathEditor.tsx](<local-repo-path>/src/components/MathEditor.tsx) mounts with minimal configuration.
 - The virtual keyboard shown in the recording is essentially the **default MathLive keyboard**, not a calculator-specific curated keyboard.
-- The CAS engine in [math-engine.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/math-engine.ts) is still relatively narrow:
+- The CAS engine in [math-engine.ts](<local-repo-path>/src/lib/math-engine.ts) is still relatively narrow:
   - `simplify`
   - `factor`
   - `expand`
   - `evaluate`
   - `solve`
   - table evaluation
-- The custom keypad in [menu.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/menu.ts) is still much smaller than the virtual keyboard.
+- The custom keypad in [menu.ts](<local-repo-path>/src/lib/menu.ts) is still much smaller than the virtual keyboard.
 - This creates a mismatch:
   - the virtual keyboard visually suggests many capabilities,
   - but many visible symbols are not yet backed by calculator workflows.
@@ -155,17 +155,17 @@ Rules:
 - `docs/guides/milestone-04-linear-algebra-core.md`
 
 ### Existing files to update
-- [MathEditor.tsx](c:/Users/ahmed/Downloads/Cacluator/src/components/MathEditor.tsx)
-- [App.tsx](c:/Users/ahmed/Downloads/Cacluator/src/App.tsx)
-- [App.css](c:/Users/ahmed/Downloads/Cacluator/src/App.css)
-- [menu.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/menu.ts)
-- [math-engine.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/math-engine.ts)
-- [format.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/format.ts)
+- [MathEditor.tsx](<local-repo-path>/src/components/MathEditor.tsx)
+- [App.tsx](<local-repo-path>/src/App.tsx)
+- [App.css](<local-repo-path>/src/App.css)
+- [menu.ts](<local-repo-path>/src/lib/menu.ts)
+- [math-engine.ts](<local-repo-path>/src/lib/math-engine.ts)
+- [format.ts](<local-repo-path>/src/lib/format.ts)
 - mode modules as needed:
-  - [calculate.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/modes/calculate.ts)
-  - [equation.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/modes/equation.ts)
-  - [matrix.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/modes/matrix.ts)
-  - [vector.ts](c:/Users/ahmed/Downloads/Cacluator/src/lib/modes/vector.ts)
+  - [calculate.ts](<local-repo-path>/src/lib/modes/calculate.ts)
+  - [equation.ts](<local-repo-path>/src/lib/modes/equation.ts)
+  - [matrix.ts](<local-repo-path>/src/lib/modes/matrix.ts)
+  - [vector.ts](<local-repo-path>/src/lib/modes/vector.ts)
 
 ### No backend changes required initially
 The first milestones should remain frontend- and TS-engine-driven.
@@ -480,7 +480,7 @@ If a visible symbol produces an expression that is syntactically valid but beyon
 ## Public Interface and Behavior Changes
 
 ### `MathEditor`
-Update [MathEditor.tsx](c:/Users/ahmed/Downloads/Cacluator/src/components/MathEditor.tsx) so it:
+Update [MathEditor.tsx](<local-repo-path>/src/components/MathEditor.tsx) so it:
 - applies custom MathLive keyboard layouts on focus
 - accepts per-context layout definitions
 - optionally uses manual keyboard policy if that gives cleaner desktop behavior

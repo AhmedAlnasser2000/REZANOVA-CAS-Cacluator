@@ -1,4 +1,5 @@
 import { parseSignedNumberInput } from '../signed-number';
+import { finiteLimitTargetLatex } from '../finite-limit-target';
 import type {
   AdvancedDefiniteIntegralState,
   AdvancedFiniteLimitState,
@@ -136,7 +137,7 @@ export function buildAdvancedIntegralLatex(
 
 export function buildAdvancedFiniteLimitLatex(state: AdvancedFiniteLimitState) {
   const body = state.bodyLatex.trim();
-  const target = numericLatexOrEmpty(state.target);
+  const target = finiteLimitTargetLatex(state.target, state.direction);
   return body && target ? `\\lim_{x\\to ${target}}${wrapBody(body)}` : '';
 }
 

@@ -15,4 +15,4 @@
 - Commit status:
   - Approved for single-checkpoint commit as part of the `PGL5` milestone flow.
   - The exact git hash is reported in the commit output for this checkpoint; no follow-up metadata-only commit should be created just to mirror it here.
-  - A small follow-up repair checkpoint is also approved to capture the live-gate fixes discovered while proving the VM run on `calcwiz-box`.
+  - A small follow-up repair checkpoint is also approved to capture the live-gate fixes discovered while proving the VM run on `<user-ssh-target>`.

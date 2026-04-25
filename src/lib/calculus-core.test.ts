@@ -116,6 +116,53 @@ describe('calculus core', () => {
     expect(right.exactLatex).toBe('1');
   });
 
+  it('returns trusted signed infinities for clear finite asymptotes', () => {
+    const rightReciprocal = evaluateFiniteLimitFromAst({
+      body: parse('\\frac{1}{x}').json,
+      variable: 'x',
+      target: 0,
+      direction: 'right',
+      messages: finiteMessages,
+    });
+    const leftReciprocal = evaluateFiniteLimitFromAst({
+      body: parse('\\frac{1}{x}').json,
+      variable: 'x',
+      target: 0,
+      direction: 'left',
+      messages: finiteMessages,
+    });
+    const twoSidedReciprocal = evaluateFiniteLimitFromAst({
+      body: parse('\\frac{1}{x}').json,
+      variable: 'x',
+      target: 0,
+      direction: 'two-sided',
+      messages: finiteMessages,
+    });
+    const reciprocalSquare = evaluateFiniteLimitFromAst({
+      body: parse('\\frac{1}{x^2}').json,
+      variable: 'x',
+      target: 0,
+      direction: 'two-sided',
+      messages: finiteMessages,
+    });
+    const logBoundary = evaluateFiniteLimitFromAst({
+      body: parse('\\ln(x)').json,
+      variable: 'x',
+      target: 0,
+      direction: 'right',
+      messages: finiteMessages,
+    });
+
+    expect(rightReciprocal.error).toBeUndefined();
+    expect(rightReciprocal.exactLatex).toBe('\\infty');
+    expect(rightReciprocal.resultOrigin).toBe('rule-based-symbolic');
+    expect(leftReciprocal.exactLatex).toBe('-\\infty');
+    expect(twoSidedReciprocal.error).toBe('Left and right behavior do not agree near the target.');
+    expect(reciprocalSquare.exactLatex).toBe('\\infty');
+    expect(reciprocalSquare.resultOrigin).toBe('rule-based-symbolic');
+    expect(logBoundary.exactLatex).toBe('-\\infty');
+  });
+
   it('classifies clear one-sided finite-domain gaps', () => {
     const sqrtBoundary = evaluateFiniteLimitFromAst({
       body: parse('\\sqrt{x}').json,

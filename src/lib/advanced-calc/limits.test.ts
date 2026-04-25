@@ -3,6 +3,7 @@ import {
   evaluateAdvancedFiniteLimit,
   evaluateAdvancedInfiniteLimit,
 } from './limits';
+import { buildAdvancedFiniteLimitLatex } from './examples';
 
 describe('advanced calc limits', () => {
   it('handles common finite removable singularities', () => {
@@ -33,6 +34,12 @@ describe('advanced calc limits', () => {
   });
 
   it('handles directional mismatch and unbounded cases', () => {
+    expect(buildAdvancedFiniteLimitLatex({
+      bodyLatex: '\\frac{1}{x}',
+      target: '0^-',
+      direction: 'two-sided',
+    })).toBe('\\lim_{x\\to 0^{-}}\\left(\\frac{1}{x}\\right)');
+
     const mismatch = evaluateAdvancedFiniteLimit({
       bodyLatex: '\\frac{|x|}{x}',
       target: '0',
@@ -45,7 +52,24 @@ describe('advanced calc limits', () => {
       target: '0',
       direction: 'left',
     });
-    expect(unbounded.error).toContain('Left-hand');
+    expect(unbounded.error).toBeUndefined();
+    expect(unbounded.exactLatex).toBe('-\\infty');
+    expect(unbounded.resultOrigin).toBe('rule-based-symbolic');
+
+    const targetOverride = evaluateAdvancedFiniteLimit({
+      bodyLatex: '\\frac{1}{x}',
+      target: '0^+',
+      direction: 'two-sided',
+    });
+    expect(targetOverride.error).toBeUndefined();
+    expect(targetOverride.exactLatex).toBe('\\infty');
+
+    const leftTargetOverride = evaluateAdvancedFiniteLimit({
+      bodyLatex: '\\frac{1}{x}',
+      target: '0^-',
+      direction: 'two-sided',
+    });
+    expect(leftTargetOverride.exactLatex).toBe('-\\infty');
 
     const domainGap = evaluateAdvancedFiniteLimit({
       bodyLatex: '\\sqrt{x}',

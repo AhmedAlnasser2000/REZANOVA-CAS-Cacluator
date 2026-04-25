@@ -8,7 +8,7 @@ Status: near-term roadmap recommendation. Each milestone still needs its own imp
 
 `CALC-DIFF1` was inserted after `CALC-COMP1` to handle the derivative-readiness work that the original `CALC-COMP2` slot described. As shipped, `CALC-DIFF1` covers powered-function notation, nested chain-rule derivatives, general powers, known inverse derivative families, and visible derivative strategy badges.
 
-The old `CALC-COMP2` slot is therefore no longer the next active milestone. Its remaining intent is limited to future derivative readback/domain polish if a later milestone discovers a concrete gap. The next active calculus capability candidate is `CALC-LIM1`.
+The old `CALC-COMP2` slot is therefore no longer the next active milestone. Its remaining intent is limited to future derivative readback/domain polish if a later milestone discovers a concrete gap. `CALC-LIM1` and `CALC-LIM2` now cover the first two finite-limit strengthening passes: bounded composition/domain honesty first, then typed directional targets, signed infinities, and expanded rational holes. The next major calculus candidate is still `CALC-INT1` unless a deliberately scoped `CALC-LIM3` is chosen for additional limit work.
 
 ## Roadmap Thesis
 
@@ -282,6 +282,31 @@ Recommended verification:
 - numeric fallback regression tests
 - result-guard tests for unstable/unbounded cases
 
+### `CALC-LIM2` - Directional Limits, Asymptotes, And Rational Holes
+
+Status: completed on 2026-04-25.
+
+Purpose:
+- make finite-limit input surfaces understand typed directional targets such as `0^+` and `0^-`
+- return signed infinities when a one-sided finite-limit divergence is trustworthy
+- expand removable rational-hole coverage only through existing rational/factor/cancel substrates
+
+Scope shipped:
+- shared finite-limit target parser for numeric and directional finite targets
+- free-form Calculate, guided Basic Calculus, and Advanced Calc finite-target normalization
+- guided target-field behavior that stores the numeric target and selects the matching direction when a typed directional target is complete
+- rule-based signed asymptote behavior for cases such as `1/x`, `1/x^2`, and right-hand `ln(x)` at `0`
+- two-sided mismatch preservation for sign-disagreeing cases such as `1/x` at `0`
+- expanded removable holes including `(x^3-1)/(x-1)` and `x^2/x`
+
+Still out of scope:
+- general asymptotic expansion
+- series-based limit solving
+- multivariable limits
+- visible limit strategy badges
+- new `ResultOrigin` values
+- calculus-local rational simplification beyond the existing rational/factor/cancel substrate
+
 ### `CALC-INT1` - Definite Integral Trust Pass
 
 Purpose:
@@ -350,9 +375,10 @@ These are intentionally not first in the lane:
 4. `CALC-COMP1`, narrowly and only where the dependency matrix is ready
 5. `CALC-DIFF1`
 6. `CALC-LIM1`
-7. `CALC-INT1`
-8. `CALC-POLISH1`
+7. `CALC-LIM2`
+8. `CALC-INT1`
+9. `CALC-POLISH1`
 
-`CALC-COMP2` remains a parked derivative-polish label only. It should not interrupt `CALC-LIM1` unless a specific derivative readback/domain issue blocks limit work.
+`CALC-COMP2` remains a parked derivative-polish label only. It should not interrupt the active calculus lane unless a specific derivative readback/domain issue blocks the next selected milestone.
 
 The order can change after `CALC-CORE2`, but the principle should not: audit first, consolidate only where needed, then ship bounded calculus capability only through trustworthy existing exact algebra foundations. When a calculus milestone reveals that an algebra or derivative substrate is not ready, pause calculus and address that prerequisite explicitly.

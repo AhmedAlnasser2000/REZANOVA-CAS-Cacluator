@@ -21,6 +21,7 @@ import {
   canUseExpressionNumericFallback,
   getExpressionExecutionBudget,
 } from './kernel/runtime-profile';
+import { normalizeDirectionalLimitLatex } from './finite-limit-target';
 import { resolveCalculusEvaluation } from './calculus-eval';
 import { canonicalizeMathInput } from './input-canonicalization';
 import {
@@ -299,6 +300,7 @@ type PreparedExpressionRequest =
   | {
       kind: 'ready';
       rawLatex: string;
+      limitDirectionOverride?: 'left' | 'right';
     }
   | {
       kind: 'done';
@@ -344,8 +346,12 @@ function prepareExpressionRequest(
     screenHint: action === 'solve' ? 'symbolic' : 'standard',
   });
   const rawLatex = (canonicalized.ok ? canonicalized.canonicalLatex : request.document.latex).trim();
+  const limitNormalized = action === 'evaluate'
+    ? normalizeDirectionalLimitLatex(rawLatex)
+    : { latex: rawLatex, directionOverride: undefined };
+  const normalizedRawLatex = limitNormalized.latex.trim();
 
-  if (!rawLatex) {
+  if (!normalizedRawLatex) {
     return {
       kind: 'done',
       response: {
@@ -355,7 +361,7 @@ function prepareExpressionRequest(
     };
   }
 
-  if (action === 'evaluate' && isExplicitNegativeFactorial(rawLatex)) {
+  if (action === 'evaluate' && isExplicitNegativeFactorial(normalizedRawLatex)) {
     return {
       kind: 'done',
       response: {
@@ -366,7 +372,7 @@ function prepareExpressionRequest(
   }
 
   if (action === 'evaluate') {
-    const partial = parsePartialDerivativeLatex(rawLatex);
+    const partial = parsePartialDerivativeLatex(normalizedRawLatex);
     if (partial) {
       const resolved = resolvePartialDerivative(partial);
       if (resolved.kind === 'error') {
@@ -394,7 +400,8 @@ function prepareExpressionRequest(
 
   return {
     kind: 'ready',
-    rawLatex,
+    rawLatex: normalizedRawLatex,
+    limitDirectionOverride: limitNormalized.directionOverride,
   };
 }
 
@@ -726,7 +733,16 @@ function executePreparedExpressionAction(
         ? radicalExpr
         : exactExpression(radicalExpr, action);
     if (action === 'evaluate') {
-      const calculus = resolveCalculusEvaluation(expr, exact, request.calculusOptions);
+      const calculus = resolveCalculusEvaluation(
+        expr,
+        exact,
+        preparedRequest.limitDirectionOverride
+          ? {
+              ...request.calculusOptions,
+              limitDirection: preparedRequest.limitDirectionOverride,
+            }
+          : request.calculusOptions,
+      );
       if (calculus.kind === 'error') {
           return {
             warnings: [...warnings, ...calculus.warnings],

@@ -1,10 +1,12 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
+import type { LimitDirection } from '../../types/calculator';
 import { differentiateAst } from './differentiation';
 import { normalizeAst } from './normalize';
 import { isNodeArray } from './patterns';
 import { normalizeExactRationalNode } from './rational';
 
 const ce = new ComputeEngine();
+type FiniteLimitRuleValue = number | 'posInfinity' | 'negInfinity';
 
 type BoxedLike = {
   latex: string;
@@ -45,6 +47,10 @@ function isZeroish(value: number | undefined) {
 
 function isHuge(value: number | undefined) {
   return value !== undefined && Number.isFinite(value) && Math.abs(value) > 1e8;
+}
+
+function isNegativeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value < 0;
 }
 
 function isEquivalentNode(left: unknown, right: unknown) {
@@ -217,6 +223,135 @@ function resolveRemovableRationalHole(node: unknown, target: number, variable: s
     : { kind: 'success' as const, value, origin: 'rule-based-symbolic' as const };
 }
 
+function unboundedSampleSign(
+  node: unknown,
+  target: number,
+  variable: string,
+  direction: Exclude<LimitDirection, 'two-sided'>,
+): 1 | -1 | undefined {
+  const steps = [1e-2, 1e-3, 1e-4];
+  const values = steps.map((step) =>
+    evaluateNodeAt(node, direction === 'left' ? target - step : target + step, variable));
+
+  if (values.some((value) => value === undefined || !Number.isFinite(value))) {
+    return undefined;
+  }
+
+  const finiteValues = values as number[];
+  const magnitudes = finiteValues.map((value) => Math.abs(value));
+  const growsTowardTarget =
+    magnitudes[2] >= 1e4
+    && magnitudes[2] > magnitudes[1] * 1.5
+    && magnitudes[1] > magnitudes[0] * 1.5;
+
+  if (!growsTowardTarget) {
+    return undefined;
+  }
+
+  return finiteValues[2] < 0 ? -1 : 1;
+}
+
+function isDividePoleCandidate(node: unknown, target: number, variable: string) {
+  if (!isNodeArray(node) || node[0] !== 'Divide' || node.length !== 3) {
+    return false;
+  }
+
+  const numeratorValue = evaluateNodeAt(node[1], target, variable);
+  const denominatorValue = evaluateNodeAt(node[2], target, variable);
+  return numeratorValue !== undefined
+    && !isZeroish(numeratorValue)
+    && isZeroish(denominatorValue);
+}
+
+function isNegativePowerPoleCandidate(node: unknown, target: number, variable: string) {
+  if (!isNodeArray(node) || node[0] !== 'Power' || node.length !== 3 || !isNegativeInteger(node[2])) {
+    return false;
+  }
+
+  return isZeroish(evaluateNodeAt(node[1], target, variable));
+}
+
+function resolveSignedPoleLimit(
+  node: unknown,
+  target: number,
+  variable: string,
+  direction: LimitDirection,
+): { kind: 'success'; value: FiniteLimitRuleValue; origin: 'rule-based-symbolic' } | undefined {
+  if (
+    !isDividePoleCandidate(node, target, variable)
+    && !isNegativePowerPoleCandidate(node, target, variable)
+  ) {
+    return undefined;
+  }
+
+  const leftSign = unboundedSampleSign(node, target, variable, 'left');
+  const rightSign = unboundedSampleSign(node, target, variable, 'right');
+
+  if (direction === 'left' && leftSign) {
+    return {
+      kind: 'success',
+      value: leftSign > 0 ? 'posInfinity' : 'negInfinity',
+      origin: 'rule-based-symbolic',
+    };
+  }
+
+  if (direction === 'right' && rightSign) {
+    return {
+      kind: 'success',
+      value: rightSign > 0 ? 'posInfinity' : 'negInfinity',
+      origin: 'rule-based-symbolic',
+    };
+  }
+
+  if (direction === 'two-sided' && leftSign && rightSign && leftSign === rightSign) {
+    return {
+      kind: 'success',
+      value: leftSign > 0 ? 'posInfinity' : 'negInfinity',
+      origin: 'rule-based-symbolic',
+    };
+  }
+
+  return undefined;
+}
+
+function resolveLogBoundaryLimit(
+  node: unknown,
+  target: number,
+  variable: string,
+  direction: LimitDirection,
+): { kind: 'success'; value: FiniteLimitRuleValue; origin: 'rule-based-symbolic' } | undefined {
+  if (!isNodeArray(node) || (node[0] !== 'Ln' && node[0] !== 'Log') || node.length !== 2) {
+    return undefined;
+  }
+
+  if (direction === 'two-sided') {
+    return undefined;
+  }
+
+  const argumentValue = evaluateNodeAt(node[1], target, variable);
+  if (!isZeroish(argumentValue)) {
+    return undefined;
+  }
+
+  const steps = [1e-2, 1e-3, 1e-4];
+  const argumentSamples = steps.map((step) =>
+    evaluateNodeAt(node[1], direction === 'left' ? target - step : target + step, variable));
+  if (argumentSamples.some((value) => value === undefined || value <= 0)) {
+    return undefined;
+  }
+
+  const magnitudes = (argumentSamples as number[]).map((value) => Math.abs(value));
+  if (!(magnitudes[2] < magnitudes[1] && magnitudes[1] < magnitudes[0])) {
+    return undefined;
+  }
+
+  return {
+    kind: 'success',
+    value: 'negInfinity',
+    origin: 'rule-based-symbolic',
+  };
+}
+
 export function attemptLHospital(node: unknown, target: number, variable = 'x', remaining = 3): number | undefined {
   if (remaining <= 0 || !isNodeArray(node) || node[0] !== 'Divide' || node.length !== 3) {
     return undefined;
@@ -242,7 +377,12 @@ export function attemptLHospital(node: unknown, target: number, variable = 'x', 
   return attemptLHospital(nextNode, target, variable, remaining - 1);
 }
 
-export function resolveFiniteLimitRule(node: unknown, target: number, variable = 'x') {
+export function resolveFiniteLimitRule(
+  node: unknown,
+  target: number,
+  variable = 'x',
+  direction: LimitDirection = 'two-sided',
+) {
   try {
     const evaluated = box(node).subs({ [variable]: target }).evaluate();
     if (!evaluated.latex.includes('Undefined') && !evaluated.latex.includes('\\infty')) {
@@ -263,6 +403,16 @@ export function resolveFiniteLimitRule(node: unknown, target: number, variable =
   const rationalHole = resolveRemovableRationalHole(node, target, variable);
   if (rationalHole) {
     return rationalHole;
+  }
+
+  const signedPole = resolveSignedPoleLimit(node, target, variable, direction);
+  if (signedPole) {
+    return signedPole;
+  }
+
+  const logBoundary = resolveLogBoundaryLimit(node, target, variable, direction);
+  if (logBoundary) {
+    return logBoundary;
   }
 
   const byLHospital = attemptLHospital(node, target, variable);

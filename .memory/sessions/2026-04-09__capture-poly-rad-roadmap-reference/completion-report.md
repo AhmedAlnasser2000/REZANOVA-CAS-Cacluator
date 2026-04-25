@@ -11,7 +11,7 @@
 - attribution_basis: historical-user-confirmed
 
 - Task: capture the external ChatGPT Poly-Rad roadmap into durable project memory
-- Source file: `C:\Users\ahmed\Downloads\poly_rad_roadmap.md`
+- Source file: `<local-source>\poly_rad_roadmap.md`
 - Result:
   - preserved the roadmap in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md`
   - updated `.memory/research/sources.md` with the external source reference

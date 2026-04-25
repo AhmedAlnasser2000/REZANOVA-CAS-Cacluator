@@ -97,6 +97,24 @@ describe('runCalculateMode', () => {
     expect(result.exactLatex).toContain('\\ln')
   })
 
+  it('normalizes free-form directional limit targets before planning', () => {
+    const result = runCalculateMode({
+      action: 'evaluate',
+      latex: '\\lim_{x\\to 0^+}\\frac{1}{x}',
+      angleUnit: 'deg',
+      outputStyle: 'both',
+      ansLatex: '0',
+    })
+
+    expect(result.kind).toBe('success')
+    if (result.kind !== 'success') {
+      throw new Error('Expected a success outcome')
+    }
+    expect(result.title).toBe('Limit')
+    expect(result.resultOrigin).toBe('rule-based-symbolic')
+    expect(result.exactLatex).toBe('\\infty')
+  })
+
   it('returns a controlled error for algebra relation operators', () => {
     const result = runCalculateMode({
       action: 'evaluate',

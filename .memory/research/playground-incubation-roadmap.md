@@ -11,7 +11,7 @@ Sequencing update, 2026-04-24:
 - Near-term Playground work should improve the incubation system itself and continue with non-remote experiments before reopening remote execution.
 
 Source file:
-- `C:\Users\ahmed\Downloads\Calcwiz Playground  Incubation Ladd.txt`
+- `<local-source>\Calcwiz Playground  Incubation Ladd.txt`
 
 Related architecture note:
 - `docs/architecture/playground-incubation-ladder.md`
@@ -305,7 +305,7 @@ Out of scope:
 - no stable app dependency on incubation code
 
 Exit criteria:
-- one successful live `calcwiz-box` run still returns parity `match`
+- one successful live `<user-ssh-target>` run still returns parity `match`
 - at least two induced failure paths classify correctly
 - the next sequencing decision becomes:
   - provider-host expansion

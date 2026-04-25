@@ -5,7 +5,7 @@ Date captured: 2026-04-09
 Status: external roadmap reference only. This is not a locked Calcwiz roadmap commitment.
 
 Source file:
-- `C:\Users\ahmed\Downloads\poly_rad_roadmap.md`
+- `<local-source>\poly_rad_roadmap.md`
 
 Important interpretation:
 - This note is preserved so future planning can compare the external roadmap against what Calcwiz actually shipped.

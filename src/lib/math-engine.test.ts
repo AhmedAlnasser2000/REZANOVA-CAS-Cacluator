@@ -860,13 +860,30 @@ describe('runExpressionAction', () => {
     expect(result.error).toContain('do not agree')
   })
 
-  it('returns a controlled error for unbounded limits', () => {
+  it('returns a controlled mismatch for two-sided signed asymptotes', () => {
     const result = runExpressionAction(
       { ...request, document: { latex: '\\lim_{x\\to 0} \\frac{1}{x}' } },
       'evaluate',
     )
 
-    expect(result.error).toContain('unbounded')
+    expect(result.error).toContain('do not agree')
+  })
+
+  it('normalizes free-form directional limit targets before evaluation', () => {
+    const right = runExpressionAction(
+      { ...request, document: { latex: '\\lim_{x\\to 0^+} \\frac{1}{x}' } },
+      'evaluate',
+    )
+    const left = runExpressionAction(
+      { ...request, document: { latex: '\\lim_{x\\to 0^{-}} \\frac{1}{x}' } },
+      'evaluate',
+    )
+
+    expect(right.error).toBeUndefined()
+    expect(right.exactLatex).toBe('\\infty')
+    expect(right.resultOrigin).toBe('rule-based-symbolic')
+    expect(left.error).toBeUndefined()
+    expect(left.exactLatex).toBe('-\\infty')
   })
 
   it('supports common rational limits at positive infinity', () => {

@@ -4,7 +4,7 @@
 Preserve external discussion/context around symbolic composition so later planning does not flatten these sources into stronger claims than they support.
 
 ## 1. Comparative ecosystem PDF
-- File: `C:\Users\ahmed\Downloads\Comparative Software Analysis of GeoGebra, Desmos, Casio Graphing Software, TI Graphing Software, an.pdf`
+- File: `<local-source>\Comparative Software Analysis of GeoGebra, Desmos, Casio Graphing Software, TI Graphing Software, an.pdf`
 - What it is:
   - a comparative software/ecosystem report across GeoGebra, Desmos, Casio software, TI software, and Wolfram as auxiliary tooling
   - strongest for vendor-positioning, platform shape, API/embedding posture, and broad CAS-role comparison
@@ -22,7 +22,7 @@ Preserve external discussion/context around symbolic composition so later planni
   - do **not** use it as evidence for concrete composition solver stopping rules
 
 ## 2. Calcwiz Vision PDF
-- File: `C:\Users\ahmed\Downloads\Calcwiz Vision.pdf`
+- File: `<local-source>\Calcwiz Vision.pdf`
 - What it is:
   - a long-term product and architecture vision document
 - Major themes captured:
@@ -37,7 +37,7 @@ Preserve external discussion/context around symbolic composition so later planni
   - do not confuse it with current shipped state; it describes intended direction, not current implementation breadth
 
 ## 3. Composition limits markdown
-- File: `C:\Users\ahmed\Downloads\codex_symbolic_composition_limits_spec.md`
+- File: `<local-source>\codex_symbolic_composition_limits_spec.md`
 - What it is:
   - a design note from a ChatGPT/Codex discussion about how symbolic composition limits should ideally be modeled
 - Main proposal in the document:

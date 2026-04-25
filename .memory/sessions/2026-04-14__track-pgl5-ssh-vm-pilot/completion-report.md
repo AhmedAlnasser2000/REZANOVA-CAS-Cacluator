@@ -35,9 +35,9 @@
   - writes a local `parity-report.json`
 - Added a dedicated remote Playground entrypoint plus a skipped-by-default lab test file so normal `test:playground` runs stay stable while the remote path can still be invoked through `vitest`.
 - Promoted the completed foundations record `ext-compute-ssh-foundations`, created the new active pilot record `ext-compute-ssh-vm-pilot`, and added a short symbolic-search reuse note.
-- Applied one follow-up fix after live `calcwiz-box` debugging:
+- Applied one follow-up fix after live `<user-ssh-target>` debugging:
   - the remote entrypoint invocation now uses `npm exec -- vitest ...` so the target test path is forwarded correctly on the VM
-- Applied a second follow-up fix after live `calcwiz-box` debugging:
+- Applied a second follow-up fix after live `<user-ssh-target>` debugging:
   - the remote SSH entrypoint test now uses a `30_000ms` timeout so the VM can complete the symbolic-search workload without hitting Vitest's default `5_000ms` test limit
 
 ## Verification
@@ -56,8 +56,8 @@
   - remote command construction uses `hostAlias` and `remoteProjectPath`
   - pulled-back manifest and summary parsing works
   - parity can classify `match`, `mismatch`, `remote-failed`, and `pullback-failed`
-- The user-owned VM was already proven manually as a reachable SSH target (`calcwiz-box`) and as a valid Playground execution environment.
-- After the initial checkpoint, the live operator-side backend gate was completed successfully on `calcwiz-box`:
+- The user-owned VM was already proven manually as a reachable SSH target (`<user-ssh-target>`) and as a valid Playground execution environment.
+- After the initial checkpoint, the live operator-side backend gate was completed successfully on `<user-ssh-target>`:
   - remote artifacts were uploaded, executed, and pulled back successfully
   - local `parity-report.json` recorded `resultClass: match`
   - local `artifact-manifest.json` recorded `status: completed`

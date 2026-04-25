@@ -46,9 +46,11 @@ export type BoxedLike = {
 
 type OneSidedLimitResult =
   | { kind: 'success'; value: number }
-  | { kind: 'unbounded' }
+  | { kind: 'unbounded'; sign: 1 | -1 }
   | { kind: 'domain-error' }
   | { kind: 'unstable' };
+
+type LimitValue = number | 'posInfinity' | 'negInfinity';
 
 type FiniteLimitMessages = {
   mismatchError: string;
@@ -107,6 +109,34 @@ export function evaluateBodyAt(body: unknown, variable: string, value: number) {
   } catch {
     return undefined;
   }
+}
+
+function limitValueToLatex(value: LimitValue) {
+  if (value === 'posInfinity') {
+    return '\\infty';
+  }
+
+  if (value === 'negInfinity') {
+    return '-\\infty';
+  }
+
+  return numberToLatex(value);
+}
+
+function limitValueToApproxText(value: LimitValue) {
+  if (value === 'posInfinity') {
+    return 'Infinity';
+  }
+
+  if (value === 'negInfinity') {
+    return '-Infinity';
+  }
+
+  return formatApproxNumber(value);
+}
+
+function signToInfiniteLimit(sign: 1 | -1): LimitValue {
+  return sign > 0 ? 'posInfinity' : 'negInfinity';
 }
 
 function normalizeExactLatex(latex: string) {
@@ -257,7 +287,7 @@ function numericOneSidedLimit(
     }
 
     if (!Number.isFinite(value) || Math.abs(value) > MAX_RESULT_MAGNITUDE) {
-      return { kind: 'unbounded' };
+      return { kind: 'unbounded', sign: value < 0 ? -1 : 1 };
     }
 
     samples.push(value);
@@ -277,7 +307,7 @@ function numericOneSidedLimit(
   }
 
   if (isUnboundedTrend(samples)) {
-    return { kind: 'unbounded' };
+    return { kind: 'unbounded', sign: (samples.at(-1) ?? 1) < 0 ? -1 : 1 };
   }
 
   return { kind: 'unstable' };
@@ -298,9 +328,6 @@ function numericFiniteLimit(
   }
 
   const left = numericOneSidedLimit(body, variable, target, 'left');
-  if (left.kind === 'unbounded') {
-    return { kind: 'left-unbounded' as const };
-  }
   if (left.kind === 'domain-error') {
     return { kind: 'left-domain-error' as const };
   }
@@ -309,14 +336,25 @@ function numericFiniteLimit(
   }
 
   const right = numericOneSidedLimit(body, variable, target, 'right');
-  if (right.kind === 'unbounded') {
-    return { kind: 'right-unbounded' as const };
-  }
   if (right.kind === 'domain-error') {
     return { kind: 'right-domain-error' as const };
   }
   if (right.kind === 'unstable') {
     return { kind: 'unstable' as const };
+  }
+
+  if (left.kind === 'unbounded' && right.kind === 'unbounded') {
+    return left.sign === right.sign
+      ? { kind: 'infinite' as const, sign: left.sign }
+      : { kind: 'mismatch' as const };
+  }
+
+  if (left.kind === 'unbounded') {
+    return { kind: 'left-unbounded' as const, sign: left.sign };
+  }
+
+  if (right.kind === 'unbounded') {
+    return { kind: 'right-unbounded' as const, sign: right.sign };
   }
 
   const scale = Math.max(1, Math.abs(left.value), Math.abs(right.value));
@@ -378,11 +416,13 @@ export function evaluateFiniteLimitFromAst(input: {
     }
   }
 
-  const symbolic = resolveFiniteLimitRule(input.body, input.target, input.variable);
+  const symbolic = resolveFiniteLimitRule(input.body, input.target, input.variable, input.direction);
   if (symbolic.kind === 'success') {
+    const exactLatex = limitValueToLatex(symbolic.value);
+    const approxText = limitValueToApproxText(symbolic.value);
     return {
-      exactLatex: numberToLatex(symbolic.value),
-      approxText: formatApproxNumber(symbolic.value),
+      exactLatex,
+      approxText,
       warnings:
         symbolic.origin === 'heuristic-symbolic'
           ? ["Rule-based limit resolution used capped L'Hopital on a supported ratio form."]
@@ -398,6 +438,16 @@ export function evaluateFiniteLimitFromAst(input: {
   if (numeric.kind === 'right-unbounded') {
     return { warnings: [], error: input.messages.oneSidedUnboundedError('right') };
   }
+  if (numeric.kind === 'infinite') {
+    const exactLatex = limitValueToLatex(signToInfiniteLimit(numeric.sign));
+    const approxText = limitValueToApproxText(signToInfiniteLimit(numeric.sign));
+    return {
+      exactLatex,
+      approxText,
+      warnings: [input.messages.numericFallbackWarning(input.direction)],
+      resultOrigin: 'numeric-fallback',
+    };
+  }
   if (numeric.kind === 'left-domain-error') {
     return {
       warnings: [],
@@ -411,11 +461,13 @@ export function evaluateFiniteLimitFromAst(input: {
     };
   }
   if (numeric.kind === 'unbounded') {
+    const exactLatex = limitValueToLatex(signToInfiniteLimit(numeric.sign));
+    const approxText = limitValueToApproxText(signToInfiniteLimit(numeric.sign));
     return {
-      warnings: [],
-      error: input.messages.oneSidedUnboundedError(
-        input.direction === 'right' ? 'right' : 'left',
-      ),
+      exactLatex,
+      approxText,
+      warnings: [input.messages.numericFallbackWarning(input.direction)],
+      resultOrigin: 'numeric-fallback',
     };
   }
   if (numeric.kind === 'domain-error') {

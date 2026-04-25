@@ -5,7 +5,7 @@
 - Date captured: `2026-04-08`
 - Source context:
   - direct discussion with the user about strengthening Calcwiz's internal architecture before continuing deeper algebra work
-  - external local reference pack: `C:\Users\ahmed\Downloads\calcwiz_kernel_architecture.zip`
+  - external local reference pack: `<local-source>\calcwiz_kernel_architecture.zip`
   - pack files reviewed:
     - `INDEX.md`
     - `01_kernel_map.md`

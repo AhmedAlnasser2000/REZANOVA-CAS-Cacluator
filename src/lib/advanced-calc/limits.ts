@@ -1,5 +1,6 @@
 import { ComputeEngine } from '@cortex-js/compute-engine';
 import { latexToApproxText } from '../format';
+import { parseFiniteLimitTargetDraft } from '../finite-limit-target';
 import {
   evaluateFiniteLimitFromAst,
   evaluateInfiniteLimitFromAst,
@@ -30,13 +31,15 @@ export function evaluateAdvancedFiniteLimit(
   state: AdvancedFiniteLimitState,
 ): AdvancedLimitEvaluation {
   const bodyLatex = state.bodyLatex.trim();
-  const target = Number(state.target);
-  if (!bodyLatex || !Number.isFinite(target)) {
+  const parsedTarget = parseFiniteLimitTargetDraft(state.target);
+  if (!bodyLatex || !parsedTarget) {
     return {
       warnings: [],
       error: 'Limits require a numeric target or +/-infinity in this milestone.',
     };
   }
+  const target = parsedTarget.value;
+  const direction = parsedTarget.directionOverride ?? state.direction;
 
   try {
     const parsed = ce.parse(`\\lim_{x\\to ${target}}\\left(${bodyLatex}\\right)`) as BoxedLike;
@@ -55,7 +58,7 @@ export function evaluateAdvancedFiniteLimit(
       body: body.json,
       variable: 'x',
       target,
-      direction: state.direction,
+      direction,
       messages: {
         mismatchError: 'Left and right behavior do not agree near the target.',
         unstableError: 'This limit could not be stabilized numerically in Advanced Calc.',

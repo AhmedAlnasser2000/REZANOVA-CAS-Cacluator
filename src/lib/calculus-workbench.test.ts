@@ -5,6 +5,7 @@ import {
   buildIntegralLatex,
   buildLimitLatex,
   buildWorkbenchExpression,
+  applyFiniteLimitTargetDraft,
   cycleLimitTargetKind,
   DEFAULT_DERIVATIVE_POINT_WORKBENCH,
   DEFAULT_DERIVATIVE_WORKBENCH,
@@ -52,7 +53,7 @@ describe('calculus workbench builders', () => {
         direction: 'left',
         targetKind: 'finite',
       }),
-    ).toBe('\\lim_{x\\to 0}\\left(\\frac{\\sin(x)}{x}\\right)');
+    ).toBe('\\lim_{x\\to 0^{-}}\\left(\\frac{\\sin(x)}{x}\\right)');
 
     expect(
       buildLimitLatex({
@@ -78,8 +79,35 @@ describe('calculus workbench builders', () => {
         },
       ),
     ).toEqual({
-      latex: '\\lim_{x\\to 0}\\left(\\frac{\\sin(x)}{x}\\right)',
+      latex: '\\lim_{x\\to 0^{-}}\\left(\\frac{\\sin(x)}{x}\\right)',
       limitDirection: 'left',
+    });
+
+    expect(
+      buildWorkbenchExpression(
+        'limit',
+        DEFAULT_DERIVATIVE_WORKBENCH,
+        DEFAULT_DERIVATIVE_POINT_WORKBENCH,
+        DEFAULT_INTEGRAL_WORKBENCH,
+        {
+          ...DEFAULT_LIMIT_WORKBENCH,
+          bodyLatex: '\\frac{1}{x}',
+          target: '0^+',
+          direction: 'two-sided',
+          targetKind: 'finite',
+        },
+      ),
+    ).toEqual({
+      latex: '\\lim_{x\\to 0^{+}}\\left(\\frac{1}{x}\\right)',
+      limitDirection: 'right',
+    });
+  });
+
+  it('normalizes typed directional limit targets into state direction', () => {
+    expect(applyFiniteLimitTargetDraft(DEFAULT_LIMIT_WORKBENCH, '0^-')).toEqual({
+      ...DEFAULT_LIMIT_WORKBENCH,
+      target: '0',
+      direction: 'left',
     });
   });
 

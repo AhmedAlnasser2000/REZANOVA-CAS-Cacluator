@@ -3,7 +3,10 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { MathEditor } from '../../components/MathEditor';
 import { SignedNumberDraftInput } from '../../components/SignedNumberDraftInput';
 import { GeneratedPreviewCard } from '../components/GeneratedPreviewCard';
-import { cycleLimitTargetKind } from '../../lib/calculus-workbench';
+import {
+  applyFiniteLimitTargetDraft,
+  cycleLimitTargetKind,
+} from '../../lib/calculus-workbench';
 import type {
   CalculateScreen,
   DerivativePointWorkbenchState,
@@ -413,10 +416,8 @@ export function CalculateWorkspace({
                   ref={limitTargetRef}
                   value={limitWorkbench.target}
                   onValueChange={(target) =>
-                    setLimitWorkbench((currentState) => ({
-                      ...currentState,
-                      target,
-                    }))
+                    setLimitWorkbench((currentState) =>
+                      applyFiniteLimitTargetDraft(currentState, target))
                   }
                 />
               </label>

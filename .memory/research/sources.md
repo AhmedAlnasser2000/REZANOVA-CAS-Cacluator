@@ -11,18 +11,18 @@
 - 2026-03-07: Casio ClassPad overview confirming CAS positioning:
   - https://edu.casio.com/intl/software/apps/classpad/
 - 2026-04-07: External reference PDF, `Comparative Software Analysis of GeoGebra, Desmos, Casio Graphing Software, TI Graphing Software, and Wolfram as Auxiliary`
-  - Local file: `C:\Users\ahmed\Downloads\Comparative Software Analysis of GeoGebra, Desmos, Casio Graphing Software, TI Graphing Software, an.pdf`
+  - Local file: `<local-source>\Comparative Software Analysis of GeoGebra, Desmos, Casio Graphing Software, TI Graphing Software, an.pdf`
   - Use as an ecosystem/positioning reference for GeoGebra, Desmos, Casio, TI, and Wolfram.
   - Do not treat it as direct empirical evidence for symbolic composition-depth limits or nested trig/inverse-trig solve behavior.
 - 2026-04-07: External vision PDF, `Calcwiz Vision`
-  - Local file: `C:\Users\ahmed\Downloads\Calcwiz Vision.pdf`
+  - Local file: `<local-source>\Calcwiz Vision.pdf`
   - Use as the long-term product and architecture vision reference for modularity, Rust-first migration, progressive solving, compute profiles, graphing, and symbolic-depth philosophy.
 - 2026-04-07: External composition design note, `codex_symbolic_composition_limits_spec.md`
-  - Local file: `C:\Users\ahmed\Downloads\codex_symbolic_composition_limits_spec.md`
+  - Local file: `<local-source>\codex_symbolic_composition_limits_spec.md`
   - Use as a future design reference for semantic stop reasons and solver-budget policy.
   - Do not treat it as current Calcwiz behavior; the shipped solver still uses bounded milestone-specific composition policies today.
 - 2026-04-08: External architecture note pack, `calcwiz_kernel_architecture.zip`
-  - Local file: `C:\Users\ahmed\Downloads\calcwiz_kernel_architecture.zip`
+  - Local file: `<local-source>\calcwiz_kernel_architecture.zip`
   - Pack files reviewed:
     - `INDEX.md`
     - `01_kernel_map.md`
@@ -32,11 +32,11 @@
   - Use as a design reference for kernel-first architecture, staged microkernel evolution, result/job/capability contract shapes, and profile/runtime authority concepts.
   - Important Calcwiz-specific interpretation preserved separately in `.memory/research/kernel-architecture-notes.md`: internal kernel contracts and pillar boundaries are the near-term move; do not interpret the pack as an instruction to build a full plugin platform or to force Rust-side runtime authority immediately.
 - 2026-04-09: External Poly-Rad lane roadmap, `poly_rad_roadmap.md`
-  - Local file: `C:\Users\ahmed\Downloads\poly_rad_roadmap.md`
+  - Local file: `<local-source>\poly_rad_roadmap.md`
   - Use as a non-binding reference for the intended Poly-Rad lane arc (`POLY-RAD2` -> `POLY-RAD3` -> `POLY-RAD4` -> Phase B polish milestones).
   - Important Calcwiz-specific interpretation preserved separately in `.memory/research/poly-rad-roadmap-chatgpt-2026-04-09.md`: compare the roadmap against the repo's actual shipped milestones and allow drift where bounded implementation reality suggests a better next step.
 - 2026-04-11: External Playground / incubation note, `Calcwiz Playground  Incubation Ladd.txt`
-  - Local file: `C:\Users\ahmed\Downloads\Calcwiz Playground  Incubation Ladd.txt`
+  - Local file: `<local-source>\Calcwiz Playground  Incubation Ladd.txt`
   - Use as a non-binding design reference for incubation levels, one-way dependency law, graduation-by-extraction, and future Playground candidates such as symbolic search, external compute, vectors, and integration workflows.
   - Important Calcwiz-specific interpretation preserved separately in:
     - `docs/architecture/playground-incubation-ladder.md`

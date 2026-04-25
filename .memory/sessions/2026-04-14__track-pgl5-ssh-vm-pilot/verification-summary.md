@@ -28,7 +28,7 @@
 - `npm run test:memory-protocol`
 
 ## Manual Checks
-- Live operator-side backend gate on `calcwiz-box` completed successfully.
+- Live operator-side backend gate on `<user-ssh-target>` completed successfully.
 - Pulled-back local `artifact-manifest.json` recorded `status: completed`.
 - Pulled-back local `parity-report.json` recorded `resultClass: match`.
 

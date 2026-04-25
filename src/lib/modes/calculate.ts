@@ -11,6 +11,7 @@ import {
 import { analyzeLatex, isRelationalOperator } from '../math-analysis';
 import { attachRuntimeEnvelope, buildRuntimeOutcome } from '../kernel/runtime-envelope';
 import { planMathExecution } from '../semantic-planner';
+import { normalizeDirectionalLimitLatex } from '../finite-limit-target';
 import type {
   AngleUnit,
   CalculateAction,
@@ -88,7 +89,12 @@ export function runCalculateMode({
   limitTargetKind,
 }: RunCalculateModeRequest): DisplayOutcome {
   const title = actionTitle(action);
-  const planner = planMathExecution(latex, {
+  const directionalLimit = action === 'evaluate'
+    ? normalizeDirectionalLimitLatex(latex)
+    : { latex, directionOverride: undefined };
+  const plannerInputLatex = directionalLimit.latex;
+  const effectiveLimitDirection = directionalLimit.directionOverride ?? limitDirection;
+  const planner = planMathExecution(plannerInputLatex, {
     mode: 'calculate',
     intent:
       action === 'evaluate'
@@ -177,7 +183,7 @@ export function runCalculateMode({
       outputStyle,
       variables: { Ans: ansLatex },
       calculusOptions: {
-        limitDirection,
+        limitDirection: effectiveLimitDirection,
         limitTargetKind,
       },
     },

@@ -14,7 +14,7 @@
 - `PGL5+` SSH VM hardening gate
 - checked-in `playground:ssh-vm` operator path
 - manifest failure classes, step results, preflight evidence, and provenance
-- live `calcwiz-box` success and deliberate failure-path probes
+- live `<user-ssh-target>` success and deliberate failure-path probes
 
 ## Gate
 - backend
@@ -24,13 +24,13 @@
 - `npx eslint eslint.config.js src playground`
 - `npx tsc -b --pretty false`
 - `npm run test:memory-protocol`
-- `npm run playground:ssh-vm -- --profile playground/level-0-research/external-compute/profiles/calcwiz-box.local.json --job .task_tmp/pgl5-plus/job-success.json`
+- `npm run playground:ssh-vm -- --profile playground/level-0-research/external-compute/profiles/<user-ssh-target>.local.json --job .task_tmp/pgl5-plus/job-success.json`
 - `npm run playground:ssh-vm -- --profile .task_tmp/pgl5-plus/profile-bad-path.json --job .task_tmp/pgl5-plus/job-bad-path.json`
 - `npm run playground:ssh-vm -- --profile .task_tmp/pgl5-plus/profile-timeout.json --job .task_tmp/pgl5-plus/job-timeout.json`
 
 ## Manual Checks
-- Live `calcwiz-box` success path completed with manifest `status: completed`.
-- Live `calcwiz-box` success path completed with parity `resultClass: match`.
+- Live `<user-ssh-target>` success path completed with manifest `status: completed`.
+- Live `<user-ssh-target>` success path completed with parity `resultClass: match`.
 - Intentional bad `remoteProjectPath` produced `failureClass: preflight-failed`.
 - Intentional tiny `remoteRunTimeoutSeconds` produced `failureClass: remote-timeout`.
 

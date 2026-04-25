@@ -13,7 +13,7 @@
 - Task: capture the kernel / microkernel / pillars architecture discussion accurately in durable memory
 - Status: completed
 - Scope:
-  - reviewed the external local pack `C:\Users\ahmed\Downloads\calcwiz_kernel_architecture.zip`
+  - reviewed the external local pack `<local-source>\calcwiz_kernel_architecture.zip`
   - preserved the pack structure and main claims in repo memory instead of reducing it to a short summary
   - recorded the Calcwiz-specific adaptation:
     - kernel-centered modular monolith first

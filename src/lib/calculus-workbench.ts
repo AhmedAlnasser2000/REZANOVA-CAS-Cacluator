@@ -2,6 +2,11 @@ import {
   formatSignedNumberInput,
   parseSignedNumberInput,
 } from './signed-number';
+import {
+  finiteLimitTargetDirection,
+  finiteLimitTargetLatex,
+  parseFiniteLimitTargetDraft,
+} from './finite-limit-target';
 import type {
   CalculateScreen,
   DerivativePointWorkbenchState,
@@ -50,6 +55,25 @@ function normalizeNumberDraft(value: string) {
   return parsed === null ? undefined : formatSignedNumberInput(parsed);
 }
 
+export function applyFiniteLimitTargetDraft(
+  state: LimitWorkbenchState,
+  targetDraft: string,
+): LimitWorkbenchState {
+  const parsed = parseFiniteLimitTargetDraft(targetDraft);
+  if (parsed?.directionOverride) {
+    return {
+      ...state,
+      target: parsed.normalizedTargetLatex,
+      direction: parsed.directionOverride,
+    };
+  }
+
+  return {
+    ...state,
+    target: targetDraft,
+  };
+}
+
 export function buildDerivativeLatex(bodyLatex: string) {
   const body = trimmedBody(bodyLatex);
   if (!body) {
@@ -96,7 +120,7 @@ export function buildLimitLatex(state: LimitWorkbenchState) {
 
   let target = '';
   if (state.targetKind === 'finite') {
-    target = normalizeNumberDraft(state.target) ?? '';
+    target = finiteLimitTargetLatex(state.target, state.direction);
   } else {
     target = state.targetKind === 'posInfinity' ? '\\infty' : '-\\infty';
   }
@@ -135,7 +159,9 @@ export function buildWorkbenchExpression(
   if (screen === 'limit') {
     return {
       latex: buildLimitLatex(limitState),
-      limitDirection: limitState.direction,
+      limitDirection: limitState.targetKind === 'finite'
+        ? finiteLimitTargetDirection(limitState.target, limitState.direction)
+        : limitState.direction,
     };
   }
 

@@ -16,7 +16,7 @@
 
 ## Entries
 - approved_at_local: 2026-04-09 22:18:00 +03:00
-  approver: ahmed
+  approver: user
   decision: Adopt the Calcwiz agent-governance and memory-attribution protocol, including full historical backfill and validator enforcement.
   recorded_by_agent: codex
   recorded_by_agent_model: gpt-5.4
