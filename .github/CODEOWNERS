@@ -1,0 +1,17 @@
+* @AhmedAlnasser2000
+
+.github/** @AhmedAlnasser2000
+AGENTS.md @AhmedAlnasser2000
+CLAUDE.md @AhmedAlnasser2000
+GEMINI.md @AhmedAlnasser2000
+.memory/** @AhmedAlnasser2000
+package.json @AhmedAlnasser2000
+package-lock.json @AhmedAlnasser2000
+src-tauri/** @AhmedAlnasser2000
+src/lib/kernel/** @AhmedAlnasser2000
+src/lib/symbolic-engine/** @AhmedAlnasser2000
+src/lib/algebra/** @AhmedAlnasser2000
+src/lib/calculus-core.ts @AhmedAlnasser2000
+src/lib/calculus-verification.ts @AhmedAlnasser2000
+src/lib/math-engine.ts @AhmedAlnasser2000
+docs/release/** @AhmedAlnasser2000

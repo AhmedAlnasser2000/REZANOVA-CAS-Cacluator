@@ -1,0 +1,105 @@
+name: Release Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Preview tag to attach to the release.
+        required: true
+        default: v0.1.0-preview
+      release_name:
+        description: Human-readable preview release name.
+        required: true
+        default: Calcwiz Desktop v0.1.0 Preview
+      create_github_release:
+        description: Create a draft prerelease on GitHub in addition to workflow artifacts.
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - v*.*.*
+
+permissions:
+  contents: write
+
+jobs:
+  linux-preview:
+    name: linux-preview
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.release_tag }}
+      RELEASE_NAME: ${{ github.event_name == 'push' && format('Calcwiz Desktop {0}', github.ref_name) || inputs.release_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run launch dependency preflight
+        run: npm run test:launch-preflight
+
+      - name: Validate memory protocol
+        run: npm run test:memory-protocol
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri Linux bundles
+        run: npm run tauri:build
+
+      - name: Upload Linux preview artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: calcwiz-linux-preview-${{ env.RELEASE_TAG }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.rpm
+
+      - name: Create draft GitHub prerelease
+        if: ${{ github.event_name == 'push' || inputs.create_github_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          target_commitish: ${{ github.sha }}
+          draft: true
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            Early Linux-first preview build of Calcwiz Desktop.
+
+            This is not full CAS parity. Verify important mathematical results independently.
+            Playground and external-compute experiments are not part of this public release.
+          files: |
+            src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.deb
+            src-tauri/target/release/bundle/**/*.rpm

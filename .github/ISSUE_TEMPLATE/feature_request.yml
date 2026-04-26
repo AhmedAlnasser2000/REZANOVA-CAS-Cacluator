@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest a bounded feature, workflow, or release improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: What should Calcwiz add or improve?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Calculate
+        - Equation
+        - Calculus
+        - Advanced Calc
+        - Trigonometry
+        - Geometry
+        - Statistics
+        - Matrix / Vector / Table
+        - UI / UX
+        - Packaging / release
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope boundaries
+      description: Any constraints or examples of what this feature should not try to solve?
+  - type: textarea
+    id: references
+    attributes:
+      label: References or examples
+      description: Add screenshots, links, or comparable calculator behavior if useful.

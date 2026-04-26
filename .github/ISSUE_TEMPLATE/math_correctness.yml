@@ -1,0 +1,60 @@
+name: Math correctness report
+description: Report an incorrect, misleading, or insufficiently honest math result.
+title: "[Math]: "
+labels: ["math-correctness"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Calcwiz is an early bounded CAS-style calculator. Correctness reports are especially valuable.
+        Please include enough detail to reproduce the result.
+  - type: textarea
+    id: input
+    attributes:
+      label: Input
+      description: Paste the exact expression, equation, or workflow values.
+      placeholder: "\\int_0^1 2x\\,dx"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: What should Calcwiz return?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: What did Calcwiz return?
+    validations:
+      required: true
+  - type: dropdown
+    id: exactness
+    attributes:
+      label: Exact vs approximate concern
+      options:
+        - Exact result is wrong
+        - Approximate result is wrong
+        - Numeric fallback should not be trusted
+        - Missing or misleading condition/domain warning
+        - Result wording/provenance is misleading
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Source or reference
+      description: Link or cite a trusted source, CAS result, textbook identity, or manual derivation when possible.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Add screenshots if relevant.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0-preview or commit hash

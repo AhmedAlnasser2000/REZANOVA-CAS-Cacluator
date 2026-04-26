@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/AhmedAlnasser2000/Cacluator/security/advisories/new
+    about: Please report vulnerabilities privately through GitHub security advisories when available.

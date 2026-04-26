@@ -2,12 +2,13 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is at the committed `CALC-INT1` checkpoint, which also adds MIT license metadata.
+- Active branch context: `main` is at the committed `CALC-INT1` checkpoint; current working tree contains completed `REL0` public repo guardrails and Linux preview release foundations awaiting user review/commit.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
 - Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
 - Public tracked memory should use stable placeholders for exact local paths, private operator names, and local SSH target aliases; exact local mappings belong only in ignored scratchpads.
+- Public release posture: protect `main`, require PR review and `ci-linux`, keep Linux preview releases manual/tag-triggered, and keep Playground/external compute out of first public artifacts.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -50,6 +51,7 @@
 - Post `CALC-LIM3` local-limit leap; shared Basic/Advanced limits now handle stronger rational/local-order behavior, bounded elementary-equivalent products, rational dominance at infinity, and accurate limit method detail notes.
 - Post `domain-range-CORE1` shared substrate; equation, calculus, and future definite-integral trust work now have a bounded real-domain/range core for constraints, range proofs, one-sided domain checks, and interval-safety readiness.
 - Post `CALC-INT1` definite-integral trust pass; Calculate, Basic Calculus, and Advanced Calc finite definite integrals now share exact verified antiderivative evaluation, interval-safety gates, numeric fallback honesty, and method/safety detail notes.
+- Post `REL0` public repository guardrail foundation; CI/release workflows, CODEOWNERS, contribution/security docs, issue/PR templates, README preview-release notes, and first Linux preview checklist are now in place without product math changes.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -91,6 +93,28 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `REL0` as the public repo guardrails and first Linux preview release foundation:
+  - added `.github/workflows/ci.yml` with required Linux-first `ci-linux` checks for memory protocol, unit tests, UI tests, lint, frontend build, and Rust `cargo check`
+  - added a separate `e2e-linux` browser-smoke job for the focused Playwright smoke suite, intended to be observed before making it required
+  - added `.github/workflows/release-linux.yml` for manual/tag-triggered Linux preview bundles, GitHub Actions artifacts, and optional draft prerelease upload
+  - added `.github/CODEOWNERS`, PR template, bug/math-correctness/feature issue templates, `CONTRIBUTING.md`, and `SECURITY.md`
+  - added `docs/release/first-public-preview-checklist.md` and a light README preview-release section
+  - kept release wording honest: Linux-first, early preview, not full CAS parity, verify important results independently
+  - explicitly kept Playground/external compute out of first public release scope
+  - added no math behavior, solver behavior, app architecture refactor, secrets, signing keys, private paths, or automatic release-on-main behavior
+  - added `.memory/research/TRACK-REL0-MANUAL-VERIFICATION-CHECKLIST.md`
+  - next recommended step is to enable branch protection for `main`, observe the first CI run on GitHub, then create a draft `v0.1.0-preview` Linux release
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run test:memory-protocol` passed locally on 2026-04-26
+  - `npm run test:unit` passed locally on 2026-04-26
+  - `npm run test:ui` passed locally on 2026-04-26
+  - `npm run lint` passed locally on 2026-04-26
+  - `npm run build` passed locally on 2026-04-26
+  - `cargo check --manifest-path src-tauri/Cargo.toml` passed locally on 2026-04-26
+  - workflow YAML parse via `js-yaml` passed locally on 2026-04-26
+  - `npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium` passed locally on 2026-04-26
 - Completed `CALC-INT1` as the exact finite definite-integral, interval-safety, and improper-honesty pass after `domain-range-CORE1`:
   - added a shared finite definite-integral evaluator in `src/lib/calculus-core.ts`
   - routed free-form Calculate definite integrals, guided Basic Calculus definite integrals, and Advanced Calc definite integrals through the shared evaluator

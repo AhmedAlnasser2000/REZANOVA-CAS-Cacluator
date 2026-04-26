@@ -161,6 +161,20 @@ npm run build
 npm run tauri:build
 ```
 
+## Preview release
+
+Calcwiz is preparing a Linux-first preview release path.
+
+- Source builds are available now with the commands above.
+- Packaged preview artifacts are produced by the `Release Linux` GitHub Actions workflow.
+- The first public package should be treated as an early preview, not production-stable software or full CAS parity.
+- Verify important mathematical results independently.
+
+When a preview release is published, Linux artifacts will be available from GitHub Releases or from the `Release Linux` workflow artifacts.
+
+Release checklist:
+- [docs/release/first-public-preview-checklist.md](docs/release/first-public-preview-checklist.md)
+
 ## Validation / testing
 
 The repo already includes multiple validation layers.
