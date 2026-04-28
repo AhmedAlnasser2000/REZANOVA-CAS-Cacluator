@@ -1,5 +1,7 @@
 # Sources
 
+Note: new as-is source preservation belongs in `.memory/sources/`. This file is a legacy/reference index for source notes and interpreted source pointers, not the canonical folder for verbatim snapshots.
+
 - Tauri architecture and start docs
 - MathLive mathfield and static rendering docs
 - Compute Engine reference and local API validation

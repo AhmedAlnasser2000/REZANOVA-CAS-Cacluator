@@ -11,6 +11,7 @@
 - Public release posture: protect `main`, require PR review and `ci-linux`, keep Linux preview releases manual/tag-triggered, and keep Playground/external compute out of first public artifacts.
 - Current sequencing note: finish the `REL/PILLARS` clean-base lane before major new math breadth or FriCAS research; after `CALC-INT1`, the remaining near-term calculus item is `CALC-POLISH1`.
 - FriCAS context research is captured as a future isolated `FRICAS-CTX0` lane only, but the incubation system should be strengthened before that lane starts; no direct dependency, no submodule, no code copying by default, and any translated idea must pass through Playground/incubation before stable adoption.
+- Source preservation posture: new external roadmaps, research files, and ChatGPT discussion exports that need as-is retention belong in `.memory/sources/` as verbatim snapshots with metadata kept separately in `.memory/sources/INDEX.md`.
 
 ## Agent Ownership
 - `AGENTS.md` is the authoritative cross-agent workflow file for this repo; `CLAUDE.md` and `GEMINI.md` are compatibility stubs only.
@@ -55,6 +56,7 @@
 - Post `CALC-INT1` definite-integral trust pass; Calculate, Basic Calculus, and Advanced Calc finite definite integrals now share exact verified antiderivative evaluation, interval-safety gates, numeric fallback honesty, and method/safety detail notes.
 - Post `REL0` public repository guardrail foundation; CI/release workflows, CODEOWNERS, contribution/security docs, issue/PR templates, README preview-release notes, and first Linux preview checklist are now in place without product math changes.
 - Post sequencing capture for `REL/PILLARS`, remaining calculus follow-through, and future FriCAS context research; the next clean-base priority is `REL1`, then `PILLARS0` / `MATH-GOLDEN0`, before returning to `CALC-POLISH1`, strengthening incubation, and only then starting `FRICAS-CTX0`.
+- Post `REL1 + SRC0` foundation pass; first Linux preview release proof is hardened and `.memory/sources/` now preserves external source snapshots before interpretation.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -96,6 +98,22 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `REL1 + SRC0` as the first Linux preview proof and memory-source preservation milestone:
+  - added `.memory/sources/` as the canonical verbatim source snapshot folder
+  - preserved the REL/PILLARS roadmap as `.memory/sources/2026-04-28__calcwiz-rel-pillars-roadmap.md`
+  - recorded source metadata in `.memory/sources/INDEX.md` with SHA-256 `a81a3bb99786fe6fe02bfd76fc612e175b742d51b749e499da62a9cc2c25b58b` and byte size `24370`
+  - kept `.memory/research/sources.md` as a legacy/reference source note and pointed it to `.memory/sources/`
+  - hardened `.github/workflows/release-linux.yml` so preview packaging runs launch preflight, memory protocol, unit tests, UI tests, lint, frontend build, Rust `cargo check`, and Tauri bundle build
+  - added `docs/release/release-process.md`, updated the first-preview checklist to `REL1`, and added `CHANGELOG.md`
+  - aligned `src-tauri/Cargo.toml` license/repository metadata with the public MIT release posture
+  - added `.memory/research/TRACK-REL1-MANUAL-VERIFICATION-CHECKLIST.md`
+  - local source snapshot verification passed with matching SHA-256 and byte-identical `cmp`
+  - local release gates passed: memory protocol, unit tests, UI tests, lint, frontend build, Rust `cargo check`, launch preflight, and `npm run tauri:build`
+  - local Linux bundle proof produced:
+    - `src-tauri/target/release/bundle/appimage/Calcwiz Desktop_0.1.0_amd64.AppImage` (`78871032` bytes)
+    - `src-tauri/target/release/bundle/deb/Calcwiz Desktop_0.1.0_amd64.deb` (`4732982` bytes)
+    - `src-tauri/target/release/bundle/rpm/Calcwiz Desktop-0.1.0-1.x86_64.rpm` (`4733523` bytes)
+  - no math behavior, solver behavior, Playground adoption, external compute productization, signing, auto-updater, or Windows/macOS release guarantee was added
 - Captured the post-`REL0` sequencing base:
   - added `.memory/research/rel-pillars-calculus-fricas-sequencing.md`
   - recorded that `REL1`, `PILLARS0`, and `MATH-GOLDEN0` are the preferred clean-base work before another major math leap

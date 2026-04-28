@@ -1,10 +1,13 @@
 # First Public Preview Release Checklist
 
-Milestone: `REL0`
+Milestone: `REL1`
 
 Recommended first tag: `v0.1.0-preview`
 
 This checklist prepares a Linux-first early public build. It does not mark Calcwiz as production-stable or full CAS parity.
+
+Reusable release process:
+- [docs/release/release-process.md](release-process.md)
 
 ## Local Preflight
 
@@ -18,14 +21,14 @@ npm run test:ui
 npm run lint
 npm run build
 cargo check --manifest-path src-tauri/Cargo.toml
+npm run test:launch-preflight
+npm run tauri:build
 ```
 
 Optional but recommended:
 
 ```bash
 npx playwright test e2e/calc-audit0-smoke.spec.ts --project=chromium
-npm run test:launch-preflight
-npm run tauri:build
 ```
 
 ## CI Checks To Verify
@@ -92,6 +95,12 @@ The release workflow uploads whatever Tauri produces on Ubuntu:
 
 At minimum, artifacts are attached to the GitHub Actions run. When creating a draft GitHub prerelease, the same bundle files are uploaded to the release.
 
+Local Linux bundles, when `npm run tauri:build` succeeds, are written under:
+
+```text
+src-tauri/target/release/bundle/
+```
+
 ## README / License Check
 
 Before publishing:
@@ -100,6 +109,8 @@ Before publishing:
 - README does not claim full CAS parity.
 - README links to `LICENSE`.
 - `package.json` includes `"license": "MIT"`.
+- `src-tauri/Cargo.toml` includes `license = "MIT"`.
+- `CHANGELOG.md` includes the preview entry or planned preview notes.
 
 ## Known Limitations To Mention
 

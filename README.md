@@ -175,6 +175,10 @@ When a preview release is published, Linux artifacts will be available from GitH
 Release checklist:
 - [docs/release/first-public-preview-checklist.md](docs/release/first-public-preview-checklist.md)
 
+Release process and notes:
+- [docs/release/release-process.md](docs/release/release-process.md)
+- [CHANGELOG.md](CHANGELOG.md)
+
 ## Validation / testing
 
 The repo already includes multiple validation layers.

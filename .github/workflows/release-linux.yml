@@ -18,7 +18,8 @@ on:
         default: false
   push:
     tags:
-      - v*.*.*
+      - 'v*.*.*'
+      - 'v*.*.*-*'
 
 permissions:
   contents: write
@@ -68,8 +69,20 @@ jobs:
       - name: Validate memory protocol
         run: npm run test:memory-protocol
 
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run UI tests
+        run: npm run test:ui
+
+      - name: Run lint
+        run: npm run lint
+
       - name: Build frontend
         run: npm run build
+
+      - name: Check Tauri Rust crate
+        run: cargo check --manifest-path src-tauri/Cargo.toml
 
       - name: Build Tauri Linux bundles
         run: npm run tauri:build
