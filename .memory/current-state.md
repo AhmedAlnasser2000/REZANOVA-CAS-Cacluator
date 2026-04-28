@@ -2,14 +2,14 @@
 
 ## Active Context
 - Workspace: `Calcwiz`
-- Active branch context: `main` is at the committed and pushed `REL0` public repo guardrails checkpoint.
+- Active branch context: `main` is on the public release hardening lane after `REL1 + SRC0` and `PILLARS0`.
 - Workflow default: commit-first with meaningful verified gates and explicit approval before commit or push.
 - Version 1 platform direction has shifted to Linux-first while keeping cross-platform ground for Windows/macOS through Tauri, TypeScript, Rust, and repo-owned validation.
 - `PGL5+` SSH VM hardening is verified and committed, but external compute is intentionally postponed rather than adopted or retired; the lane should wait until core calculator stability and additional solver work make remote execution worth revisiting.
 - Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
 - Public tracked memory should use stable placeholders for exact local paths, private operator names, and local SSH target aliases; exact local mappings belong only in ignored scratchpads.
 - Public release posture: protect `main`, require PR review and `ci-linux`, keep Linux preview releases manual/tag-triggered, and keep Playground/external compute out of first public artifacts.
-- Current sequencing note: finish the `REL/PILLARS` clean-base lane before major new math breadth or FriCAS research; after `CALC-INT1`, the remaining near-term calculus item is `CALC-POLISH1`.
+- Current sequencing note: continue the `REL/PILLARS` clean-base lane with `MATH-GOLDEN0` before major new math breadth or FriCAS research; after `CALC-INT1`, the remaining near-term calculus item is `CALC-POLISH1`.
 - FriCAS context research is captured as a future isolated `FRICAS-CTX0` lane only, but the incubation system should be strengthened before that lane starts; no direct dependency, no submodule, no code copying by default, and any translated idea must pass through Playground/incubation before stable adoption.
 - Source preservation posture: new external roadmaps, research files, and ChatGPT discussion exports that need as-is retention belong in `.memory/sources/` as verbatim snapshots with metadata kept separately in `.memory/sources/INDEX.md`.
 
@@ -57,6 +57,7 @@
 - Post `REL0` public repository guardrail foundation; CI/release workflows, CODEOWNERS, contribution/security docs, issue/PR templates, README preview-release notes, and first Linux preview checklist are now in place without product math changes.
 - Post sequencing capture for `REL/PILLARS`, remaining calculus follow-through, and future FriCAS context research; the next clean-base priority is `REL1`, then `PILLARS0` / `MATH-GOLDEN0`, before returning to `CALC-POLISH1`, strengthening incubation, and only then starting `FRICAS-CTX0`.
 - Post `REL1 + SRC0` foundation pass; first Linux preview release proof is hardened and `.memory/sources/` now preserves external source snapshots before interpretation.
+- Post `PILLARS0` baseline pass; public project pillars are documented and guarded by `npm run test:pillars`, with `MATH-GOLDEN0` still the next clean-base correctness milestone.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -98,6 +99,17 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `PILLARS0` as the minimal public-quality Calcwiz pillars baseline after `REL1 + SRC0`:
+  - added `docs/pillars/` with eight compact pillar docs: build identity, golden math regression, diagnostics/error-boundary policy, config/schema version placeholder, changelog/release notes discipline, dependency policy, privacy/telemetry policy, and result-envelope stability policy
+  - each pillar records what it protects, why it is cheap now and expensive later, what exists today, the first automated check, and what is explicitly deferred
+  - added `tools/validate-pillars.mjs`, `tools/validate-pillars.test.mjs`, and `npm run test:pillars`
+  - wired `test:pillars` into `npm run test:gate`, `ci-linux`, and `Release Linux`
+  - linked the pillar baseline from README
+  - added `.memory/research/TRACK-PILLARS0-MANUAL-VERIFICATION-CHECKLIST.md`
+  - kept this as governance and release-confidence work only: no math behavior, solver behavior, UI feature, telemetry, crash uploader, plugin API, config migration, diagnostics framework, FriCAS research, or incubation-system change was added
+  - next recommended milestone is `MATH-GOLDEN0`
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
 - Completed `REL1 + SRC0` as the first Linux preview proof and memory-source preservation milestone:
   - added `.memory/sources/` as the canonical verbatim source snapshot folder
   - preserved the REL/PILLARS roadmap as `.memory/sources/2026-04-28__calcwiz-rel-pillars-roadmap.md`

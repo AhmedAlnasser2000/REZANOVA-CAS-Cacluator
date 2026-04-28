@@ -179,6 +179,11 @@ Release process and notes:
 - [docs/release/release-process.md](docs/release/release-process.md)
 - [CHANGELOG.md](CHANGELOG.md)
 
+## Project pillars
+
+Calcwiz keeps a small public pillars baseline for release confidence, correctness discipline, privacy expectations, dependency hygiene, and result-surface stability:
+- [docs/pillars/README.md](docs/pillars/README.md)
+
 ## Validation / testing
 
 The repo already includes multiple validation layers.

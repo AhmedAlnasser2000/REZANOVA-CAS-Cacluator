@@ -69,6 +69,9 @@ jobs:
       - name: Validate memory protocol
         run: npm run test:memory-protocol
 
+      - name: Validate public pillars
+        run: npm run test:pillars
+
       - name: Run unit tests
         run: npm run test:unit
 
