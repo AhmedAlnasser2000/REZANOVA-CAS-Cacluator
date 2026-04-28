@@ -14,7 +14,7 @@ The repo has broad unit, UI, and browser smoke coverage across equation, calculu
 
 ## First Automated Check
 
-`MATH-GOLDEN0` should add a small executable golden corpus and wire it into CI after the corpus format is chosen. `PILLARS0` only preserves this pillar and names the next milestone.
+`MATH-GOLDEN0` adds a small executable golden corpus for shipped behavior. See [Golden Math Regression](../validation/golden-math-regression.md).
 
 ## Explicitly Deferred
 

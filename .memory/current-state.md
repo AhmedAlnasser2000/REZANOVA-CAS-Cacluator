@@ -9,7 +9,7 @@
 - Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
 - Public tracked memory should use stable placeholders for exact local paths, private operator names, and local SSH target aliases; exact local mappings belong only in ignored scratchpads.
 - Public release posture: protect `main`, require PR review and `ci-linux`, keep Linux preview releases manual/tag-triggered, and keep Playground/external compute out of first public artifacts.
-- Current sequencing note: continue the `REL/PILLARS` clean-base lane with `MATH-GOLDEN0` before major new math breadth or FriCAS research; after `CALC-INT1`, the remaining near-term calculus item is `CALC-POLISH1`.
+- Current sequencing note: the `REL/PILLARS` clean-base lane now has `REL1`, `PILLARS0`, and `MATH-GOLDEN0`; the next default milestone is `CALC-POLISH1` unless public traffic requires `DOCS0`, `TRIAGE0`, `SEC0`, or another release-hardening slice first.
 - FriCAS context research is captured as a future isolated `FRICAS-CTX0` lane only, but the incubation system should be strengthened before that lane starts; no direct dependency, no submodule, no code copying by default, and any translated idea must pass through Playground/incubation before stable adoption.
 - Source preservation posture: new external roadmaps, research files, and ChatGPT discussion exports that need as-is retention belong in `.memory/sources/` as verbatim snapshots with metadata kept separately in `.memory/sources/INDEX.md`.
 
@@ -58,6 +58,7 @@
 - Post sequencing capture for `REL/PILLARS`, remaining calculus follow-through, and future FriCAS context research; the next clean-base priority is `REL1`, then `PILLARS0` / `MATH-GOLDEN0`, before returning to `CALC-POLISH1`, strengthening incubation, and only then starting `FRICAS-CTX0`.
 - Post `REL1 + SRC0` foundation pass; first Linux preview release proof is hardened and `.memory/sources/` now preserves external source snapshots before interpretation.
 - Post `PILLARS0` baseline pass; public project pillars are documented and guarded by `npm run test:pillars`, with `MATH-GOLDEN0` still the next clean-base correctness milestone.
+- Post `MATH-GOLDEN0` correctness baseline; shipped math behavior now has a small typed golden corpus wired into CI/release gates.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -99,6 +100,16 @@
   - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `MATH-GOLDEN0` as the shipped-behavior golden math corpus:
+  - added a typed 24-case corpus under `src/lib/__golden__/`
+  - added `npm run test:golden` and wired it into `npm run test:gate`, `ci-linux`, and `Release Linux`
+  - covered Calculate arithmetic/transforms, calculus derivatives/integrals/limits, definite-integral safety, Equation symbolic/guided/rational/radical/absolute-value/range-guard behavior
+  - added `docs/validation/golden-math-regression.md` and linked it from the math-regression pillar
+  - added `.memory/research/TRACK-MATH-GOLDEN0-MANUAL-VERIFICATION-CHECKLIST.md`
+  - preserved boundaries: no math capability, solver behavior, UI snapshotting, aspirational cases, FriCAS work, incubation change, or calculus-polish work was added
+  - next default milestone is `CALC-POLISH1` unless public release pressure makes `DOCS0`, `TRIAGE0`, or `SEC0` more urgent
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
 - Completed `PILLARS0` as the minimal public-quality Calcwiz pillars baseline after `REL1 + SRC0`:
   - added `docs/pillars/` with eight compact pillar docs: build identity, golden math regression, diagnostics/error-boundary policy, config/schema version placeholder, changelog/release notes discipline, dependency policy, privacy/telemetry policy, and result-envelope stability policy
   - each pillar records what it protects, why it is cheap now and expensive later, what exists today, the first automated check, and what is explicitly deferred

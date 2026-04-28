@@ -72,6 +72,9 @@ jobs:
       - name: Validate public pillars
         run: npm run test:pillars
 
+      - name: Run golden math corpus
+        run: npm run test:golden
+
       - name: Run unit tests
         run: npm run test:unit
 

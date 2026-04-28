@@ -18,7 +18,7 @@ Preferred clean-base order:
 
 1. `REL1` - first Linux preview release pipeline. Completed.
 2. `PILLARS0` - minimal public-quality Calcwiz pillars baseline. Completed.
-3. `MATH-GOLDEN0` - golden math regression corpus for shipped behavior. Next recommended clean-base milestone.
+3. `MATH-GOLDEN0` - golden math regression corpus for shipped behavior. Completed.
 4. `DOCS0` / `TRIAGE0` / `SEC0` as public traffic pressure requires.
 5. `CALC-POLISH1` - calculus readback, Guide, history/replay, and UX consistency for the calculus core already established.
 
@@ -34,7 +34,7 @@ The broader `REL/PILLARS` roadmap remains the public-release hardening lane:
 - `SEC0`
 - `UX-REL0`
 
-Not every item must block the first preview binary. `REL1` and `PILLARS0` are complete; `MATH-GOLDEN0` is the remaining preferred correctness baseline before another major math leap.
+Not every item must block the first preview binary. `REL1`, `PILLARS0`, and `MATH-GOLDEN0` are complete; the next default move is `CALC-POLISH1` unless public traffic makes `DOCS0`, `TRIAGE0`, `SEC0`, or another release-hardening slice more urgent.
 
 ## What Remains From The Calculus Core Roadmap
 
