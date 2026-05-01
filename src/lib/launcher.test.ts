@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LAUNCHER_CATEGORIES } from '../types/calculator';
 import {
+  createLauncherCategories,
   createLauncherStateForMode,
+  ensureLauncherLabsCategory,
   getLauncherAppAtIndex,
   getLauncherAppByHotkey,
   getLauncherCategoryAtIndex,
@@ -70,5 +72,26 @@ describe('launcher helpers', () => {
       categoryId: 'shapeMath',
       categorySelectedIndex: 0,
     });
+  });
+
+  it('adds the Labs category only when the developer flag is enabled', () => {
+    expect(createLauncherCategories({ labsEnabled: false }).some((category) => category.id === 'labs')).toBe(false);
+
+    const categories = createLauncherCategories({ labsEnabled: true });
+    const labsCategory = categories.find((category) => category.id === 'labs');
+
+    expect(labsCategory?.label).toBe('Labs');
+    expect(labsCategory?.entries[0].launch).toEqual({ mode: 'labs' });
+    expect(
+      createLauncherStateForMode('labs', 'calculate', categories),
+    ).toMatchObject({
+      rootSelectedIndex: categories.length - 1,
+    });
+  });
+
+  it('merges Labs into host-provided launcher categories without duplicating it', () => {
+    const categories = createLauncherCategories({ labsEnabled: true });
+    expect(ensureLauncherLabsCategory(DEFAULT_LAUNCHER_CATEGORIES, { labsEnabled: true }).at(-1)?.id).toBe('labs');
+    expect(ensureLauncherLabsCategory(categories, { labsEnabled: true }).filter((category) => category.id === 'labs')).toHaveLength(1);
   });
 });

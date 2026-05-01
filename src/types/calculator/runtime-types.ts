@@ -125,12 +125,14 @@ export type GuideScreen =
   | 'modeGuide'
   | 'search';
 
+export type GuideModeId = Exclude<ModeId, 'guide' | 'labs'>;
+
 export type GuideRoute =
   | { screen: 'home' }
   | { screen: 'domain'; domainId: GuideDomainId }
   | { screen: 'article'; articleId: string }
   | { screen: 'symbolLookup'; query: string }
-  | { screen: 'modeGuide'; modeId?: Exclude<ModeId, 'guide'> }
+  | { screen: 'modeGuide'; modeId?: GuideModeId }
   | { screen: 'search'; query: string };
 
 export type GuideSoftAction =
@@ -214,7 +216,7 @@ export type GuideExampleLaunch =
     }
   | {
       kind: 'open-tool';
-      targetMode: Exclude<ModeId, 'guide'>;
+      targetMode: GuideModeId;
       calculateScreen?: CalculateScreen;
       calculateSeed?: Partial<
         DerivativeWorkbenchState
@@ -289,7 +291,7 @@ export type GuideArticle = {
   howToUse: string[];
   concepts: string[];
   whereToFindIt: string[];
-  bestModes: Exclude<ModeId, 'guide'>[];
+  bestModes: GuideModeId[];
   symbols: GuideSymbolId[];
   examples: GuideExample[];
   pitfalls: string[];
@@ -305,13 +307,13 @@ export type GuideSymbolRef = {
   keyboardPageId?: string;
   supportLevel: 'insert' | 'numeric' | 'symbolic';
   meaning: string;
-  bestModes: Exclude<ModeId, 'guide'>[];
+  bestModes: GuideModeId[];
   articleIds: GuideArticleId[];
   active: boolean;
 };
 
 export type GuideModeRef = {
-  modeId: Exclude<ModeId, 'guide'>;
+  modeId: GuideModeId;
   title: string;
   summary: string;
   bestFor: string[];
@@ -363,7 +365,7 @@ export type GuideSearchResult =
     }
   | {
       kind: 'mode';
-      id: Exclude<ModeId, 'guide'>;
+      id: GuideModeId;
       title: string;
       description: string;
       route: GuideRoute;
@@ -385,7 +387,8 @@ export type LauncherLaunchTarget =
   | { mode: 'advancedCalculus'; advancedCalcScreen?: AdvancedCalcScreen }
   | { mode: 'trigonometry'; trigScreen?: TrigScreen }
   | { mode: 'statistics'; statisticsScreen?: StatisticsScreen }
-  | { mode: 'geometry'; geometryScreen?: GeometryScreen };
+  | { mode: 'geometry'; geometryScreen?: GeometryScreen }
+  | { mode: 'labs' };
 
 export type LauncherAppEntry = {
   id: LauncherLeafId;
@@ -1095,6 +1098,16 @@ export const DEFAULT_MODE_TREE: MenuNode[] = [
     children: [
       { id: 'open', label: 'Open', hotkey: 'F1' },
       { id: 'guide', label: 'Guide', hotkey: 'F2' },
+      { id: 'back', label: 'Back', hotkey: 'F5' },
+      { id: 'exit', label: 'Exit', hotkey: 'F6' },
+    ],
+  },
+  {
+    id: 'labs',
+    label: 'Labs',
+    hotkey: 'Dev flag',
+    children: [
+      { id: 'open', label: 'Open', hotkey: 'F1' },
       { id: 'back', label: 'Back', hotkey: 'F5' },
       { id: 'exit', label: 'Exit', hotkey: 'F6' },
     ],

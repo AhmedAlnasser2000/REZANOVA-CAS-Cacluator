@@ -3,8 +3,8 @@ import type {
   GuideArticle,
   GuideExample,
   GuideHomeEntry,
+  GuideModeId,
   GuideModeRef,
-  ModeId,
 } from '../../../types/calculator';
 import { GUIDE_DOMAIN_CAPABILITY, GUIDE_DOMAINS, getActiveGuideDomains } from '../domains';
 
@@ -2247,7 +2247,7 @@ export function getGuideArticlesForDomain(domainId: GuideArticle['domainId']) {
   return GUIDE_ARTICLES.filter((article) => article.domainId === domainId);
 }
 
-export function getGuideModeRef(modeId: Exclude<ModeId, 'guide'>) {
+export function getGuideModeRef(modeId: GuideModeId) {
   return GUIDE_MODE_REFS.find((mode) => mode.modeId === modeId);
 }
 
@@ -2280,7 +2280,7 @@ export function getGuideHomeEntries(enabledCapabilities: readonly CapabilityId[]
 export const getActiveGuideHomeEntries = getGuideHomeEntries;
 export { getActiveGuideDomains };
 
-export function getGuideArticlesForMode(modeId: Exclude<ModeId, 'guide'>) {
+export function getGuideArticlesForMode(modeId: GuideModeId) {
   const articleIds = getGuideModeRef(modeId)?.articleIds ?? [];
   return articleIds
     .map((articleId) => getGuideArticle(articleId))

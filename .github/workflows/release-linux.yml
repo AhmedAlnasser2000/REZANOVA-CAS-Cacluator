@@ -75,6 +75,9 @@ jobs:
       - name: Run golden math corpus
         run: npm run test:golden
 
+      - name: Validate Labs catalog
+        run: npm run test:labs-catalog
+
       - name: Run unit tests
         run: npm run test:unit
 

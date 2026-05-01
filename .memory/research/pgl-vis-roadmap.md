@@ -81,6 +81,30 @@ That means `PGL-VIS` should start by improving observability and operator workfl
 
 ## Recommended sequence
 
+### `INCUBATION-LABS0` — Dev-Only Labs Catalog Bridge
+
+Status: completed on 2026-04-30.
+
+Purpose:
+- make incubation visible enough to inspect without letting Playground become a runtime authority
+
+Scope:
+- generate a committed catalog snapshot from `playground/manifests/*.yaml` and `playground/records/INDEX.md`
+- import only the stable `src/lib/labs` snapshot from the app
+- show a `VITE_SHOW_LABS=1` developer-only Labs section with experiment status and metadata
+- keep `playground/...` paths as inert display text only
+
+Out of scope:
+- no experiment execution from the calculator
+- no remote controls
+- no stable result delegation
+- no history mixing
+- no normal-user experimental mode
+
+Relationship to `PGL-VIS1`:
+- this is a bridge and observability proof, not the full internal console originally imagined for `PGL-VIS1`
+- future `PGL-VIS1` should build on the same one-way snapshot discipline if it ever adds richer inspection or controlled execution
+
 ### `PGL-VIS1` — Internal Playground Console
 
 Purpose:
@@ -88,7 +112,8 @@ Purpose:
 
 Scope:
 - hidden or development-only surface inside the calculator
-- launch and inspect Playground experiments from inside the app shell
+- inspect Playground experiments from inside the app shell
+- any future execution controls must be separately approved after the one-way catalog pattern proves safe
 - view experiment metadata, corpus runs, traces, and comparison summaries
 - no normal-user entrypoint
 

@@ -9,7 +9,7 @@
 - Near-term product direction is now to pause broad algebra expansion and advance bounded calculus milestones on top of the shared calculus evaluation and verification boundary, with every post-`CALC-CORE1` calculus capability gated by explicit algebra/core dependency readiness.
 - Public tracked memory should use stable placeholders for exact local paths, private operator names, and local SSH target aliases; exact local mappings belong only in ignored scratchpads.
 - Public release posture: protect `main`, require PR review and `ci-linux`, keep Linux preview releases manual/tag-triggered, and keep Playground/external compute out of first public artifacts.
-- Current sequencing note: the `REL/PILLARS` clean-base lane now has `REL1`, `PILLARS0`, and `MATH-GOLDEN0`; `CALC-POLISH1` has closed the immediate calculus UX/replay follow-through. The next default move is incubation-system strengthening before `FRICAS-CTX0`, unless public traffic requires `DOCS0`, `TRIAGE0`, `SEC0`, or another release-hardening slice first.
+- Current sequencing note: the `REL/PILLARS` clean-base lane now has `REL1`, `PILLARS0`, and `MATH-GOLDEN0`; `CALC-POLISH1` has closed the immediate calculus UX/replay follow-through; `INCUBATION-LABS0` now gives the app a dev-only one-way Labs catalog view before `FRICAS-CTX0`.
 - FriCAS context research is captured as a future isolated `FRICAS-CTX0` lane only, but the incubation system should be strengthened before that lane starts; no direct dependency, no submodule, no code copying by default, and any translated idea must pass through Playground/incubation before stable adoption.
 - Source preservation posture: new external roadmaps, research files, and ChatGPT discussion exports that need as-is retention belong in `.memory/sources/` as verbatim snapshots with metadata kept separately in `.memory/sources/INDEX.md`.
 
@@ -60,6 +60,7 @@
 - Post `PILLARS0` baseline pass; public project pillars are documented and guarded by `npm run test:pillars`, with `MATH-GOLDEN0` still the next clean-base correctness milestone.
 - Post `MATH-GOLDEN0` correctness baseline; shipped math behavior now has a small typed golden corpus wired into CI/release gates.
 - Post `CALC-POLISH1` calculus readback/replay polish; Calculate guided Calculus and Advanced Calc history entries now capture optional typed replay context, replay uses typed seeds before legacy inference, calculus chips/provenance wording are normalized across result surfaces, and Guide examples now match shipped golden/calculus behavior.
+- Post `INCUBATION-LABS0` one-way Labs bridge; Playground manifests and records now generate a committed `src/lib/labs` catalog snapshot, CI/release gates validate freshness, and a `VITE_SHOW_LABS=1` developer-only Labs mode renders a read-only experiment dashboard without importing or executing Playground code.
 
 ## Stable Architecture Snapshot
 - Desktop-first calculator with Tauri shell and React/TypeScript frontend.
@@ -97,10 +98,35 @@
   - `PGL4` now adds an `external-compute` foundations lane inside Playground with provider-neutral runner/job/artifact contracts, checked-in JSON templates, ignored local `*.local.json` profiles, and a local harness that proves the contract over the real `sym-search-planner-ordering` workload while keeping SSH execution intentionally non-executable
   - `PGL5` now reuses the same external-compute lane for one real VM-first SSH pilot, adding a dedicated remote Playground entrypoint, JSON upload/pullback flow over `ssh`/`scp`, and parity reporting against a local baseline while keeping provider-host work deferred
   - `PGL5+` now hardens that same VM-first SSH lane with a checked-in operator entrypoint, batch-mode preflight, step-level timeout/retry controls, explicit failure classes, and provenance-rich manifests; after review, the lane is parked until the calculator core and solver roadmap are stable enough to justify more remote-compute work
-  - calculator-visible Playground is now explicitly treated as a separate follow-on roadmap family (`PGL-VIS`) that starts only after the core `PGL` ladder is sufficiently complete; it is not part of the current incubation milestones
-  - Playground still does not have schema validation, automation, or product integration infrastructure; those remain explicitly out of scope
+  - `INCUBATION-LABS0` now adds a dev-only visual Labs catalog as a one-way bridge: stable app code imports only generated metadata under `src/lib/labs`, while `playground/...` paths remain inert text
+  - calculator-visible Playground execution is still treated as a separate follow-on roadmap family (`PGL-VIS`); `INCUBATION-LABS0` is not full `PGL-VIS1` and adds no experiment execution
+  - Playground still does not have full schema automation, experiment-execution UI, or product integration infrastructure; those remain explicitly out of scope
 
 ## Most Recent Completed Milestone
+- Completed `INCUBATION-LABS0` as the one-way Labs catalog and dev-only experiment viewer:
+  - added `tools/generate-labs-catalog.mjs`, `tools/validate-labs-catalog.mjs`, and `tools/labs-catalog-core.mjs`
+  - added `npm run generate:labs-catalog` and `npm run test:labs-catalog`
+  - generated a committed stable catalog snapshot under `src/lib/labs/`
+  - validated Playground manifest/index consistency, allowed statuses/levels, duplicate ids, and catalog freshness
+  - wired `test:labs-catalog` into `npm run test:gate`, `ci-linux`, and `Release Linux`
+  - added a developer-only `Labs` launcher section and read-only experiment dashboard shown only when `VITE_SHOW_LABS=1`
+  - preserved the one-way law: app runtime imports only `src/lib/labs/*`, never `playground/` code; catalog `playground/...` paths are inert display text
+  - clarified in `PGL-VIS` memory that this is a dev-only catalog viewer, not full Playground execution or `PGL-VIS1`
+  - preserved boundaries: no math capability, solver behavior, Playground experiment execution, remote controls, stable result delegation, history mixing, FriCAS research, or normal-user experimental mode was added
+  - next recommended step is a record/evidence-quality incubation strengthening slice, then `FRICAS-CTX0` can start as an isolated context lane if the project still wants it
+  - primary_agent: `codex`
+  - primary_agent_model: `gpt-5.5`
+- Regression checks:
+  - `npm run generate:labs-catalog` passed locally on 2026-04-30
+  - `npm run test:labs-catalog` passed locally on 2026-04-30
+  - `npm run test:unit -- src/lib/labs/catalog.test.ts src/lib/launcher.test.ts` passed locally on 2026-04-30
+  - `npm run test:ui -- src/components/LabsPanel.ui.test.tsx` passed locally on 2026-04-30
+  - `npm run test:memory-protocol` passed locally on 2026-04-30
+  - `npm run test:unit` passed locally on 2026-04-30
+  - `npm run test:ui` passed locally on 2026-04-30
+  - `npm run lint` passed locally on 2026-04-30
+  - `npm run build` passed locally on 2026-04-30
+  - `cargo check --manifest-path src-tauri/Cargo.toml` passed locally on 2026-04-30
 - Completed `CALC-POLISH1` as the calculus readback, result-surface, Guide, and replay consistency pass:
   - added optional typed calculus replay context to history entries for guided `Calculate > Calculus` screens and Advanced Calc tools
   - preserved old history compatibility by keeping schema fields optional and replaying legacy entries through the existing LaTeX inference fallback

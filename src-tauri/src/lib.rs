@@ -16,6 +16,7 @@ enum ModeId {
     Trigonometry,
     Statistics,
     Geometry,
+    Labs,
 }
 
 impl Default for ModeId {
@@ -511,6 +512,16 @@ fn mode_tree() -> Vec<MenuNode> {
                 ("exit", "Exit", "F6"),
             ])),
         },
+        MenuNode {
+            id: "labs".into(),
+            label: "Labs".into(),
+            hotkey: Some("Dev flag".into()),
+            children: Some(menu_children(&[
+                ("open", "Open", "F1"),
+                ("back", "Back", "F5"),
+                ("exit", "Exit", "F6"),
+            ])),
+        },
     ]
 }
 
@@ -679,6 +690,7 @@ fn menu_for_mode(mode: &ModeId) -> Vec<MenuNode> {
         ModeId::Trigonometry => "trigonometry",
         ModeId::Statistics => "statistics",
         ModeId::Geometry => "geometry",
+        ModeId::Labs => "labs",
     };
 
     mode_tree()

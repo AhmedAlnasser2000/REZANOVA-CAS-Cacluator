@@ -20,7 +20,8 @@ Preferred clean-base order:
 2. `PILLARS0` - minimal public-quality Calcwiz pillars baseline. Completed.
 3. `MATH-GOLDEN0` - golden math regression corpus for shipped behavior. Completed.
 4. `CALC-POLISH1` - calculus readback, Guide, history/replay, and UX consistency for the calculus core already established. Completed.
-5. `DOCS0` / `TRIAGE0` / `SEC0` as public traffic pressure requires.
+5. `INCUBATION-LABS0` - one-way generated Labs catalog and dev-only read-only experiment viewer. Completed.
+6. `DOCS0` / `TRIAGE0` / `SEC0` as public traffic pressure requires.
 
 The broader `REL/PILLARS` roadmap remains the public-release hardening lane:
 
@@ -34,7 +35,7 @@ The broader `REL/PILLARS` roadmap remains the public-release hardening lane:
 - `SEC0`
 - `UX-REL0`
 
-Not every item must block the first preview binary. `REL1`, `PILLARS0`, `MATH-GOLDEN0`, and `CALC-POLISH1` are complete; the next default move is incubation-system strengthening before `FRICAS-CTX0`, unless public traffic makes `DOCS0`, `TRIAGE0`, `SEC0`, or another release-hardening slice more urgent.
+Not every item must block the first preview binary. `REL1`, `PILLARS0`, `MATH-GOLDEN0`, `CALC-POLISH1`, and `INCUBATION-LABS0` are complete. The next default move is either a record/evidence-quality incubation strengthening slice or isolated `FRICAS-CTX0` planning, unless public traffic makes `DOCS0`, `TRIAGE0`, `SEC0`, or another release-hardening slice more urgent.
 
 ## What Remains From The Calculus Core Roadmap
 
@@ -147,6 +148,7 @@ Near-term priority:
 1. finish `REL/PILLARS` clean-base work enough for public trust
 2. complete the remaining calculus polish surface from the established calculus core
 3. strengthen the Playground/incubation system itself before asking it to carry a large external-context lane
-4. then start FriCAS context research as an isolated, non-product comparative study
+4. use the completed `INCUBATION-LABS0` one-way catalog/viewer pattern as the safe visual bridge for incubation status
+5. then start FriCAS context research as an isolated, non-product comparative study
 
-FriCAS should not be the next pressure test for a still-light incubation system. Before `FRICAS-CTX0`, add a dedicated incubation-improvement step that upgrades record quality, evidence expectations, review discipline, corpus handling, and graduation/retirement mechanics enough to host large context-derived research without contaminating stable product code.
+FriCAS should not be the pressure test for an unobserved incubation system. `INCUBATION-LABS0` now proves the one-way visual catalog pattern; before or during `FRICAS-CTX0`, consider one more record/evidence-quality slice if the FriCAS lane needs stronger review discipline, corpus handling, or graduation/retirement mechanics.

@@ -14,6 +14,45 @@ export const LAUNCHER_SOFT_ACTIONS: SoftAction[] = [
   { id: 'cancel', label: 'Cancel', hotkey: 'F6' },
 ];
 
+const LABS_LAUNCHER_CATEGORY: LauncherCategory = {
+  id: 'labs',
+  label: 'Labs',
+  description: 'Developer-only read-only experiment catalog',
+  hotkey: '6',
+  entries: [
+    {
+      id: 'labs',
+      label: 'Labs',
+      description: 'Read-only incubation catalog snapshot',
+      hotkey: '1',
+      launch: { mode: 'labs' },
+    },
+  ],
+};
+
+export function createLauncherCategories(options: { labsEnabled?: boolean } = {}) {
+  if (!options.labsEnabled) {
+    return DEFAULT_LAUNCHER_CATEGORIES;
+  }
+
+  if (DEFAULT_LAUNCHER_CATEGORIES.some((category) => category.id === 'labs')) {
+    return DEFAULT_LAUNCHER_CATEGORIES;
+  }
+
+  return [...DEFAULT_LAUNCHER_CATEGORIES, LABS_LAUNCHER_CATEGORY];
+}
+
+export function ensureLauncherLabsCategory(
+  categories: LauncherCategory[],
+  options: { labsEnabled?: boolean } = {},
+) {
+  if (!options.labsEnabled || categories.some((category) => category.id === 'labs')) {
+    return categories;
+  }
+
+  return [...categories, LABS_LAUNCHER_CATEGORY];
+}
+
 function categoryForLeafId(id: LauncherLeafId): LauncherCategoryId {
   switch (id) {
     case 'calculate':
@@ -31,6 +70,8 @@ function categoryForLeafId(id: LauncherLeafId): LauncherCategoryId {
       return 'shapeMath';
     case 'statistics':
       return 'data';
+    case 'labs':
+      return 'labs';
     default:
       return 'core';
   }
@@ -59,6 +100,8 @@ export function categoryForMode(
       return 'shapeMath';
     case 'statistics':
       return 'data';
+    case 'labs':
+      return 'labs';
     default:
       return 'core';
   }

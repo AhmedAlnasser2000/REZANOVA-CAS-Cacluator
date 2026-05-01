@@ -8,14 +8,16 @@ export type ModeId =
   | 'advancedCalculus'
   | 'trigonometry'
   | 'statistics'
-  | 'geometry';
+  | 'geometry'
+  | 'labs';
 
 export type LauncherCategoryId =
   | 'core'
   | 'linear'
   | 'calculus'
   | 'shapeMath'
-  | 'data';
+  | 'data'
+  | 'labs';
 
 export type LauncherLeafId =
   | 'calculate'
@@ -27,7 +29,8 @@ export type LauncherLeafId =
   | 'advancedCalculus'
   | 'trigonometry'
   | 'statistics'
-  | 'geometry';
+  | 'geometry'
+  | 'labs';
 
 export type AngleUnit = 'deg' | 'rad' | 'grad';
 export type OutputStyle = 'exact' | 'decimal' | 'both';

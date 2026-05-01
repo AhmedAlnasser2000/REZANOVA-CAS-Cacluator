@@ -34,6 +34,7 @@ export const MODE_LABELS: Record<ModeId, string> = {
   trigonometry: 'Trigonometry',
   statistics: 'Statistics',
   geometry: 'Geometry',
+  labs: 'Labs',
 };
 
 export const SOFT_MENU_BY_MODE: Record<ModeId, SoftAction[]> = {
@@ -104,6 +105,11 @@ export const SOFT_MENU_BY_MODE: Record<ModeId, SoftAction[]> = {
   geometry: [
     { id: 'open', label: 'Open', hotkey: 'F1' },
     { id: 'guide', label: 'Guide', hotkey: 'F2' },
+    { id: 'back', label: 'Back', hotkey: 'F5' },
+    { id: 'exit', label: 'Exit', hotkey: 'F6' },
+  ],
+  labs: [
+    { id: 'open', label: 'Open', hotkey: 'F1' },
     { id: 'back', label: 'Back', hotkey: 'F5' },
     { id: 'exit', label: 'Exit', hotkey: 'F6' },
   ],

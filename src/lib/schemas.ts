@@ -12,6 +12,7 @@ export const modeIdSchema = z.enum([
   'trigonometry',
   'statistics',
   'geometry',
+  'labs',
 ]);
 
 export const angleUnitSchema = z.enum(['deg', 'rad', 'grad']);
@@ -185,10 +186,11 @@ export const launcherLaunchTargetSchema: z.ZodType<LauncherLaunchTarget> = z.uni
   z.object({ mode: z.literal('trigonometry'), trigScreen: trigScreenSchema.optional() }),
   z.object({ mode: z.literal('statistics'), statisticsScreen: statisticsScreenSchema.optional() }),
   z.object({ mode: z.literal('geometry'), geometryScreen: geometryScreenSchema.optional() }),
+  z.object({ mode: z.literal('labs') }),
 ]);
 
 export const launcherCategorySchema: z.ZodType<LauncherCategory> = z.object({
-  id: z.enum(['core', 'linear', 'calculus', 'shapeMath', 'data']),
+  id: z.enum(['core', 'linear', 'calculus', 'shapeMath', 'data', 'labs']),
   label: z.string(),
   description: z.string(),
   hotkey: z.string(),
@@ -204,6 +206,7 @@ export const launcherCategorySchema: z.ZodType<LauncherCategory> = z.object({
       'trigonometry',
       'statistics',
       'geometry',
+      'labs',
     ]),
     label: z.string(),
     description: z.string(),

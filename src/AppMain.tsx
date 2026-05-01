@@ -3,12 +3,14 @@ import {
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
   useTransition,
 } from 'react';
 import type { MathfieldElement } from 'mathlive';
 import { HistoryPanel } from './components/HistoryPanel';
+import { LabsPanel } from './components/LabsPanel';
 import { MathEditor } from './components/MathEditor';
 import { MathNotationProvider } from './components/MathNotationContext';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -155,7 +157,9 @@ import {
   getEquationRouteMeta,
 } from './lib/equation-ux';
 import {
+  createLauncherCategories,
   createLauncherStateForMode,
+  ensureLauncherLabsCategory,
   getLauncherAppAtIndex,
   getLauncherAppByHotkey,
   getLauncherCategoryAtIndex,
@@ -283,7 +287,6 @@ import {
 } from './app/logic/runtimeControllers';
 import { executePrimaryActionWithDeps } from './app/logic/primaryActionRouter';
 import {
-  DEFAULT_LAUNCHER_CATEGORIES,
   DEFAULT_SETTINGS,
   type AdvancedCalcResultOrigin,
   type BinomialState,
@@ -311,6 +314,7 @@ import {
   type CuboidState,
   type CylinderState,
   type GuideRoute,
+  type GuideModeId,
   type LauncherAppEntry,
   type LauncherCategory,
   type LauncherLeafId,
@@ -414,6 +418,11 @@ function getCalculusProvenanceLabel(origin?: ResultOrigin) {
 
 export default function App() {
   const showModeTabs = import.meta.env.DEV && import.meta.env.VITE_SHOW_MODE_TABS === '1';
+  const labsEnabled = import.meta.env.DEV && import.meta.env.VITE_SHOW_LABS === '1';
+  const initialLauncherCategories = useMemo(
+    () => createLauncherCategories({ labsEnabled }),
+    [labsEnabled],
+  );
   const [currentMode, setCurrentMode] = useState<ModeId>('calculate');
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -426,7 +435,7 @@ export default function App() {
   const [runtimeLabel, setRuntimeLabel] = useState('Browser preview');
   const [clipboardNotice, setClipboardNotice] = useState<string | null>(null);
   const [displayOutcome, setDisplayOutcome] = useState<DisplayOutcome | null>(null);
-  const [launcherCategories, setLauncherCategories] = useState<LauncherCategory[]>(DEFAULT_LAUNCHER_CATEGORIES);
+  const [launcherCategories, setLauncherCategories] = useState<LauncherCategory[]>(initialLauncherCategories);
   const [launcherState, setLauncherState] = useState<LauncherState>({
     surface: 'app',
     level: 'root',
@@ -1130,7 +1139,7 @@ export default function App() {
           return;
         }
 
-        setCurrentMode(bootstrap.currentMode);
+        setCurrentMode(bootstrap.currentMode === 'labs' && !labsEnabled ? 'calculate' : bootstrap.currentMode);
         setSettings(bootstrap.settings);
       } catch {
         // Fall back to the existing default shell state instead of leaving the header
@@ -1153,7 +1162,7 @@ export default function App() {
     void loadLauncherCategories()
       .then((loadedLauncherCategories) => {
         if (!cancelled) {
-          setLauncherCategories(loadedLauncherCategories);
+          setLauncherCategories(ensureLauncherLabsCategory(loadedLauncherCategories, { labsEnabled }));
         }
       })
       .catch(() => {});
@@ -1161,7 +1170,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [labsEnabled]);
 
   useEffect(() => {
     setNumericOutputSettings({
@@ -2584,7 +2593,7 @@ export default function App() {
     setMode('guide');
   }
 
-  function openGuideMode(modeId: Exclude<ModeId, 'guide'>) {
+  function openGuideMode(modeId: GuideModeId) {
     closeLauncher();
     closeHistoryPanel();
     setGuideRoute({ screen: 'modeGuide', modeId });
@@ -3804,6 +3813,9 @@ export default function App() {
   }
 
   function setMode(mode: ModeId) {
+    if (mode === 'labs' && !labsEnabled) {
+      return;
+    }
     if (mode !== 'guide') {
       setPreviousNonGuideMode(mode);
     } else {
@@ -3873,6 +3885,12 @@ export default function App() {
     if (entry.launch.mode === 'statistics') {
       openStatisticsScreen(entry.launch.statisticsScreen ?? 'home');
       setMode('statistics');
+      return;
+    }
+
+    if (entry.launch.mode === 'labs') {
+      setDisplayOutcome(null);
+      setMode('labs');
       return;
     }
 
@@ -8115,7 +8133,19 @@ export default function App() {
         <header className="mode-strip">
           {showModeTabs ? (
             <div className="mode-tabs">
-              {(['calculate', 'equation', 'matrix', 'vector', 'table', 'guide', 'advancedCalculus', 'trigonometry', 'statistics', 'geometry'] as ModeId[]).map((mode) => (
+              {([
+                'calculate',
+                'equation',
+                'matrix',
+                'vector',
+                'table',
+                'guide',
+                'advancedCalculus',
+                'trigonometry',
+                'statistics',
+                'geometry',
+                ...(labsEnabled ? ['labs' as const] : []),
+              ] as ModeId[]).map((mode) => (
                 <button
                   key={mode}
                   className={mode === currentMode ? 'is-active' : ''}
@@ -10101,6 +10131,8 @@ export default function App() {
             {!isLauncherOpen && currentMode === 'statistics' ? renderStatisticsWorkspace() : null}
 
             {!isLauncherOpen && currentMode === 'geometry' ? renderGeometryWorkspace() : null}
+
+            {!isLauncherOpen && currentMode === 'labs' && labsEnabled ? <LabsPanel /> : null}
 
             {!isLauncherOpen && currentMode === 'guide' ? (
               <section className={`mode-panel ${guideRoute.screen === 'article' || (guideRoute.screen === 'modeGuide' && guideRoute.modeId) ? 'guide-article-panel' : 'guide-menu-panel'}`}>
