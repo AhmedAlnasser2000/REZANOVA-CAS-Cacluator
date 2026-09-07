@@ -1,12 +1,14 @@
 # Release Process
 
-This process is for early Linux-first Calcwiz preview releases.
+This process is for early Linux-first Calcwiz preview releases. The current release target is `v0.3.0`.
 
 Calcwiz preview releases are draft/prerelease by default. They are not production-stable and do not claim full CAS parity.
 
 ## Required Gates
 
-Before publishing a preview, confirm:
+Before creating the release tag, confirm the exact commit intended for release is on `main` and both `ci-linux` and `e2e-linux` are green. Do not create or push `v0.3.0` while either job is pending or failing.
+
+For local release preparation, confirm:
 
 ```bash
 npm ci
@@ -32,25 +34,25 @@ Use this when testing the release workflow without creating a GitHub Release.
 1. Open GitHub Actions.
 2. Select `Release Linux`.
 3. Run workflow.
-4. Use `v0.2.0` unless intentionally testing another release tag.
+4. Keep `release_tag` at `v0.3.0`.
 5. Leave `create_github_release` unchecked.
 6. Download artifacts from the completed workflow run.
 
 ## Draft Prerelease Workflow
 
-Use this when preparing the first public preview.
+Use this only after the release commit is on `main` and its required CI is green.
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 Then:
 
-1. Wait for `Release Linux`.
-2. Review the draft prerelease.
-3. Download and smoke-test the Linux artifact.
-4. Publish only after manual smoke passes.
+1. Wait for the tag-triggered `Release Linux` workflow.
+2. Confirm it created an unpublished draft prerelease.
+3. Download and smoke-test the AppImage, Debian, and RPM artifacts.
+4. Publish only after the separate manual publication decision.
 
 Manual `workflow_dispatch` with `create_github_release` checked may also create a draft prerelease from the selected commit.
 
@@ -75,8 +77,8 @@ If a broken release was published:
 3. If the tag is wrong:
 
    ```bash
-   git tag -d v0.2.0
-   git push origin :refs/tags/v0.2.0
+   git tag -d v0.3.0
+   git push origin :refs/tags/v0.3.0
    ```
 
 4. Fix in a new PR or commit.

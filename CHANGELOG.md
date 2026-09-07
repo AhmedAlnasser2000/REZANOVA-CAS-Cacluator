@@ -4,7 +4,7 @@ All notable user-facing and release-facing changes should be recorded here.
 
 Calcwiz is in early preview. This changelog is intentionally concise and should not imply full CAS parity.
 
-## v0.3.0 - 2026-07-21
+## v0.3.0 - 2026-09-07
 
 A large release covering roughly a month of continuous work across nearly every workspace. Entries below are grouped by product area rather than by commit; internal-only architecture and refactor work (canonical result/MathJSON producer migration, display-contract consolidation, regression-corpus tooling) is omitted except where it changed user-visible behavior.
 

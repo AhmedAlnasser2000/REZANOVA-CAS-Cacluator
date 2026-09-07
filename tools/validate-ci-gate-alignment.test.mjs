@@ -11,6 +11,8 @@ import {
   GUARDED_UNIT_CI_COMMAND,
   NODE_VERSION_POLICY,
   PACKAGE_COMMAND,
+  RELEASE_NAME_POLICY,
+  RELEASE_TAG_POLICY,
   SEAM_IMPACT_COMMAND,
   SETUP_NODE_ACTION_REF,
   STATIC_GATE_COMMANDS,
@@ -56,16 +58,31 @@ function fixture(overrides = {}) {
       `      - run: ${CANARY_COMMAND}`,
     ].join('\n'),
     releaseWorkflow: [
+      'on:',
+      '  workflow_dispatch:',
+      '    inputs:',
+      '      release_tag:',
+      `        default: ${RELEASE_TAG_POLICY}`,
+      '      release_name:',
+      `        default: ${RELEASE_NAME_POLICY}`,
       'jobs:',
       '  linux-preview:',
       `      - uses: ${CHECKOUT_ACTION_REF}`,
       `      - uses: ${SETUP_NODE_ACTION_REF}`,
       '        with:',
       '          node-version-file: package.json',
+      '      - name: Validate release tag matches app version',
+      '        run: |',
+      '          PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")',
+      '          EXPECTED_TAG="v${PACKAGE_VERSION}"',
       staticSteps,
       `      - run: ${CANARY_COMMAND}`,
       `      - run: ${GUARDED_UNIT_CI_COMMAND}`,
       `      - run: ${PACKAGE_COMMAND}`,
+      '      - name: Create draft GitHub prerelease',
+      '        with:',
+      '          draft: true',
+      '          prerelease: true',
     ].join('\n'),
     weeklyWorkflow: [
       'jobs:',
@@ -325,6 +342,38 @@ describe('CI gate alignment validation', () => {
     assert.throws(
       () => validateCiGateAlignment(staleLock),
       /versions must both equal 0.3.0/u,
+    );
+  });
+
+  it('rejects stale release defaults or a missing package-version tag guard', () => {
+    const staleTag = fixture();
+    staleTag.releaseWorkflow = staleTag.releaseWorkflow.replace(
+      `default: ${RELEASE_TAG_POLICY}`,
+      'default: v0.2.0',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(staleTag),
+      /tag input must include default: v0\.3\.0/u,
+    );
+
+    const staleName = fixture();
+    staleName.releaseWorkflow = staleName.releaseWorkflow.replace(
+      `default: ${RELEASE_NAME_POLICY}`,
+      'default: REZANOVA CLASSWIZ CALCULATOR v0.2.0',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(staleName),
+      /name input must include default: REZANOVA CLASSWIZ CALCULATOR v0\.3\.0/u,
+    );
+
+    const missingGuard = fixture();
+    missingGuard.releaseWorkflow = missingGuard.releaseWorkflow.replace(
+      '      - name: Validate release tag matches app version\n',
+      '',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(missingGuard),
+      /must include name: Validate release tag matches app version/u,
     );
   });
 

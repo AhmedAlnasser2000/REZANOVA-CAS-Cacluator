@@ -31,6 +31,8 @@ export const UNIT_CI_COMMAND = 'npm run test:unit:ci';
 export const GUARDED_UNIT_CI_COMMAND =
   'timeout --signal=TERM --kill-after=30s 30m npm run test:unit:ci';
 export const NODE_VERSION_POLICY = '24.x';
+export const RELEASE_TAG_POLICY = 'v0.3.0';
+export const RELEASE_NAME_POLICY = 'REZANOVA CLASSWIZ CALCULATOR v0.3.0';
 export const CHECKOUT_ACTION_REF =
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1';
 export const SETUP_NODE_ACTION_REF =
@@ -232,6 +234,36 @@ function assertDependabotActionsMaintenance(dependabotConfig) {
   assertIncludes(dependabotConfig, 'interval: weekly', 'Dependabot configuration');
 }
 
+function assertReleaseWorkflowPolicy(releaseWorkflow) {
+  assertIncludes(
+    releaseWorkflow,
+    `default: ${RELEASE_TAG_POLICY}`,
+    'Linux release workflow tag input',
+  );
+  assertIncludes(
+    releaseWorkflow,
+    `default: ${RELEASE_NAME_POLICY}`,
+    'Linux release workflow name input',
+  );
+  assertIncludes(
+    releaseWorkflow,
+    'name: Validate release tag matches app version',
+    'Linux release workflow',
+  );
+  assertIncludes(
+    releaseWorkflow,
+    'PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")',
+    'Linux release workflow version guard',
+  );
+  assertIncludes(
+    releaseWorkflow,
+    'EXPECTED_TAG="v${PACKAGE_VERSION}"',
+    'Linux release workflow version guard',
+  );
+  assertIncludes(releaseWorkflow, 'draft: true', 'Linux release workflow');
+  assertIncludes(releaseWorkflow, 'prerelease: true', 'Linux release workflow');
+}
+
 export function validateCiGateAlignment({
   ciWorkflow,
   releaseWorkflow,
@@ -268,6 +300,7 @@ export function validateCiGateAlignment({
   assertPinnedNodeWorkflow(releaseWorkflow, 'Linux release workflow');
   assertPinnedNodeWorkflow(weeklyWorkflow, 'Weekly anti-regression workflow');
   assertDependabotActionsMaintenance(dependabotConfig);
+  assertReleaseWorkflowPolicy(releaseWorkflow);
 
   return {
     staticGateCount: STATIC_GATE_COMMANDS.length,
