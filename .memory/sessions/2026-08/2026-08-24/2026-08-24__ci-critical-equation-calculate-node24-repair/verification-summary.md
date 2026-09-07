@@ -43,8 +43,20 @@
 - Real-browser `calculus-integral-linear` canary: 1/1 passed and rendered the single canonical `\frac{x^{2}}{2}+C` spelling.
 - No production file, mathematical output, schema, baseline, or global timeout changed.
 
+## Gate 4 Closeout Evidence
+
+- Official Node `v24.20.0` temporary toolchain and npm `11.19.0` were used under ignored `.task_tmp/node24/`; the downloaded Linux x64 archive matched the official `2f2c0da162318f0de47665410c7c8c2ed3d36c8f3105de4bbc61176c70a7cbf2` SHA-256 and dependency resolution remained unchanged.
+- `npm run test:ci-gate-alignment`: 15/15 passed, including synthetic Node downgrade, workflow drift, action pin/comment drift, Dependabot removal, lock mismatch, and watchdog cases.
+- `npm run test:seam-impact-selector`: 24/24 passed.
+- The reserved `npm run test:gate` ran exactly once. All static/contract stages passed and the broad unit phase completed 640 files/4,463 tests in about 4.4 minutes; its only failure was a stale Calculus empty-state copy assertion. The isolated correction passes 2/2 and does not invalidate shared runtime evidence.
+- A separate full UI run exposed one shared Equation numeric-interval target-identity defect. The runtime/controller correction passes focused controller coverage and all five affected AppMain numeric flows; real Chromium interval smoke passes for angle-unit, unresolved-composition, and branch-guidance paths.
+- A subsequent broad browser attempt reached 257 cases before the execution transcript boundary. Each reproducible release blocker was isolated and repaired: canary registry/browser, three release-contract cases, Notebook 14/14, Statistics result/control cases, and the Vector symbolic History case all pass focused reruns. The Vector failure did not reproduce outside the contended broad run.
+- Incremental TypeScript, `npm run build`, `cargo check`, and lint pass under Node 24.20.0; lint reports only two pre-existing Graphing hook warnings and no errors.
+- Current official tag resolution was checked before pinning: checkout `3d3c42e5aac5ba805825da76410c181273ba90b1` is v7.0.1 and setup-node `820762786026740c76f36085b0efc47a31fe5020` is v7.0.0.
+- No global or per-test timeout increased, no solver/proof/public contract changed, and the full gate was not rerun after isolated corrections.
+
 ## Hygiene
 
 - `npm run test:memory-protocol`: passed.
 - `npm run test:file-sizes`: passed with 2,167 files and five existing caps.
-- Final diff hygiene and staged-diff inspection are performed immediately before the approved Gate 2 commit.
+- Final diff hygiene and staged-diff inspection are performed immediately before the approved Gate 4 commit.

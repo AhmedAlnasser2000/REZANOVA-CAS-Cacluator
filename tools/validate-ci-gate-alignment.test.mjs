@@ -6,10 +6,13 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
   CANARY_COMMAND,
+  CHECKOUT_ACTION_REF,
   CODEX_AGENT_WORKFLOW_COMMAND,
   GUARDED_UNIT_CI_COMMAND,
+  NODE_VERSION_POLICY,
   PACKAGE_COMMAND,
   SEAM_IMPACT_COMMAND,
+  SETUP_NODE_ACTION_REF,
   STATIC_GATE_COMMANDS,
   UNIT_CI_COMMAND,
   V2_ENFORCEMENT_COMMAND,
@@ -19,6 +22,14 @@ import {
 
 function fixture(overrides = {}) {
   const staticSteps = STATIC_GATE_COMMANDS.map((command) => `      - run: ${command}`).join('\n');
+  const packageManifest = {
+    name: 'calcwiz-desktop',
+    version: '0.3.0',
+    engines: { node: NODE_VERSION_POLICY },
+    devEngines: {
+      runtime: { name: 'node', version: NODE_VERSION_POLICY, onFail: 'error' },
+    },
+  };
   return {
     ciWorkflow: [
       'on:',
@@ -33,9 +44,12 @@ function fixture(overrides = {}) {
       `      - run: ${V2_ENFORCEMENT_COMMAND}`,
       '  ci-linux:',
       staticSteps,
-      '      - uses: actions/checkout@v4',
-      '        with:',
+      `      - uses: ${CHECKOUT_ACTION_REF}`,
+        '        with:',
       '          fetch-depth: 0',
+      `      - uses: ${SETUP_NODE_ACTION_REF}`,
+      '        with:',
+      '          node-version-file: package.json',
       `      - run: ${SEAM_IMPACT_COMMAND}`,
       `      - run: ${GUARDED_UNIT_CI_COMMAND}`,
       '  e2e-linux:',
@@ -44,11 +58,37 @@ function fixture(overrides = {}) {
     releaseWorkflow: [
       'jobs:',
       '  linux-preview:',
+      `      - uses: ${CHECKOUT_ACTION_REF}`,
+      `      - uses: ${SETUP_NODE_ACTION_REF}`,
+      '        with:',
+      '          node-version-file: package.json',
       staticSteps,
       `      - run: ${CANARY_COMMAND}`,
       `      - run: ${GUARDED_UNIT_CI_COMMAND}`,
       `      - run: ${PACKAGE_COMMAND}`,
     ].join('\n'),
+    weeklyWorkflow: [
+      'jobs:',
+      '  workspace-freshness:',
+      `      - uses: ${CHECKOUT_ACTION_REF}`,
+      `      - uses: ${SETUP_NODE_ACTION_REF}`,
+      '        with:',
+      '          node-version-file: package.json',
+    ].join('\n'),
+    dependabotConfig: [
+      'version: 2',
+      'updates:',
+      '  - package-ecosystem: github-actions',
+      '    directory: /',
+      '    schedule:',
+      '      interval: weekly',
+    ].join('\n'),
+    packageJson: JSON.stringify(packageManifest),
+    packageLock: JSON.stringify({
+      name: packageManifest.name,
+      version: packageManifest.version,
+      packages: { '': packageManifest },
+    }),
     playwrightConfig: 'export default { retries: 0, workers: 1 };\n',
     ...overrides,
   };
@@ -223,6 +263,69 @@ describe('CI gate alignment validation', () => {
         /must include run: timeout --signal=TERM --kill-after=30s 30m npm run test:unit:ci/u,
       );
     }
+  });
+
+  it('rejects Node policy drift in package or workflow metadata', () => {
+    const packageDowngrade = fixture();
+    packageDowngrade.packageJson = packageDowngrade.packageJson.replaceAll('24.x', '22.x');
+    assert.throws(
+      () => validateCiGateAlignment(packageDowngrade),
+      /package.json engines.node must equal 24.x/u,
+    );
+
+    const workflowOverride = fixture();
+    workflowOverride.ciWorkflow = workflowOverride.ciWorkflow.replace(
+      '          node-version-file: package.json',
+      '          node-version: 22',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(workflowOverride),
+      /must not define a workflow-local node-version/u,
+    );
+  });
+
+  it('rejects action tags, stale SHAs, and mismatched action comments', () => {
+    const tagOnly = fixture();
+    tagOnly.weeklyWorkflow = tagOnly.weeklyWorkflow.replace(
+      CHECKOUT_ACTION_REF,
+      'actions/checkout@v7',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(tagOnly),
+      /checkout must use reviewed SHA/u,
+    );
+
+    const staleSetup = fixture();
+    staleSetup.releaseWorkflow = staleSetup.releaseWorkflow.replace(
+      SETUP_NODE_ACTION_REF,
+      'actions/setup-node@1e60f620b9541dca15154027ed9d53f09a9eaf6e # v4.0.3',
+    );
+    assert.throws(
+      () => validateCiGateAlignment(staleSetup),
+      /setup-node must use reviewed SHA/u,
+    );
+
+    const wrongComment = fixture();
+    wrongComment.ciWorkflow = wrongComment.ciWorkflow.replace('# v7.0.1', '# v7.0.0');
+    assert.throws(
+      () => validateCiGateAlignment(wrongComment),
+      /checkout must use reviewed SHA/u,
+    );
+  });
+
+  it('rejects missing action maintenance and inconsistent lock metadata', () => {
+    const missingMaintenance = fixture({ dependabotConfig: 'version: 2\nupdates: []\n' });
+    assert.throws(
+      () => validateCiGateAlignment(missingMaintenance),
+      /package-ecosystem: github-actions/u,
+    );
+
+    const staleLock = fixture();
+    staleLock.packageLock = staleLock.packageLock.replaceAll('0.3.0', '0.2.0');
+    assert.throws(
+      () => validateCiGateAlignment(staleLock),
+      /versions must both equal 0.3.0/u,
+    );
   });
 
   it('terminates a synchronous CPU-bound descendant with timeout status 124', () => {

@@ -30,6 +30,11 @@ export const CODEX_AGENT_WORKFLOW_COMMAND = 'npm run test:codex-agent-workflow';
 export const UNIT_CI_COMMAND = 'npm run test:unit:ci';
 export const GUARDED_UNIT_CI_COMMAND =
   'timeout --signal=TERM --kill-after=30s 30m npm run test:unit:ci';
+export const NODE_VERSION_POLICY = '24.x';
+export const CHECKOUT_ACTION_REF =
+  'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1';
+export const SETUP_NODE_ACTION_REF =
+  'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0';
 
 function assertIncludes(text, value, label) {
   if (!text.includes(value)) {
@@ -146,9 +151,94 @@ function assertNoPlaywrightRetries(playwrightConfig, workflows) {
   }
 }
 
+function matchingLines(text, pattern) {
+  return text.split('\n').filter((line) => pattern.test(line));
+}
+
+function assertPinnedNodeWorkflow(workflow, label) {
+  const checkoutLines = matchingLines(workflow, /\buses:\s*actions\/checkout@/u);
+  const setupNodeLines = matchingLines(workflow, /\buses:\s*actions\/setup-node@/u);
+  if (checkoutLines.length === 0 || setupNodeLines.length === 0) {
+    throw new Error(`${label} must use checkout and setup-node`);
+  }
+  for (const line of checkoutLines) {
+    if (line.trim().replace(/^-\s*/u, '') !== `uses: ${CHECKOUT_ACTION_REF}`) {
+      throw new Error(`${label} checkout must use reviewed SHA ${CHECKOUT_ACTION_REF}`);
+    }
+  }
+  for (const line of setupNodeLines) {
+    if (line.trim().replace(/^-\s*/u, '') !== `uses: ${SETUP_NODE_ACTION_REF}`) {
+      throw new Error(`${label} setup-node must use reviewed SHA ${SETUP_NODE_ACTION_REF}`);
+    }
+  }
+  if (/^\s*node-version:\s*/mu.test(workflow)) {
+    throw new Error(`${label} must not define a workflow-local node-version`);
+  }
+  const nodeVersionFileLines = matchingLines(
+    workflow,
+    /^\s*node-version-file:\s*package\.json\s*$/u,
+  );
+  if (nodeVersionFileLines.length !== setupNodeLines.length) {
+    throw new Error(`${label} must use node-version-file: package.json for every setup-node step`);
+  }
+}
+
+function parseJson(text, label) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${label} must be valid JSON`);
+  }
+}
+
+function assertRuntimePolicy(manifest, label) {
+  if (manifest?.engines?.node !== NODE_VERSION_POLICY) {
+    throw new Error(`${label} engines.node must equal ${NODE_VERSION_POLICY}`);
+  }
+  const runtime = manifest?.devEngines?.runtime;
+  if (
+    runtime?.name !== 'node' ||
+    runtime?.version !== NODE_VERSION_POLICY ||
+    runtime?.onFail !== 'error'
+  ) {
+    throw new Error(
+      `${label} devEngines.runtime must fail closed on Node ${NODE_VERSION_POLICY}`,
+    );
+  }
+}
+
+function assertPackageToolchain(packageJson, packageLock) {
+  const manifest = parseJson(packageJson, 'package.json');
+  const lock = parseJson(packageLock, 'package-lock.json');
+  const lockRoot = lock?.packages?.[''];
+  if (manifest.version !== '0.3.0' || lock.version !== manifest.version) {
+    throw new Error('package.json and package-lock.json versions must both equal 0.3.0');
+  }
+  if (lockRoot?.version !== manifest.version) {
+    throw new Error('package-lock.json root version must match package.json');
+  }
+  assertRuntimePolicy(manifest, 'package.json');
+  assertRuntimePolicy(lockRoot, 'package-lock.json root');
+}
+
+function assertDependabotActionsMaintenance(dependabotConfig) {
+  assertIncludes(dependabotConfig, 'version: 2', 'Dependabot configuration');
+  assertIncludes(
+    dependabotConfig,
+    'package-ecosystem: github-actions',
+    'Dependabot configuration',
+  );
+  assertIncludes(dependabotConfig, 'directory: /', 'Dependabot configuration');
+  assertIncludes(dependabotConfig, 'interval: weekly', 'Dependabot configuration');
+}
+
 export function validateCiGateAlignment({
   ciWorkflow,
   releaseWorkflow,
+  weeklyWorkflow,
+  dependabotConfig,
+  packageJson,
+  packageLock,
   playwrightConfig,
 }) {
   const ciLinuxJob = workflowJob(ciWorkflow, 'ci-linux', 'e2e-linux', 'CI workflow');
@@ -173,6 +263,11 @@ export function validateCiGateAlignment({
     ['CI workflow', ciWorkflow],
     ['Linux release workflow', releaseWorkflow],
   ]);
+  assertPackageToolchain(packageJson, packageLock);
+  assertPinnedNodeWorkflow(ciWorkflow, 'CI workflow');
+  assertPinnedNodeWorkflow(releaseWorkflow, 'Linux release workflow');
+  assertPinnedNodeWorkflow(weeklyWorkflow, 'Weekly anti-regression workflow');
+  assertDependabotActionsMaintenance(dependabotConfig);
 
   return {
     staticGateCount: STATIC_GATE_COMMANDS.length,
@@ -187,6 +282,16 @@ export function validateRepoCiGateAlignment({ rootDir = process.cwd() } = {}) {
       path.join(rootDir, '.github/workflows/release-linux.yml'),
       'utf8',
     ),
+    weeklyWorkflow: readFileSync(
+      path.join(rootDir, '.github/workflows/weekly-anti-regression.yml'),
+      'utf8',
+    ),
+    dependabotConfig: readFileSync(
+      path.join(rootDir, '.github/dependabot.yml'),
+      'utf8',
+    ),
+    packageJson: readFileSync(path.join(rootDir, 'package.json'), 'utf8'),
+    packageLock: readFileSync(path.join(rootDir, 'package-lock.json'), 'utf8'),
     playwrightConfig: readFileSync(path.join(rootDir, 'playwright.config.ts'), 'utf8'),
   });
 }

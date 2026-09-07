@@ -6,6 +6,7 @@ import {
   type PendingHistoryTicketReservation,
 } from '../../lib/ooe/job-launch/launch-tickets';
 import type { RunEquationModeRequest } from '../../lib/modes/equation/types';
+import { resolveEquationSolveTarget } from '../../lib/equation/equation-target-resolution';
 import { resolveCanonicalResultForConsumer } from '../../lib/result-contract/consumer';
 import type {
   AngleUnit,
@@ -145,7 +146,10 @@ export function runEquationNumericIntervalRuntimeAction({
         const request: RunEquationModeRequest = {
           equationScreen: deps.equationScreen,
           equationLatex: executionLatex,
-          equationSolveTarget: deps.equationSolveTarget,
+          equationSolveTarget: resolveEquationSolveTarget(
+            executionLatex,
+            deps.equationSolveTarget,
+          ).selectedTarget ?? deps.equationSolveTarget,
           equationAnswerMode: 'exact',
           equationDomainIntent: 'real',
           complexExactForm: deps.settings.complexExactForm ?? 'rectangular',
@@ -226,7 +230,9 @@ export function runEquationNumericIntervalRuntimeAction({
               && payloadResolution.semantics.metadata?.solveBadges?.includes('Numeric Interval')
               ? { numericInterval: interval }
               : {}),
-            ...(deps.equationSolveTarget ? { equationSolveTarget: deps.equationSolveTarget } : {}),
+            ...(request.equationSolveTarget
+              ? { equationSolveTarget: request.equationSolveTarget }
+              : {}),
             equationAnswerMode: 'exact',
             equationDomainIntent: 'real',
             complexExactForm: deps.settings.complexExactForm ?? 'rectangular',

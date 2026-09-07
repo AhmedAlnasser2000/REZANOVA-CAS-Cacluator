@@ -93,7 +93,7 @@ async function expectPopoverInsideViewport(page: Page, dialogName: string) {
   expect(bounds.keyboardOverlap).toBe(false);
 }
 
-test('Notebook V11 directly authors running matter and renders two physical sheets', async ({ page }) => {
+test('Notebook V14 directly authors running matter and renders two physical sheets', async ({ page }) => {
   await page.setViewportSize({ width: 2400, height: 1050 });
   await openBlankNotebook(page);
   const editor = page.getByLabel('Notebook rich document');
@@ -201,7 +201,7 @@ test('Notebook V11 directly authors running matter and renders two physical shee
       orientation: 'landscape',
       paperSize: 'letter',
     },
-    version: 13,
+    version: 14,
   });
 
   for (const width of [2400, 1440, 1100]) {

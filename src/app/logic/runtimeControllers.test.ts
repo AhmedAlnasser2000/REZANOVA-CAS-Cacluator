@@ -710,7 +710,7 @@ describe('runtimeControllers', () => {
       equationScreen: 'symbolic',
       equationLatex: 'x+1=2',
       equationInputLatex: 'x+1=2',
-      equationSolveTarget: 'x',
+      equationSolveTarget: undefined,
       quadraticCoefficients: [1, 0, 0],
       cubicCoefficients: [1, 0, 0, 0],
       quarticCoefficients: [1, 0, 0, 0, 0],

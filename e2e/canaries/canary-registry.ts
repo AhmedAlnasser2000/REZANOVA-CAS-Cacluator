@@ -106,7 +106,7 @@ export const WORKSPACE_CANARIES = [
       {
         id: 'calculus-derivative-polynomial',
         settings: EXACT_DEG,
-        driver: { kind: 'calculus', tool: 'Derivative', inputLatex: 'x^2' },
+        driver: { kind: 'calculus', tool: 'Derivative', inputLatex: 'd/dx(x^2)' },
         expectation: { surface: 'answer', rawLatexIncludes: ['2x'] },
       },
       {

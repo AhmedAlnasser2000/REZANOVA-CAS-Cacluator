@@ -24,5 +24,8 @@
 - Gate 2 scope: Calculate-only textual nth-root canonicalization, fail-closed canonicalization errors, focused result/worker coverage, and durable evidence.
 - `CI-RUNTIME-READINESS-CANARY-REPAIR1` (`backend`) is focused-green and approved for its selective commit.
 - Gate 3 scope: two bounded route-specific readiness waits, one canonical Calculus canary spelling, and durable evidence. No production code changed.
-- Gate 4 remains pending.
+- `CI-RUNTIME-READINESS-CANARY-REPAIR1` (`backend`) committed as `465ecc01`.
+- `CI-NODE24-ACTIONS-MAINTENANCE1` (`backend`) closeout is committed by this checkpoint under the approved subject `CI-NODE24-ACTIONS-MAINTENANCE1 align Node policy and Actions maintenance`; the commit hash is authoritative in Git history.
+- Gate 4 scope: package/lock Node 24 policy, SHA-pinned Actions v7, GitHub Actions Dependabot maintenance, CI-alignment ratchets, and durable evidence.
+- Gate 4 release-blocker scope also includes the complete-notation Calculus canary, one Equation numeric-interval request-identity repair, and current focused unit/UI/browser contract assertions discovered by the one reserved closeout run. No timeout, solver, public schema, or proof-baseline change was made.
 - No push is authorized.

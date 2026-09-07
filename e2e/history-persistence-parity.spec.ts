@@ -372,12 +372,12 @@ test('removes old and malformed rows while preserving future result versions ver
     resultDocument: { version: 1, title: 'Missing canonical fields' },
     timestamp: '2026-07-12T00:00:01.000Z',
   };
-  const futureV4 = {
-    id: 'history.future-v4.1',
+  const futureV5 = {
+    id: 'history.future-v5.1',
     mode: 'calculate',
     inputLatex: 'future()',
     resultDocument: {
-      version: 4,
+      version: 5,
       title: 'Future result',
       payload: ['kept', 'verbatim'],
     },
@@ -395,7 +395,7 @@ test('removes old and malformed rows while preserving future result versions ver
     key: APP_STATE_KEY,
     legacy: legacyEntry,
     malformed: malformedV1,
-    future: futureV4,
+    future: futureV5,
     settings: DEFAULT_SETTINGS as unknown,
   });
 
@@ -411,7 +411,7 @@ test('removes old and malformed rows while preserving future result versions ver
     const state = JSON.parse(window.localStorage.getItem(key) ?? '{}') as { history?: unknown[] };
     return state.history ?? [];
   }, APP_STATE_KEY);
-  expect(persisted).toEqual([futureV4]);
+  expect(persisted).toEqual([futureV5]);
 
   await page.reload();
   await expect(page.getByTestId('main-editor')).toBeVisible();
@@ -419,5 +419,5 @@ test('removes old and malformed rows while preserving future result versions ver
     const state = JSON.parse(window.localStorage.getItem(key) ?? '{}') as { history?: unknown[] };
     return state.history ?? [];
   }, APP_STATE_KEY);
-  expect(afterReload).toEqual([futureV4]);
+  expect(afterReload).toEqual([futureV5]);
 });

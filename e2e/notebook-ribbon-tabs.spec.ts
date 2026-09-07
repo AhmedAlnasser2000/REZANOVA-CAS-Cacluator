@@ -67,8 +67,8 @@ test('Notebook ribbon separates Home, Insert, Layout, and File without disturbin
   await expect(toolbar.getByRole('region', { name: 'Structure' })).toBeVisible();
   await expect(toolbar.getByRole('region', { name: 'Math' })).toBeVisible();
   await expect(toolbar.getByRole('region', { name: 'Document' })).toBeVisible();
-  await expect(toolbar.getByRole('region', { name: 'Media' })).toHaveCount(0);
-  await expect(toolbar.getByRole('button', { name: /Image/ })).toHaveCount(0);
+  await expect(toolbar.getByRole('region', { name: 'Media' })).toBeVisible();
+  await expect(toolbar.getByRole('button', { name: /Image/ })).toBeVisible();
   await expect(toolbar.getByRole('button', { name: /Video/ })).toHaveCount(0);
   expect(await workspaceTabs.boundingBox()).toEqual(workspaceTabsBefore);
 
@@ -104,7 +104,7 @@ test('Notebook ribbon separates Home, Insert, Layout, and File without disturbin
     expect(menuBounds!.x + menuBounds!.width).toBeLessThanOrEqual(width);
     await page.keyboard.press('Escape');
     await ribbonTabs.getByRole('tab', { name: 'Insert' }).click();
-    await expect(toolbar.getByRole('button', { name: /Image/ })).toHaveCount(0);
+    await expect(toolbar.getByRole('button', { name: /Image/ })).toBeVisible();
     await expect(toolbar.getByRole('button', { name: /Video/ })).toHaveCount(0);
     await toolbar.getByRole('button', { name: 'Insert academic container' }).click();
     const containerMenu = page.getByRole('menu', { name: 'Academic containers' });

@@ -15,11 +15,14 @@ test('Data & Summary preserves both drafts and renders the expanded summary', as
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
   await expect(page.getByTestId('display-outcome-title')).toHaveText('Descriptive');
-  const primary = page.getByTestId('display-outcome-answer-block')
-    .locator('[data-raw-latex]')
-    .first();
-  await expect(primary).toHaveAttribute('data-raw-latex', /operatorname\{IQR\}/);
-  await expect(primary).toHaveAttribute('data-raw-latex', /operatorname\{outliers\}/);
+  const answerLatex = page.getByTestId('display-outcome-answer-block')
+    .locator('[data-raw-latex]');
+  await expect.poll(async () => answerLatex.evaluateAll((nodes) => nodes
+    .map((node) => node.getAttribute('data-raw-latex') ?? '')
+    .join('\n'))).toMatch(/operatorname\{IQR\}/);
+  await expect.poll(async () => answerLatex.evaluateAll((nodes) => nodes
+    .map((node) => node.getAttribute('data-raw-latex') ?? '')
+    .join('\n'))).toMatch(/operatorname\{outliers\}/);
   await expect(page.getByTestId('display-outcome-detail-sections')).toContainText('Type-7');
   await expect(page.getByTestId('display-outcome-detail-sections')).toContainText('Population');
   await expect(page.getByTestId('display-outcome-detail-sections')).toContainText('Sample');

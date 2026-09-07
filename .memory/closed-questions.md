@@ -2,6 +2,31 @@
 
 Resolved or superseded questions moved out of `.memory/open-questions.md` so the open file stays actionable. Historical wording is preserved when useful; closure notes explain what replaced it.
 
+## 2026-09-07 - Open-Question Actionability Audit
+
+- primary_agent: codex
+- primary_agent_model: gpt-5.6
+- primary_agent_family: sol
+- recorded_by_agent: codex
+- recorded_by_agent_model: gpt-5.6
+- recorded_by_agent_family: sol
+- verified_by_agent: codex
+- verified_by_agent_model: gpt-5.6
+- verified_by_agent_family: sol
+- attribution_basis: live
+
+- Closed the old Guide-surface, first-release core ordering, Statistics-versus-Geometry sequencing, Statistics launcher-placement, and Geometry-specific History-field questions. Guide, Trigonometry, Geometry, Statistics, launcher placement, and workspace-native replay contracts are now implemented; those earlier choices no longer describe pending work.
+- Closed the March and April Track A/R, Exact Algebra, polynomial/radical, absolute-value, composition, architecture, and Playground “which milestone next?” forks. Later implemented milestones and the current release-first posture superseded those sequencing decisions; future capability work must start from current prerequisites rather than revive obsolete forks.
+- Closed the old solver-effort/composition-depth control, cross-CAS benchmark, visible Playground, remote-compute, FriCAS, Typst, and external Wolfram-study proposals as parked or discarded speculation. They are not active commitments and may be reconsidered only from a new evidence-backed request.
+- Closed the generic future Guide-layout question: Guide is a singleton app-level page with contextual launch paths. Further Guide work must be proposed as a concrete UX change rather than an unresolved surface choice.
+- Closed the old Compute Engine consolidation/AppMain decomposition sequencing questions. Request-scoped proof reuse, bounded hook extractions, and the file-size ratchet now govern those concerns.
+- Closed the old Equation search-discipline protection question. Request-scoped proof reuse, controlled performance benchmarks, production-route evidence, and explicit time-budget tests now provide the selected approach.
+- Closed the Exact/Isolate/Approximate visibility question as superseded by the current answer-mode model and its existing user-facing controls/guidance.
+- Closed the July 2026 “28 red integration tests” incident as stale. Subsequent integration/readback programs and broad green unit evidence supersede that aggregate report; any remaining visible notation defect must be reopened as a reproduced focused issue.
+- Closed the duplicate Graph lazy-boundary question by consolidating it into one current actionable Graph bundle item.
+- Closed the August Equation proof-performance question. `EQUATION-REQUEST-SCOPED-PROOF-PERFORMANCE1` and `EQUATION-PRODUCTION-PATH-PERFORMANCE-CLOSEOUT1` implemented request-scoped reuse, prepared comparison/printing, and production-path batching without weakening fail-closed proof.
+- Closed the July full-unit CPU-burn incident. The reserved Node 24.20.0 closeout discovered all 640 unit files and completed 4,463 tests in about 4.4 minutes; its sole failure was a deterministic stale Calculus copy assertion, not a hang, and that assertion now passes focused coverage. The existing 30-minute CI watchdog remains enforced.
+
 ## 2026-09-05 - Signed-Imaginary Formal Comparison
 
 - primary_agent: codex

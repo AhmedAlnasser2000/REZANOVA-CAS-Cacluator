@@ -23,11 +23,14 @@ test('Probability evaluates an endpoint-aware discrete interval with real result
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
   await expect(page.getByTestId('display-outcome-title')).toHaveText('Binomial');
-  const primary = page.getByTestId('display-outcome-answer-block')
-    .locator('[data-raw-latex]')
-    .first();
-  await expect(primary).toHaveAttribute('data-raw-latex', /1<X\\le3/);
-  await expect(primary).toHaveAttribute('data-raw-latex', /p=/);
+  const answerLatex = page.getByTestId('display-outcome-answer-block')
+    .locator('[data-raw-latex]');
+  await expect.poll(async () => answerLatex.evaluateAll((nodes) => nodes
+    .map((node) => node.getAttribute('data-raw-latex') ?? '')
+    .join('\n'))).toMatch(/1< X,\\ X\\le 3/);
+  await expect.poll(async () => answerLatex.evaluateAll((nodes) => nodes
+    .map((node) => node.getAttribute('data-raw-latex') ?? '')
+    .join('\n'))).toMatch(/p=/);
   await expect(page.getByTestId('display-outcome-detail-sections')).toContainText('Percent: 62.5%');
   await expect(page.getByTestId('display-outcome-detail-sections')).toContainText('Expected value: 2');
   await page.getByTestId('display-outcome-detail-sections')

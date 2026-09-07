@@ -81,4 +81,15 @@ describe('workspace canary registry', () => {
       expect(entry.settings.outputStyle).toMatch(/^(exact|decimal|both)$/u);
     }
   });
+
+  it('keeps derivative canaries on complete notation-owned requests', () => {
+    const derivativeCases = registry
+      .flatMap((entry) => entry.cases)
+      .filter((entry) => entry.driver.kind === 'calculus' && entry.driver.tool === 'Derivative');
+
+    expect(derivativeCases).not.toHaveLength(0);
+    for (const entry of derivativeCases) {
+      expect(entry.driver.inputLatex).toMatch(/^d\/d[A-Za-z]+\(.+\)$/u);
+    }
+  });
 });

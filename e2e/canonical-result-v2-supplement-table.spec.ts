@@ -92,7 +92,7 @@ test('renders all five typed Equation supplement cases and stores V2 History', a
   }
 
   await page.getByTestId('history-toggle').click();
-  await expect(page.getByTestId('history-entry-result-preview')).toHaveCount(2);
+  await expect(page.getByTestId('history-entry-result-preview')).toHaveCount(4);
   await page.getByTestId('history-entry-replay').first().click();
   await expect(page.getByTestId('display-outcome-supplement-0')).toBeVisible();
 });

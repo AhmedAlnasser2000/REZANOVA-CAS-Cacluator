@@ -165,7 +165,9 @@ test('Equation smoke renders solved condition line', async ({ page }) => {
   await page.getByTestId('soft-action-solve').click();
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
-  await expect(page.getByTestId('display-outcome-supplement-0')).toContainText('x');
+  await expect(page.getByTestId('display-outcome-detail-sections')).toContainText(
+    'x must stay nonnegative',
+  );
   await expect(page.getByTestId('display-outcome-action-send-equation')).toHaveCount(0);
 });
 

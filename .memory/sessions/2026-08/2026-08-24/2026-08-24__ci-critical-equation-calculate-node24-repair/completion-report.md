@@ -21,7 +21,7 @@
 - Gate 1: `CI-EQUATION-CARRIER-V2-PROOF-REPAIR1` (`backend`) is committed as `7f948b33`.
 - Gate 2: `CALCULATE-TEXTUAL-NTH-ROOT-SAFETY1` (`backend`) is committed as `5e9c2201`.
 - Gate 3: `CI-RUNTIME-READINESS-CANARY-REPAIR1` (`backend`) is implementation- and verification-complete with commit approval received.
-- Gate 4 remains pending: Node 24 Actions maintenance.
+- Gate 4: `CI-NODE24-ACTIONS-MAINTENANCE1` (`backend`) is implementation- and closeout-verification-complete and is committed by this checkpoint under the approved subject.
 
 ## Gate 1 Implemented
 
@@ -41,8 +41,7 @@
 
 ## Remaining Program Work
 
-- Gate 4: Node 24 policy, SHA-pinned Actions v7, Dependabot maintenance, and alignment ratchets.
-- One Node 24 `npm run test:gate` closeout remains reserved until Gate 4 is complete.
+- Prepare the separate v0.3.0 release-document gate when requested. No push is authorized.
 
 ## Gate 3 Implemented
 
@@ -50,3 +49,13 @@
 - Stress-ran the Matrix profile and multi-vector routes five consecutive times at four-worker concurrency; both remained green, with the multi-vector route consistently completing just beyond the former one-second boundary.
 - Locked the Calculus integral canary to the current canonical `\frac{x^{2}}{2}+C` output and confirmed it in the real browser canary.
 - Diagnosed, without repairing, two follow-up issues: stale or decorated MathLive textual-root entry can bypass the new plain-input canonicalizer, and recursive Equation carrier solves repeatedly rebuild and re-prove results with fresh Compute Engine instances, producing heavy bootstrap/type-resolution and garbage-collection cost.
+
+## Gate 4 Implemented
+
+- Made `package.json` the sole Node policy source through matching fail-closed `engines.node` and `devEngines.runtime` declarations for `24.x`; synchronized the lock root to package version `0.3.0` without dependency upgrades.
+- Migrated every checkout/setup-node step in Linux CI, Linux release, and weekly anti-regression workflows to reviewed SHA-pinned Actions v7 and `node-version-file: package.json`.
+- Added weekly GitHub Actions Dependabot maintenance.
+- Extended CI alignment to reject Node policy drift, workflow-local Node versions, tag-only/stale/miscommented action references, missing action maintenance, and package/lock inconsistency.
+- Final closeout used official Node `v24.20.0` and npm `11.19.0` only from ignored `.task_tmp/`; the machine-wide Node installation was not changed.
+- Updated the Calculus derivative canary to complete notation and fixed numeric-interval request identity so an initially unset UI target resolves once for launch, active-revision comparison, and replay.
+- Aligned stale result, History-future-version, Notebook, and Statistics browser assertions to current production contracts. These are test-contract corrections except for the numeric-interval identity fix; no solver, timeout, public schema, frozen V1, proof, print, or display baseline changed.

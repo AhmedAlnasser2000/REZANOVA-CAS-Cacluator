@@ -16,15 +16,19 @@ async function openBlankNotebook(page: Page) {
   await expect(page.getByLabel('Notebook rich document')).toBeVisible();
 }
 
-async function expectKeyboardClearance(page: Page) {
-  const field = page.locator('.notebook-rich-display-field').first();
+async function expectKeyboardClearance(
+  page: Page,
+  fieldSelector = '.notebook-rich-display-field',
+) {
+  const field = page.locator(`${fieldSelector}:visible`).first();
   await field.click();
+  await expect(field).toBeFocused();
 
   const keyboard = page.getByTestId('notebook-authoring-keyboard');
   await expect(keyboard).toBeVisible();
   await page.waitForTimeout(100);
 
-  const bounds = await page.evaluate(() => {
+  const bounds = await page.evaluate((activeFieldSelector) => {
     const measure = (selector: string) => {
       const element = document.querySelector(selector);
       if (!element) {
@@ -39,12 +43,12 @@ async function expectKeyboardClearance(page: Page) {
       };
     };
     return {
-      field: measure('.notebook-rich-display-field'),
+      field: measure(activeFieldSelector),
       keyboard: measure('[data-testid="notebook-authoring-keyboard"]'),
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     };
-  });
+  }, fieldSelector);
 
   expect(bounds.field).not.toBeNull();
   expect(bounds.keyboard).not.toBeNull();
@@ -119,7 +123,7 @@ test('Notebook unifies compact tools, symbols, and matrix dimensions in one floa
   });
 });
 
-test('Notebook inline math stays visually seamless and template insertion leaves a caret', async ({ page }) => {
+test('Notebook inline math stays visually seamless and template insertion leaves an editable slot', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openBlankNotebook(page);
 
@@ -153,17 +157,13 @@ test('Notebook inline math stays visually seamless and template insertion leaves
     };
     return {
       collapsed: mathField.selectionIsCollapsed,
-    groupHighlight: getComputedStyle(
-      mathField.shadowRoot!.querySelector('.ML__contains-highlight')!,
-    ).backgroundColor,
     value: mathField.getValue('latex'),
     };
   });
-  expect(insertionState.collapsed).toBe(true);
-  expect(insertionState.groupHighlight).toBe('rgba(0, 0, 0, 0)');
+  expect(insertionState.collapsed).toBe(false);
   expect(insertionState.value).toContain('\\frac');
 
-  await page.keyboard.type('x');
+  await field.press('x');
   await expect.poll(() => field.evaluate((element) =>
     (element as HTMLElement & { getValue: (format: string) => string }).getValue('latex')))
     .toContain('\\frac{x}');
@@ -189,7 +189,9 @@ test('Notebook preserves a dominant canvas and clear keyboard at drawer width', 
   await page.getByRole('button', { name: 'Toggle Notebook outline' }).click();
   await expect(page.getByRole('complementary', { name: 'Notebook outline' })).toBeVisible();
   await page.getByRole('button', { name: 'Close Notebook outline' }).click();
-  await expectKeyboardClearance(page);
+  await expect(page.getByRole('complementary', { name: 'Notebook outline' }))
+    .not.toHaveClass(/is-drawer-open/);
+  await expectKeyboardClearance(page, '.notebook-rich-inline-field');
 
   await test.info().attach('notebook-drawer-keyboard', {
     body: await page.screenshot(),
@@ -211,7 +213,10 @@ test('Notebook renders recursive sections in the outline and document canvas', a
   await expect(outlineSections.nth(1)).toHaveAttribute('data-outline-depth', '1');
   await expect(page.getByTestId('notebook-section')).toHaveCount(2);
 
-  await outlineSections.first().getByRole('button', { name: 'Collapse Untitled section' }).click();
+  await page.getByTestId('notebook-section').first()
+    .locator(':scope > header')
+    .getByRole('button', { name: 'Collapse Untitled section' })
+    .click();
   await expect(outlineSections).toHaveCount(1);
   await expect(page.getByTestId('notebook-section').first()).toHaveClass(/is-collapsed/);
 

@@ -36,7 +36,8 @@ describe('calculus ui', () => {
     expect(laplace.previewTitle).toBe('Generated Laplace Request');
     expect(laplace.emptyStateDescription).toContain('Laplace transform');
     expect(partial.previewTitle).toBe('Generated Partial Derivative');
-    expect(partial.emptyStateDescription).toContain('multivariable expression');
+    expect(partial.emptyStateDescription).toContain('complete partial derivative request');
+    expect(partial.emptyStateDescription).toContain('∂/∂z(f(x,z))');
     expect(partial.guideArticleId).toBe('calculus-partials');
   });
 });
