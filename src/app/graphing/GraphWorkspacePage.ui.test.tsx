@@ -626,7 +626,7 @@ describe('GraphWorkspacePage', () => {
     );
     setMathFieldValue(screen.getByTestId('graph-expression-editor-graphing.2.item.1'), 'x');
     await waitFor(() => expect(runGraphSampleWithOoe.mock.calls.some(
-      ([request]) => request.quality === 'settled',
+      ([request]) => request.quality === 'polish',
     )).toBe(true));
     runGraphSampleWithOoe.mockClear();
 

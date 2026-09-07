@@ -144,7 +144,7 @@ test('CALC-POLISH1 history replay preserves guided calculus context', async ({ p
 
   await expect(page.getByText('Integral').first()).toBeVisible();
   await expect.poll(() => getMathFieldLatex(page)).toBe('2x');
-  await page.getByTestId('history-toggle').click();
+  await expect(page.getByTestId('side-surface-host')).toBeHidden();
 
   await openAdvancedCalcTool(page, 'Series', 'Maclaurin');
   await setVisibleSecondaryMathFieldLatex(page, '\\sin(x)');
