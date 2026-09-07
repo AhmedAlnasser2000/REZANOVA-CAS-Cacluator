@@ -237,6 +237,7 @@ type CanonicalizeSegmentOptions = {
   normalizeImaginaryUnit?: boolean;
   enableSpecialFunctions?: boolean;
   canonicalizationScope?: 'all' | 'special-functions';
+  preserveLatexFences?: boolean;
 };
 
 function collectSimpleArgument(source: string, start: number) {
@@ -577,6 +578,7 @@ export function normalizeLiveInputOperatorLatex(
     ? canonicalizeSegment(operatorNormalized, changes, {
       enableSpecialFunctions: true,
       canonicalizationScope: isIntegralFunctionContext(context) ? 'all' : 'special-functions',
+      preserveLatexFences: true,
     })
     : operatorNormalized;
 }
@@ -662,6 +664,7 @@ function canonicalizeSegment(
         after,
       });
     },
+    { preserveLatexFences: options.preserveLatexFences },
   );
 
   return operatorCanonical ?? canonicalizeAtomicSegment(source, changes, options);

@@ -46,6 +46,7 @@ import {
   calculusRevisionRequestFromSurfaceState,
 } from './calculus-origin-request';
 import {
+  derivativeEditorInputError,
   derivativeEditorVariableForState,
   normalizeDerivativePointWorkbenchForEditor,
   normalizeDerivativeWorkbenchForEditor,
@@ -699,11 +700,17 @@ export function useCalculusRuntime({
 
   function runCalculusAction() {
     const generated = trimHarmlessTrailingMathSpacing(calculusWorkbenchExpression);
+    const derivativeInputError = calculusScreen === 'derivative'
+      || calculusScreen === 'derivativePoint'
+      || calculusScreen === 'partialDerivative'
+      ? derivativeEditorInputError(calculusScreen, calculusMainEditorLatex)
+      : null;
     if (!generated || !calculusRouteMeta || isCalculusMenuOpen) {
       setDisplayOutcome(createCanonicalRuntimeError(
         calculusRouteMeta?.label ?? 'Calculus',
         calculusRouteMeta
-          ? `Fill the ${calculusRouteMeta.label.toLowerCase()} inputs before evaluating.`
+          ? derivativeInputError
+            ?? `Fill the ${calculusRouteMeta.label.toLowerCase()} inputs before evaluating.`
           : 'Choose a Calculus tool before evaluating.',
       ));
       return;

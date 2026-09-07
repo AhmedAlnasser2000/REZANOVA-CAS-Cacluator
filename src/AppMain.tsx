@@ -1955,7 +1955,7 @@ export default function App() {
   }
 
   function insertLatex(latex: string) {
-    insertLatexIntoEditor(activeFieldRef, mainFieldRef, latex);
+    insertLatexIntoEditor(activeFieldRef, mainFieldRef, isCalculusMode(currentMode) && latex === '(' ? '\\left(#0\\right)' : latex);
   }
 
   function clearCurrentMode() {

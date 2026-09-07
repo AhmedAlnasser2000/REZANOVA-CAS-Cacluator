@@ -21,6 +21,48 @@ function derivativeKindForScreen(screen: DerivativeEditorScreen) {
   return screen === 'partialDerivative' ? 'partial' : 'derivative';
 }
 
+function derivativeRequestExample(screen: DerivativeEditorScreen) {
+  return screen === 'partialDerivative'
+    ? '∂/∂z(f(x,z))'
+    : 'd/dz(f(z))';
+}
+
+export function strictDerivativeEditorLatex(
+  screen: DerivativeEditorScreen,
+  sourceLatex: string,
+) {
+  const natural = parseNaturalDerivativeRequest(sourceLatex, derivativeKindForScreen(screen));
+  return natural.ok ? natural.request.canonicalLatex : '';
+}
+
+export function derivativeEditorInputError(
+  screen: DerivativeEditorScreen,
+  sourceLatex: string,
+) {
+  const natural = parseNaturalDerivativeRequest(sourceLatex, derivativeKindForScreen(screen));
+  if (natural.ok) {
+    return null;
+  }
+  if (!sourceLatex.trim() || !natural.looksLikeDerivativeRequest) {
+    return `Enter a complete ${screen === 'partialDerivative' ? 'partial ' : ''}derivative request such as ${derivativeRequestExample(screen)}.`;
+  }
+  const compact = sourceLatex.replace(/\s+/gu, '');
+  if (
+    screen !== 'partialDerivative'
+    && (/^d\/d(?:\\left)?\(/u.test(compact) || /^\\frac\{d\}\{d\}(?:\\left)?\(/u.test(compact))
+  ) {
+    return 'Enter the differentiation variable after d/d, for example d/dz(f(z)).';
+  }
+  if (
+    screen === 'partialDerivative'
+    && (/^(?:∂|\\partial)\/(?:∂|\\partial)(?:\\left)?\(/u.test(compact)
+      || /^\\frac\{\\partial\}\{\\partial\}(?:\\left)?\(/u.test(compact))
+  ) {
+    return 'Enter the differentiation variable after ∂/∂, for example ∂/∂z(f(x,z)).';
+  }
+  return natural.error;
+}
+
 function canonicalEditorLatex(screen: DerivativeEditorScreen, state: DerivativeEditorState) {
   const bodyLatex = state.bodyLatex.trim();
   if (!bodyLatex) {

@@ -50,7 +50,7 @@ describe('Equation structured finite root sets', () => {
     expect(rendered.exactLatex).toBe(String.raw`x\in\left\{a,\ \sqrt{b}\right\}`);
     expect(rendered.primaryMath).toEqual({
       canonicalLatex: String.raw`x\in\left\{a,\ \sqrt{b}\right\}`,
-      mathJson: ['Element', 'x', ['Set', ['Add', 0, 'a'], ['Multiply', 1, ['Sqrt', 'b']]]],
+      mathJson: ['Element', 'x', ['Set', 'a', ['Sqrt', 'b']]],
     });
     expect(structuredClone(rendered.primaryMath)).toEqual(rendered.primaryMath);
   });

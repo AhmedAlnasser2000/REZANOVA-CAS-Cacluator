@@ -152,9 +152,46 @@ describe('useCalculusRuntime', () => {
       hook.result.current.runCalculusAction();
     });
 
-    expect(setDisplayOutcome).toHaveBeenCalledWith(createCanonicalRuntimeError(
+    expect(setDisplayOutcome).toHaveBeenLastCalledWith(createCanonicalRuntimeError(
       'Derivative',
-      'Fill the derivative inputs before evaluating.',
+      'Enter a complete derivative request such as d/dz(f(z)).',
+    ));
+    expect(runCalculusModeWithOoePilot).not.toHaveBeenCalled();
+  });
+
+  it('rejects bare, targetless, and cross-screen derivative input before runtime launch', () => {
+    const { hook, setDisplayOutcome } = renderCalculusRuntime();
+
+    act(() => {
+      hook.result.current.openCalculusScreen('derivative');
+      hook.result.current.setCalculusMainEditorLatex('c\\sin x');
+    });
+    act(() => hook.result.current.runCalculusAction());
+    expect(setDisplayOutcome).toHaveBeenLastCalledWith(createCanonicalRuntimeError(
+      'Derivative',
+      'Enter a complete derivative request such as d/dz(f(z)).',
+    ));
+
+    act(() => hook.result.current.setCalculusMainEditorLatex('d/d(c\\sin x)'));
+    act(() => hook.result.current.runCalculusAction());
+    expect(setDisplayOutcome).toHaveBeenLastCalledWith(createCanonicalRuntimeError(
+      'Derivative',
+      'Enter the differentiation variable after d/d, for example d/dz(f(z)).',
+    ));
+
+    act(() => hook.result.current.setCalculusMainEditorLatex('∂/∂x(x^2)'));
+    act(() => hook.result.current.runCalculusAction());
+    expect(setDisplayOutcome).toHaveBeenLastCalledWith(createCanonicalRuntimeError(
+      'Derivative',
+      'Use an ordinary derivative operator on this screen.',
+    ));
+
+    act(() => hook.result.current.openCalculusScreen('partialDerivative'));
+    act(() => hook.result.current.setCalculusMainEditorLatex('d/dx(xy)'));
+    act(() => hook.result.current.runCalculusAction());
+    expect(setDisplayOutcome).toHaveBeenLastCalledWith(createCanonicalRuntimeError(
+      'Partial Derivative',
+      'Use a partial derivative operator on this screen.',
     ));
     expect(runCalculusModeWithOoePilot).not.toHaveBeenCalled();
   });

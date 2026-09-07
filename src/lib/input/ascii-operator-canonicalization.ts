@@ -3,6 +3,10 @@ type SplitResult = {
   parts: string[];
 };
 
+type CanonicalizeAsciiOperatorOptions = {
+  preserveLatexFences?: boolean;
+};
+
 function collectCommand(source: string, start: number) {
   let index = start + 1;
   while (index < source.length && /[A-Za-z]/.test(source[index])) {
@@ -137,6 +141,7 @@ function collectWholeGroupedArgument(source: string) {
   return {
     body: grouped.body,
     closer: opener === '[' ? ']' : opener === '{' ? '}' : ')',
+    hasLatexFence: trimmed.startsWith('\\left'),
     opener,
   };
 }
@@ -199,6 +204,7 @@ export function canonicalizeAsciiOperatorExpression(
   source: string,
   canonicalizePart: (source: string) => string,
   recordOperatorChange: (before: string, after: string) => void,
+  options: CanonicalizeAsciiOperatorOptions = {},
 ) {
   const trimmed = source.trim();
   const relation = splitTopLevelRelation(trimmed);
@@ -240,5 +246,11 @@ export function canonicalizeAsciiOperatorExpression(
   }
 
   const grouped = collectWholeGroupedArgument(trimmed);
-  return grouped ? `${grouped.opener}${canonicalizePart(grouped.body)}${grouped.closer}` : null;
+  if (!grouped) {
+    return null;
+  }
+  const canonicalBody = canonicalizePart(grouped.body);
+  return options.preserveLatexFences && grouped.hasLatexFence
+    ? `\\left${grouped.opener}${canonicalBody}\\right${grouped.closer}`
+    : `${grouped.opener}${canonicalBody}${grouped.closer}`;
 }

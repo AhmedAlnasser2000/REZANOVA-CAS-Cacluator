@@ -48,8 +48,8 @@ describe('Calculus partial derivative editor source', () => {
 
     expect(screen.getByTestId('soft-action-toEditor')).toHaveTextContent('Focus Editor');
     expect(screen.getByTestId('calculus-operator-rail')).toBeInTheDocument();
-    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('∂/∂x');
-    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(x, ...)');
+    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('∂/∂?');
+    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(?, ...)');
     expect(screen.queryByTestId('calculus-partial-derivative-target')).not.toBeInTheDocument();
     expect(document.querySelector('math-field.secondary-mathfield')).not.toBeInTheDocument();
 

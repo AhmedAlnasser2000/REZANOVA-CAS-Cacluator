@@ -48,6 +48,58 @@ function requireV4Document(
 }
 
 describe('runCalculusWorkspaceMode stored values', () => {
+  it('uses the variable written in complete derivative notation and leaves other symbols free', async () => {
+    const cases = [
+      {
+        screen: 'derivative' as const,
+        overrides: {
+          derivative: { bodyLatex: 'd/dz(z^3+az)', variable: 'x' },
+        },
+        exactLatex: '3z^2+a',
+      },
+      {
+        screen: 'derivative' as const,
+        overrides: {
+          derivative: { bodyLatex: 'd/dc(c\\sin x)', variable: 'x' },
+        },
+        exactLatex: '\\sin(x)',
+      },
+      {
+        screen: 'derivative' as const,
+        overrides: {
+          derivative: { bodyLatex: 'd/dx(c\\sin x)', variable: 'c' },
+        },
+        exactLatex: 'c\\cos(x)',
+      },
+      {
+        screen: 'derivative' as const,
+        overrides: {
+          derivative: { bodyLatex: 'd/dt(t^3+2t)', variable: 'x' },
+        },
+        exactLatex: '3t^2+2',
+      },
+      {
+        screen: 'partialDerivative' as const,
+        overrides: {
+          partialDerivative: { bodyLatex: '∂/∂y(xy+y^2)', variable: 'x' },
+        },
+        exactLatex: 'x+2y',
+      },
+    ];
+
+    for (const derivativeCase of cases) {
+      const result = await runCalculusWorkspaceMode(makeRequest(
+        derivativeCase.screen,
+        derivativeCase.overrides,
+      ));
+      expect(result.kind).toBe('success');
+      if (result.kind !== 'success') {
+        throw new Error('Expected success');
+      }
+      expect(result.exactLatex).toBe(derivativeCase.exactLatex);
+    }
+  });
+
   it('keeps canonical error-function readback aligned with producer-owned standard MathJSON', async () => {
     const result = await runCalculusWorkspaceMode(makeRequest('indefiniteIntegral', {
       indefiniteIntegral: { bodyLatex: 'e^{-x^2}' },

@@ -214,6 +214,30 @@ describe('canonicalizeMathInput', () => {
     })).toBe('x\\arctan(x)+\\sinh^{2}(x)');
   });
 
+  it('preserves transient MathLive smart fences during live Calculus normalization', () => {
+    for (const screenHint of [
+      'derivative',
+      'derivativePoint',
+      'partialDerivative',
+      'indefiniteIntegral',
+      'definiteIntegral',
+      'improperIntegral',
+    ]) {
+      expect(normalizeLiveInputOperatorLatex('\\left(\\right)', {
+        mode: 'calculus',
+        screenHint,
+      })).toBe('\\left(\\right)');
+    }
+
+    expect(canonicalizeMathInput('\\left(x+1\\right)', {
+      mode: 'calculus',
+      screenHint: 'indefiniteIntegral',
+    })).toMatchObject({
+      ok: true,
+      canonicalLatex: '(x+1)',
+    });
+  });
+
   it('canonicalizes pasted textbook slash and star operators structurally', () => {
     const simple = canonicalizeMathInput('1/2*x', {
       mode: 'calculus',

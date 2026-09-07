@@ -15,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 
 test('CALC-AUDIT0 basic Calculus smoke covers derivative, integral, and limit', async ({ page }) => {
   await openCalculusTool(page, 'Derivative');
-  await setMathFieldLatex(page, 'x^3+2x');
+  await setMathFieldLatex(page, 'd/dx(x^3+2x)');
   await page.getByTestId('keypad-execute').click();
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();
@@ -84,7 +84,7 @@ test('CALC-DIFF1 Calculate editor smoke covers powered chain derivatives', async
 
 test('CALC-DIFF1 guided Calculus derivative smoke covers general powers', async ({ page }) => {
   await openCalculusTool(page, 'Derivative');
-  await setMathFieldLatex(page, '\\cos^{2x}\\left(x\\right)');
+  await setMathFieldLatex(page, 'd/dx(\\cos^{2x}\\left(x\\right))');
   await page.getByTestId('keypad-execute').click();
 
   await expect(page.getByTestId('display-outcome-success')).toBeVisible();

@@ -10,10 +10,8 @@ import {
   parseDerivativeVariable,
 } from '../../../lib/calculus/derivative-target';
 import {
-  firstOrderDerivativeOperator,
   formatDerivativeAppliedPath,
   formatDerivativeOperator,
-  parseDerivativeOperator,
   type DerivativeOperatorKind,
 } from '../../../lib/calculus/derivative-operator';
 import { parseNaturalDerivativeRequest } from '../../../lib/calculus/derivative-request';
@@ -66,7 +64,6 @@ export function DisplayEditorSurface({
   deferredDisplayLatex,
   derivativePointValueRef,
   derivativePointWorkbench,
-  derivativeWorkbench,
   displayMathLatex,
   equationKeyboardLayouts,
   equationLatex,
@@ -116,7 +113,6 @@ export function DisplayEditorSurface({
   statisticsKeyboardLayouts,
   statisticsRouteMeta,
   statisticsScreen,
-  partialDerivativeState,
   trigDraftFieldRef,
   trigDraftLatex,
   trigScreen,
@@ -172,9 +168,9 @@ export function DisplayEditorSurface({
       : calculusScreen === 'implicitDerivative'
         ? `Enter relation in ${implicitIndependentLatex} and ${implicitDependentLatex}`
       : calculusScreen === 'partialDerivative'
-        ? `Enter ∂/∂${calculusMainEditorTargetLatex}(f(${calculusMainEditorTargetLatex}, ...))`
+        ? 'Enter ∂/∂z(f(x,z))'
       : calculusScreen === 'derivative' || calculusScreen === 'derivativePoint'
-        ? `Enter d/d${calculusMainEditorTargetLatex}(f(${calculusMainEditorTargetLatex}))`
+        ? 'Enter d/dz(f(z))'
       : calculusMainEditorContextLabel
         ? `Enter ${calculusMainEditorFunctionHint}`
         : 'Enter an integrand in x';
@@ -185,40 +181,29 @@ export function DisplayEditorSurface({
   const calculusImplicitRailActive = calculusScreen === 'implicitDerivative';
   const calculusRailKind: DerivativeOperatorKind =
     calculusScreen === 'partialDerivative' ? 'partial' : 'derivative';
-  const calculusRailVariable = calculusScreen === 'derivative'
-    ? derivativeWorkbench?.variable
-    : calculusScreen === 'derivativePoint'
-      ? derivativePointWorkbench?.variable
-      : partialDerivativeState?.variable;
-  const calculusRailOperatorLatex = calculusScreen === 'derivative'
-    ? derivativeWorkbench?.operatorLatex
-    : calculusScreen === 'derivativePoint'
-      ? derivativePointWorkbench?.operatorLatex
-      : partialDerivativeState?.operatorLatex;
   const calculusRailNaturalRequest = calculusDerivativeRailActive
     ? parseNaturalDerivativeRequest(calculusMainEditorLatex, calculusRailKind)
     : null;
   const calculusRailOperator = calculusDerivativeRailActive
-    ? calculusRailNaturalRequest?.ok
-      ? { ok: true as const, operator: calculusRailNaturalRequest.request.operator }
-      : calculusRailOperatorLatex !== undefined
-      ? parseDerivativeOperator(calculusRailOperatorLatex, calculusRailKind)
-      : firstOrderDerivativeOperator(calculusRailKind, calculusRailVariable ?? calculusMainEditorTarget)
+    && calculusRailNaturalRequest?.ok
+    ? { ok: true as const, operator: calculusRailNaturalRequest.request.operator }
     : null;
   const calculusRailResolvedVariable =
     calculusRailOperator?.ok
-      ? calculusRailOperator.operator.writtenFactors[0]?.variable ?? calculusRailVariable ?? calculusMainEditorTarget
-      : calculusRailVariable ?? calculusMainEditorTarget;
-  const calculusRailVariableLatex = derivativeVariableLatex(calculusRailResolvedVariable);
+      ? calculusRailOperator.operator.writtenFactors[0]?.variable
+      : undefined;
+  const calculusRailVariableLatex = calculusRailResolvedVariable
+    ? derivativeVariableLatex(calculusRailResolvedVariable)
+    : '?';
   const calculusRailOperatorLabel = calculusRailOperator?.ok
     ? formatDerivativeOperator(calculusRailOperator.operator, settings?.mathNotationDisplay ?? 'rendered')
-    : 'Invalid operator';
+    : calculusRailKind === 'partial' ? '∂/∂?' : 'd/d?';
   const calculusRailAppliedPath = calculusRailOperator?.ok
     ? formatDerivativeAppliedPath(calculusRailOperator.operator)
     : '';
   const calculusRailBodyLatex = calculusRailNaturalRequest?.ok
     ? calculusRailNaturalRequest.request.bodyLatex
-    : calculusMainEditorLatex.trim();
+    : '';
   const calculusRailFunctionHint = calculusScreen === 'partialDerivative'
     ? `f(${calculusRailVariableLatex}, ...)`
     : `f(${calculusRailVariableLatex})`;
@@ -625,7 +610,9 @@ export function DisplayEditorSurface({
               </div>
               {calculusScreen === 'derivativePoint' ? (
                 <label className="range-field calculus-operator-rail__point">
-                  <span>{`Point ${calculusRailVariableLatex} =`}</span>
+                  <span>{calculusRailResolvedVariable
+                    ? `Point ${calculusRailVariableLatex} =`
+                    : 'Point value ='}</span>
                   <SignedNumberDraftInput
                     ref={derivativePointValueRef}
                     value={derivativePointWorkbench?.point ?? ''}

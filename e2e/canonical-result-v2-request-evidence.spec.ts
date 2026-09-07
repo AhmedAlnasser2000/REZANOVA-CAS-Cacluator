@@ -39,7 +39,7 @@ test.beforeEach(async ({ page }) => {
 
 test('renders and replays the corrected derivative-at-point V2 result', async ({ page }) => {
   await openAdvancedCalcTool(page, 'Derivatives', 'Derivative at Point');
-  await setMathFieldLatex(page, 'x^2');
+  await setMathFieldLatex(page, 'd/dx(x^2)');
   const point = page.getByLabel('Point x =');
   await point.fill('3');
   await page.getByTestId('editor-runtime-run').click();

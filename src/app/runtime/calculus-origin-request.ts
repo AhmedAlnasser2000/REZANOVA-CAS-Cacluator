@@ -8,15 +8,16 @@ import {
   buildImplicitDerivativeLatex,
   buildLaplaceTransformLatex,
   buildNumericIvpLatex,
-  buildPartialDerivativeLatex,
   buildSecondOrderOdeLatex,
   buildSeriesPreviewLatex,
 } from '../../lib/calculus/workspace/examples';
 import {
   buildDerivativeAtPointLatex,
-  buildDerivativeLatex,
 } from '../../lib/calculus/calculus-workbench';
-import { derivativeRequestStateFromEditor } from './calculus-derivative-source';
+import {
+  derivativeRequestStateFromEditor,
+  strictDerivativeEditorLatex,
+} from './calculus-derivative-source';
 import { trimHarmlessTrailingMathSpacing } from '../../lib/input/input-canonicalization';
 import type { RunCalculusModeRequest } from '../../lib/modes/calculus';
 import type { ActiveCalculusRuntimeState } from './calculus-runtime-state';
@@ -69,18 +70,16 @@ export function buildCalculusWorkbenchExpression(
 ) {
   switch (screen) {
     case 'derivative':
-      return buildDerivativeLatex(
-        state.derivative.bodyLatex,
-        state.derivative.variable,
-        state.derivative.operatorLatex,
-      );
-    case 'derivativePoint':
-      return buildDerivativeAtPointLatex(
+      return strictDerivativeEditorLatex('derivative', state.derivative.bodyLatex);
+    case 'derivativePoint': {
+      const requestLatex = strictDerivativeEditorLatex(
+        'derivativePoint',
         state.derivativePoint.bodyLatex,
-        state.derivativePoint.point,
-        state.derivativePoint.variable,
-        state.derivativePoint.operatorLatex,
       );
+      return requestLatex
+        ? buildDerivativeAtPointLatex(requestLatex, state.derivativePoint.point)
+        : '';
+    }
     case 'implicitDerivative':
       return buildImplicitDerivativeLatex(state.implicitDerivative);
     case 'indefiniteIntegral':
@@ -117,7 +116,7 @@ export function buildCalculusWorkbenchExpression(
     case 'laplace':
       return buildLaplaceTransformLatex(state.laplace);
     case 'partialDerivative':
-      return buildPartialDerivativeLatex(state.partialDerivative);
+      return strictDerivativeEditorLatex('partialDerivative', state.partialDerivative.bodyLatex);
     case 'odeFirstOrder':
       return buildFirstOrderOdeLatex(state.firstOrderOde);
     case 'odeSecondOrder':

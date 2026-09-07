@@ -73,8 +73,8 @@ describe('Calculus derivative editor source', () => {
 
     expect(screen.getByTestId('soft-action-toEditor')).toHaveTextContent('Focus Editor');
     expect(screen.getByTestId('calculus-operator-rail')).toBeInTheDocument();
-    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('d/dx');
-    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(x)');
+    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('d/d?');
+    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(?)');
     expect(screen.queryByTestId('calculus-derivative-target')).not.toBeInTheDocument();
     expect(document.querySelector('math-field.secondary-mathfield')).not.toBeInTheDocument();
 
@@ -144,11 +144,11 @@ describe('Calculus derivative editor source', () => {
 
     await openCalculusTool(user, 'Derivatives', 'Derivative');
 
-    setMathFieldLatex('main-editor', 'Si(2x+1)');
+    setMathFieldLatex('main-editor', 'd/dx(Si(2x+1))');
     await waitFor(() => {
       expect(screen.getByTestId('main-editor')).toHaveAttribute(
         'data-value',
-        '\\operatorname{Si}(2x+1)',
+        'd/dx(\\operatorname{Si}(2x+1))',
       );
     });
     await user.click(screen.getByTestId('soft-action-evaluate'));
@@ -168,11 +168,11 @@ describe('Calculus derivative editor source', () => {
 
     await openCalculusTool(user, 'Derivatives', 'Derivative');
 
-    setMathFieldLatex('main-editor', 'EllipticF(2x+1,m)');
+    setMathFieldLatex('main-editor', 'd/dx(EllipticF(2x+1,m))');
     await waitFor(() => {
       expect(screen.getByTestId('main-editor')).toHaveAttribute(
         'data-value',
-        '\\operatorname{EllipticF}(2x+1,m)',
+        'd/dx(\\operatorname{EllipticF}(2x+1,m))',
       );
     });
     await user.click(screen.getByTestId('soft-action-evaluate'));
@@ -196,8 +196,8 @@ describe('Calculus derivative editor source', () => {
 
     expect(screen.getByTestId('soft-action-toEditor')).toHaveTextContent('Focus Editor');
     expect(screen.getByTestId('calculus-operator-rail')).toBeInTheDocument();
-    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('d/dx');
-    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(x)');
+    expect(screen.getByTestId('calculus-main-editor-context')).toHaveTextContent('d/d?');
+    expect(screen.getByTestId('calculus-operator-rail')).toHaveTextContent('f(?)');
     expect(document.querySelector('math-field.secondary-mathfield')).not.toBeInTheDocument();
     expect(screen.queryByTestId('calculus-derivative-point-target')).not.toBeInTheDocument();
 
