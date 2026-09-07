@@ -302,7 +302,7 @@ describe('AppMain UI automation flows', () => {
 
     await user.click(await screen.findByRole('button', { name: /core/i }));
     await user.click(await screen.findByRole('button', { name: /equation/i }));
-    await screen.findByRole('button', { name: /symbolic/i });
+    await waitFor(() => expect(document.querySelector('.equation-menu-list')).toBeInTheDocument());
     await waitFor(() => expect(screen.queryByTestId('left-menu-inspector')).not.toBeInTheDocument());
   });
 
